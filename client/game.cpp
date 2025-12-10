@@ -34,13 +34,13 @@ Game::Game() {
 Game::~Game() {}
 
 void Game::HandleInput() {
-  // Reset Active State
+  // Reset Active State for touch buttons
   btnLeft.active = false;
   btnRight.active = false;
   btnRotate.active = false;
   btnDrop.active = false;
 
-  // Mouse / Touch
+  // Mouse / Touch input for buttons
   if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
     Vector2 mouse = GetMousePosition();
     if (CheckCollisionPointRec(mouse, btnLeft.rect))
@@ -53,32 +53,89 @@ void Game::HandleInput() {
       btnDrop.active = true;
   }
 
-  // Keyboard & Button Logic
+  // --- Keyboard Delayed Auto Shift (DAS) for LEFT/RIGHT movement ---
+  // Handle key releases first to clear `lastMoveDir` if the active key is let go.
+  // This is important for "rolling" from one key to another (e.g., Left held,
+  // then Right pressed, then Right released, Left should become active again with a fresh DAS timer).
+  if (IsKeyReleased(KEY_LEFT) && lastMoveDir == -1) {
+    dasTimer = 0.0f;
+    lastMoveDir = 0;
+  }
+  if (IsKeyReleased(KEY_RIGHT) && lastMoveDir == 1) {
+    dasTimer = 0.0f;
+    lastMoveDir = 0;
+  }
+
+  // Determine the current desired move direction from keyboard (right takes precedence if both are down)
+  int currentKeyboardMoveDir = 0;
+  if (IsKeyDown(KEY_LEFT)) {
+    currentKeyboardMoveDir = -1;
+  }
+  if (IsKeyDown(KEY_RIGHT)) {
+    currentKeyboardMoveDir = 1;
+  }
+
+  // Check for initial press or change in active DAS direction
+  if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir != lastMoveDir) {
+    // New key is pressed or a different key took over.
+    logic.Move(currentKeyboardMoveDir, 0); // Initial move for the new direction
+    dasTimer = 0.0f;                       // Reset timer for the new direction
+    lastMoveDir = currentKeyboardMoveDir;
+  }
+  // If the same key is held down (DAS repeat)
+  else if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir == lastMoveDir) {
+    dasTimer += GetFrameTime();
+
+    // After initial delay, start repeating movement at dasRate
+    while (dasTimer >= dasDelay) {
+      logic.Move(lastMoveDir, 0);
+      dasTimer -= dasRate; // Subtract dasRate to schedule the next repeat
+    }
+  }
+  // If no relevant keyboard key is down, reset DAS state
+  else if (currentKeyboardMoveDir == 0) {
+    dasTimer = 0.0f;
+    lastMoveDir = 0;
+  }
+  // --- End Keyboard DAS for LEFT/RIGHT ---
+
+
+  // --- Other Keyboard Controls ---
+  // Rotate
+  if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE)) {
+    logic.Rotate();
+  }
+  // Soft Drop (continuous)
+  if (IsKeyDown(KEY_DOWN)) {
+    logic.Move(0, 1);
+  }
+  // --- End Other Keyboard Controls ---
+
+
+  // --- Touch Controls (Single Press except for Soft Drop) ---
+  // Use static bools to ensure single activation per touch for non-continuous actions
   static bool leftPressed = false;
   static bool rightPressed = false;
   static bool rotatePressed = false;
 
-  // Move Left
-  if (IsKeyPressed(KEY_LEFT) || (btnLeft.active && !leftPressed))
+  if (btnLeft.active && !leftPressed) {
     logic.Move(-1, 0);
-
-  // Move Right
-  if (IsKeyPressed(KEY_RIGHT) || (btnRight.active && !rightPressed))
+  }
+  if (btnRight.active && !rightPressed) {
     logic.Move(1, 0);
-
-  // Rotate
-  if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE) ||
-      (btnRotate.active && !rotatePressed))
+  }
+  if (btnRotate.active && !rotatePressed) {
     logic.Rotate();
-
-  // Soft Drop
-  if (IsKeyDown(KEY_DOWN) || btnDrop.active)
+  }
+  if (btnDrop.active) { // Touch soft drop is continuous
     logic.Move(0, 1);
+  }
 
-  // Update states
+  // Update static states for touch buttons
   leftPressed = btnLeft.active;
   rightPressed = btnRight.active;
   rotatePressed = btnRotate.active;
+  // --- End Touch Controls ---
 }
 
 void Game::Update() {

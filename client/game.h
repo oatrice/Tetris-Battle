@@ -28,6 +28,12 @@ private:
   float gravityTimer = 0.0f;
   float gravityInterval = 1.0f; // 1 sec
 
+  // Delayed Auto Shift (DAS) for movement
+  float dasTimer = 0.0f;   // Timer for auto shift
+  float dasDelay = 0.2f;   // Initial delay before repeating (e.g., 0.2s)
+  float dasRate = 0.05f;   // Speed of repeating (e.g., 0.05s)
+  int lastMoveDir = 0;     // -1 for left, 1 for right, 0 for none/reset
+
   const int cellSize = 30;
   // Screen 800x600. Board 300x600.
   // Center X: (800 - 300) / 2 = 250.
