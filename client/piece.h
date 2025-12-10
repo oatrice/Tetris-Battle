@@ -1,4 +1,3 @@
-
 #pragma once
 
 enum class PieceType { NONE = 0, I, O, T, S, Z, J, L };

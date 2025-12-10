@@ -1,4 +1,3 @@
-
 #include "game.h"
 
 Game::Game() {
@@ -126,7 +125,8 @@ void Game::DrawNextPiece() {
       int drawX = centerX + (bx * cellSize);
       int drawY = centerY + (by * cellSize);
 
-      DrawRectangle(drawX + 1, drawY + 1, cellSize - 2, cellSize - 2, YELLOW);
+      // Changed color from YELLOW to GOLD for higher contrast
+      DrawRectangle(drawX + 1, drawY + 1, cellSize - 2, cellSize - 2, GOLD);
     }
   }
 }
