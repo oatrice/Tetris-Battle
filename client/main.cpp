@@ -1,41 +1,31 @@
+
+#include "game.h"
 #include "raylib.h"
 
-int main()
-{
-    // Initialization
-    //--------------------------------------------------------------------------------------
-    const int screenWidth = 800;
-    const int screenHeight = 600;
+int main() {
+  const int screenWidth = 800;
+  const int screenHeight = 600;
 
-    InitWindow(screenWidth, screenHeight, "Tetris Battle");
+  InitWindow(screenWidth, screenHeight, "Tetris Battle");
+  SetTargetFPS(60);
 
-    SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
-    //--------------------------------------------------------------------------------------
+  Game game; // Instantiate Game Logic
 
-    // Main game loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
-    {
-        // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update game state here
-        //----------------------------------------------------------------------------------
+  while (!WindowShouldClose()) {
+    // 1. Update
+    game.Update();
 
-        // Draw
-        //----------------------------------------------------------------------------------
-        BeginDrawing();
+    // 2. Draw
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+    DrawText("Tetris Battle Client", 10, 10, 20, DARKGRAY);
+    DrawText("FPS: 60", 10, 30, 10, GRAY);
 
-            ClearBackground(RAYWHITE);
+    game.Draw();
 
-            DrawText("Waiting for Server...", 190, 200, 20, LIGHTGRAY);
+    EndDrawing();
+  }
 
-        EndDrawing();
-        //----------------------------------------------------------------------------------
-    }
-
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    CloseWindow();        // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
-
-    return 0;
+  CloseWindow();
+  return 0;
 }

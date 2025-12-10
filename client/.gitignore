@@ -1,0 +1,37 @@
+
+# Build directories
+build/
+bin/
+lib/
+_deps/
+
+# Compiled Object files
+*.o
+*.obj
+*.res
+
+# Compiled Static libraries
+*.lib
+*.a
+
+# Compiled Dynamic libraries
+*.dll
+*.dylib
+*.so
+
+# Executables
+*.exe
+*.out
+*.app
+TetrisClient
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# IDE/Editor
+.vscode/
+.idea/
+.DS_Store

@@ -14,6 +14,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(raylib)
 
-add_executable(TetrisClient main.cpp)
+add_executable(TetrisClient main.cpp game.cpp)
 
 target_link_libraries(TetrisClient PRIVATE raylib)
