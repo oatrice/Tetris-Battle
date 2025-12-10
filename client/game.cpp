@@ -228,8 +228,22 @@ void Game::DrawControls() {
   for (auto b : btns) {
     DrawRectangleRec(b->rect, b->active ? Fade(b->color, 0.5f) : b->color);
     DrawRectangleLinesEx(b->rect, 2, DARKGRAY);
-    DrawText(b->text.c_str(), b->rect.x + (b->rect.width / 2 - MeasureText(b->text.c_str(), 30) / 2),
-             b->rect.y + (b->rect.height / 2 - 15), 30, WHITE);
+    if (b->text == "^") {
+        // User Request: Use '<' rotated 90 degrees to form an Up arrow "^"
+        // This ensures the style matches the other buttons (<, >) perfectly.
+        const char *symbol = "<";
+        float fSize = 30;
+        // Verify font availability, fallback to GetFontDefault()
+        Font font = GetFontDefault();
+        Vector2 textSize = MeasureTextEx(font, symbol, fSize, 1);
+        Vector2 position = { b->rect.x + b->rect.width / 2, b->rect.y + b->rect.height / 2 };
+        Vector2 origin = { textSize.x / 2, textSize.y / 2 };
+        
+        DrawTextPro(font, symbol, position, origin, 90.0f, fSize, 1, WHITE);
+    } else {
+        DrawText(b->text.c_str(), b->rect.x + (b->rect.width / 2 - MeasureText(b->text.c_str(), 30) / 2),
+                 b->rect.y + (b->rect.height / 2 - 15), 30, WHITE);
+    }
   }
 }
 
