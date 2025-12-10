@@ -17,8 +17,9 @@ public:
   ~Game();
   void Update();
   void Draw();
-  void HandleInput();  // New
-  void DrawControls(); // New
+  void HandleInput();   // New
+  void DrawControls();  // New
+  void DrawNextPiece(); // New Feature // New
 
 private:
   Logic logic; // Replace direct grid manipulation

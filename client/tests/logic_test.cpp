@@ -17,7 +17,8 @@ protected:
     logic.currentPiece.x = BOARD_WIDTH / 2 - 2;
     logic.currentPiece.y = 0;
     logic.currentPiece.rotation = 0;
-    // nextPiece is not directly tested by existing fixture tests, so no need to set it.
+    // nextPiece is not directly tested by existing fixture tests, so no need to
+    // set it.
   }
 
   // Helper to fill a row on the board
@@ -74,53 +75,61 @@ TEST_F(LogicTest, CollisionTest) {
 
 // New test for the Next Piece Preview feature
 TEST(LogicNextPieceTest, NextPieceSpawn) {
-    // Create a fresh Logic instance to test its constructor and SpawnPiece behavior
-    Logic logic;
+  // Create a fresh Logic instance to test its constructor and SpawnPiece
+  // behavior
+  Logic logic;
 
-    // 1. Check that nextPiece is initialized and not NONE.
-    ASSERT_NE(logic.nextPiece.type, PieceType::NONE);
-    ASSERT_GE(static_cast<int>(logic.nextPiece.type), 1); // Ensure it's a valid piece type (1-7)
-    ASSERT_LE(static_cast<int>(logic.nextPiece.type), 7);
+  // 1. Check that nextPiece is initialized and not NONE.
+  ASSERT_NE(logic.nextPiece.type, PieceType::NONE);
+  ASSERT_GE(static_cast<int>(logic.nextPiece.type),
+            1); // Ensure it's a valid piece type (1-7)
+  ASSERT_LE(static_cast<int>(logic.nextPiece.type), 7);
 
-    // 2. Store the type of the initial nextPiece.
-    PieceType initialNextPieceType = logic.nextPiece.type;
+  // 2. Store the type of the initial nextPiece.
+  PieceType initialNextPieceType = logic.nextPiece.type;
 
-    // Also check that currentPiece is initialized and not NONE.
-    ASSERT_NE(logic.currentPiece.type, PieceType::NONE);
-    ASSERT_GE(static_cast<int>(logic.currentPiece.type), 1);
-    ASSERT_LE(static_cast<int>(logic.currentPiece.type), 7);
+  // Also check that currentPiece is initialized and not NONE.
+  ASSERT_NE(logic.currentPiece.type, PieceType::NONE);
+  ASSERT_GE(static_cast<int>(logic.currentPiece.type), 1);
+  ASSERT_LE(static_cast<int>(logic.currentPiece.type), 7);
 
-    // To trigger SpawnPiece (which happens after LockPiece),
-    // we need to move currentPiece to a position where it will lock.
-    // Create a temporary piece to find the lock position without modifying logic.currentPiece prematurely.
-    Piece pieceToMove = logic.currentPiece;
-    // Ensure all relevant properties are copied for the simulation
-    pieceToMove.x = logic.currentPiece.x;
-    pieceToMove.y = logic.currentPiece.y;
-    pieceToMove.rotation = logic.currentPiece.rotation;
+  // To trigger SpawnPiece (which happens after LockPiece),
+  // we need to move currentPiece to a position where it will lock.
+  // Create a temporary piece to find the lock position without modifying
+  // logic.currentPiece prematurely.
+  Piece pieceToMove = logic.currentPiece;
+  // Ensure all relevant properties are copied for the simulation
+  pieceToMove.x = logic.currentPiece.x;
+  pieceToMove.y = logic.currentPiece.y;
+  pieceToMove.rotation = logic.currentPiece.rotation;
 
-    // Move the piece down until it hits the bottom or another block
-    while (logic.IsValidPosition(pieceToMove)) {
-        pieceToMove.y++;
-    }
-    // Move it back up one step, so it's in a valid position but will lock on the next downward movement or LockPiece call.
-    pieceToMove.y--;
+  // Move the piece down until it hits the bottom or another block
+  while (logic.IsValidPosition(pieceToMove)) {
+    pieceToMove.y++;
+  }
+  // Move it back up one step, so it's in a valid position but will lock on the
+  // next downward movement or LockPiece call.
+  pieceToMove.y--;
 
-    // Set the logic's currentPiece to this calculated lock position.
-    logic.currentPiece = pieceToMove;
+  // Set the logic's currentPiece to this calculated lock position.
+  logic.currentPiece = pieceToMove;
 
-    // Now, call LockPiece. This will lock the currentPiece and then call SpawnPiece internally.
-    logic.LockPiece();
+  // Now, call LockPiece. This will lock the currentPiece and then call
+  // SpawnPiece internally.
+  logic.LockPiece();
 
-    // 4. Assert that the new currentPiece's type is equal to the type of the OLD nextPiece.
-    ASSERT_EQ(logic.currentPiece.type, initialNextPieceType);
+  // 4. Assert that the new currentPiece's type is equal to the type of the OLD
+  // nextPiece.
+  ASSERT_EQ(logic.currentPiece.type, initialNextPieceType);
 
-    // 5. Assert that nextPiece has changed (i.e., it's a new valid random piece).
-    ASSERT_NE(logic.nextPiece.type, PieceType::NONE);
-    ASSERT_GE(static_cast<int>(logic.nextPiece.type), 1); // Ensure it's a valid piece type
-    ASSERT_LE(static_cast<int>(logic.nextPiece.type), 7);
+  // 5. Assert that nextPiece has changed (i.e., it's a new valid random piece).
+  ASSERT_NE(logic.nextPiece.type, PieceType::NONE);
+  ASSERT_GE(static_cast<int>(logic.nextPiece.type),
+            1); // Ensure it's a valid piece type
+  ASSERT_LE(static_cast<int>(logic.nextPiece.type), 7);
 
-    // Assert that the new nextPiece is different from the piece that just became current.
-    // While there's a small statistical chance they could be the same type, this is a strong check for "changed".
-    ASSERT_NE(logic.nextPiece.type, logic.currentPiece.type);
+  // Assert that the new nextPiece is valid
+  ASSERT_NE(logic.nextPiece.type, PieceType::NONE);
+  // Note: It IS possible for nextPiece to be same type as currentPiece (random
+  // 1/7 chance), so we don't assert inequality here.
 }
