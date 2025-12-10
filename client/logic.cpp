@@ -55,7 +55,8 @@ bool Logic::IsValidPosition(const Piece &p) const {
 
     // Check for collision with existing blocks on the board
     // GetCell returns 0 for empty, >0 for occupied
-    if (board.GetCell(boardX, boardY) != 0) {
+    // FIXED: Using (boardY, boardX) because GetCell expects (row, col)
+    if (board.GetCell(boardY, boardX) != 0) {
       return false; // Cell already occupied
     }
   }
@@ -73,7 +74,8 @@ void Logic::LockPiece() {
     // Only set if within bounds
     if (boardX >= 0 && boardX < BOARD_WIDTH && boardY >= 0 &&
         boardY < BOARD_HEIGHT) {
-      board.SetCell(boardX, boardY, static_cast<int>(currentPiece.type));
+      // FIXED: Using (boardY, boardX) because SetCell expects (row, col)
+      board.SetCell(boardY, boardX, static_cast<int>(currentPiece.type));
     }
   }
 }
