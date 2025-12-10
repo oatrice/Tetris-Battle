@@ -24,3 +24,10 @@
 # Project specific binaries
 tetris-battle
 server
+
+# C++ Client Build
+client/build/
+client/build-web/
+client/*.app
+client/TetrisClient
+
