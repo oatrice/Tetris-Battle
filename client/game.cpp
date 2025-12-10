@@ -109,6 +109,11 @@ void Game::DrawNextPiece() {
 
   // Draw Box
   DrawText("NEXT", previewX, previewY - 30, 20, WHITE);
+  
+  // Draw a filled rectangle for the background of the preview box
+  // This improves contrast for the GOLD piece and WHITE border/text.
+  DrawRectangle(previewX, previewY, previewSize, previewSize, BLACK);
+  
   DrawRectangleLines(previewX, previewY, previewSize, previewSize, WHITE);
 
   // Draw Piece inside box
