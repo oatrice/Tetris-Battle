@@ -182,23 +182,28 @@ void Game::DrawControls() {
 void Game::DrawNextPiece() {
   int previewX = offsetX + (10 * cellSize) + 20; // Right of board
   int previewY = offsetY;
-  int previewSize = 4 * cellSize;
+  // Increase previewSize to accommodate rotated 'I' piece and provide more padding.
+  int previewSize = 6 * cellSize; // Changed from 4 * cellSize
 
   // Draw Box
   DrawText("NEXT", previewX, previewY - 30, 20, WHITE);
   
   // Draw a filled rectangle for the background of the preview box
   // This improves contrast for the GOLD piece and WHITE border/text.
+  // Ensure the background rectangle uses the new larger previewSize.
   DrawRectangle(previewX, previewY, previewSize, previewSize, BLACK);
   
+  // Ensure the border rectangle uses the new larger previewSize.
   DrawRectangleLines(previewX, previewY, previewSize, previewSize, WHITE);
 
   // Draw Piece inside box
   Piece p = logic.nextPiece;
   if (p.type != PieceType::NONE) {
-    // Shift to center of preview box
-    int centerX = previewX + (cellSize / 2);
-    int centerY = previewY + (cellSize / 2);
+    // Adjust centerX and centerY calculation to ensure pieces are centered
+    // within the new 6x6 preview box, assuming pieces fit within a 4x4 grid.
+    // (6 * cellSize - 4 * cellSize) / 2 = 1 * cellSize padding on each side.
+    int centerX = previewX + cellSize; // Shift by 1 cell from the left edge of the preview box
+    int centerY = previewY + cellSize; // Shift by 1 cell from the top edge of the preview box
 
     for (int i = 0; i < 4; i++) {
       int bx, by;
