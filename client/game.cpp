@@ -42,7 +42,8 @@ Game::Game() {
   int restartBtnX = offsetX + (boardWidth - restartBtnWidth) / 2;
   int restartBtnY = offsetY + (boardHeight / 2) + 20; // Below "GAME OVER" text
 
-  btnRestart = {{(float)restartBtnX, (float)restartBtnY, (float)restartBtnWidth, (float)restartBtnHeight},
+  btnRestart = {{(float)restartBtnX, (float)restartBtnY, (float)restartBtnWidth,
+                 (float)restartBtnHeight},
                 DARKBLUE,
                 "Restart",
                 false};
@@ -55,7 +56,8 @@ void Game::ResetGame() {
   gravityTimer = 0.0f;
   dasTimer = 0.0f;
   lastMoveDir = 0;
-  lastSpawnCounter = logic.spawnCounter; // Sync after logic.Reset() spawns a new piece
+  lastSpawnCounter =
+      logic.spawnCounter; // Sync after logic.Reset() spawns a new piece
   waitForDownRelease = false;
   btnRestart.active = false; // Ensure button is not active after reset
 }
@@ -101,7 +103,6 @@ void Game::HandleInput() {
   }
   // --- End Soft Drop Safety Logic ---
 
-
   // Reset Active State for non-restart touch buttons
   btnLeft.active = false;
   btnRight.active = false;
@@ -122,9 +123,10 @@ void Game::HandleInput() {
   }
 
   // --- Keyboard Delayed Auto Shift (DAS) for LEFT/RIGHT movement ---
-  // Handle key releases first to clear `lastMoveDir` if the active key is let go.
-  // This is important for "rolling" from one key to another (e.g., Left held,
-  // then Right pressed, then Right released, Left should become active again with a fresh DAS timer).
+  // Handle key releases first to clear `lastMoveDir` if the active key is let
+  // go. This is important for "rolling" from one key to another (e.g., Left
+  // held, then Right pressed, then Right released, Left should become active
+  // again with a fresh DAS timer).
   if (IsKeyReleased(KEY_LEFT) && lastMoveDir == -1) {
     dasTimer = 0.0f;
     lastMoveDir = 0;
@@ -134,7 +136,8 @@ void Game::HandleInput() {
     lastMoveDir = 0;
   }
 
-  // Determine the current desired move direction from keyboard (right takes precedence if both are down)
+  // Determine the current desired move direction from keyboard (right takes
+  // precedence if both are down)
   int currentKeyboardMoveDir = 0;
   if (IsKeyDown(KEY_LEFT)) {
     currentKeyboardMoveDir = -1;
@@ -151,7 +154,8 @@ void Game::HandleInput() {
     lastMoveDir = currentKeyboardMoveDir;
   }
   // If the same key is held down (DAS repeat)
-  else if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir == lastMoveDir) {
+  else if (currentKeyboardMoveDir != 0 &&
+           currentKeyboardMoveDir == lastMoveDir) {
     dasTimer += GetFrameTime();
 
     // After initial delay, start repeating movement at dasRate
@@ -167,7 +171,6 @@ void Game::HandleInput() {
   }
   // --- End Keyboard DAS for LEFT/RIGHT ---
 
-
   // --- Other Keyboard Controls ---
   // Rotate
   if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE)) {
@@ -179,9 +182,9 @@ void Game::HandleInput() {
   }
   // --- End Other Keyboard Controls ---
 
-
   // --- Touch Controls (Single Press except for Soft Drop) ---
-  // Use static bools to ensure single activation per touch for non-continuous actions
+  // Use static bools to ensure single activation per touch for non-continuous
+  // actions
   static bool leftPressed = false;
   static bool rightPressed = false;
   static bool rotatePressed = false;
@@ -228,21 +231,25 @@ void Game::DrawControls() {
   for (auto b : btns) {
     DrawRectangleRec(b->rect, b->active ? Fade(b->color, 0.5f) : b->color);
     DrawRectangleLinesEx(b->rect, 2, DARKGRAY);
-    if (b->text == "^") {
-        // User Request: Use '<' rotated 90 degrees to form an Up arrow "^"
-        // This ensures the style matches the other buttons (<, >) perfectly.
-        const char *symbol = "<";
-        float fSize = 30;
-        // Verify font availability, fallback to GetFontDefault()
-        Font font = GetFontDefault();
-        Vector2 textSize = MeasureTextEx(font, symbol, fSize, 1);
-        Vector2 position = { b->rect.x + b->rect.width / 2, b->rect.y + b->rect.height / 2 };
-        Vector2 origin = { textSize.x / 2, textSize.y / 2 };
-        
-        DrawTextPro(font, symbol, position, origin, 90.0f, fSize, 1, WHITE);
+    if (b->text == "^" || b->text == "v") {
+      // User Request: Use '<' rotated to form Up "^" and Down "v" arrows
+      // This ensures the style matches the other buttons (<, >) perfectly.
+      const char *symbol = "<";
+      float rotation = (b->text == "^") ? 90.0f : -90.0f;
+
+      float fSize = 30;
+      Font font = GetFontDefault();
+      Vector2 textSize = MeasureTextEx(font, symbol, fSize, 1);
+      Vector2 position = {b->rect.x + b->rect.width / 2,
+                          b->rect.y + b->rect.height / 2};
+      Vector2 origin = {textSize.x / 2, textSize.y / 2};
+
+      DrawTextPro(font, symbol, position, origin, rotation, fSize, 1, WHITE);
     } else {
-        DrawText(b->text.c_str(), b->rect.x + (b->rect.width / 2 - MeasureText(b->text.c_str(), 30) / 2),
-                 b->rect.y + (b->rect.height / 2 - 15), 30, WHITE);
+      DrawText(b->text.c_str(),
+               b->rect.x +
+                   (b->rect.width / 2 - MeasureText(b->text.c_str(), 30) / 2),
+               b->rect.y + (b->rect.height / 2 - 15), 30, WHITE);
     }
   }
 }
@@ -250,17 +257,18 @@ void Game::DrawControls() {
 void Game::DrawNextPiece() {
   int previewX = offsetX + (10 * cellSize) + 20; // Right of board
   int previewY = offsetY;
-  // Increase previewSize to accommodate rotated 'I' piece and provide more padding.
+  // Increase previewSize to accommodate rotated 'I' piece and provide more
+  // padding.
   int previewSize = 6 * cellSize; // Changed from 4 * cellSize
 
   // Draw Box
   DrawText("NEXT", previewX, previewY - 30, 20, WHITE);
-  
+
   // Draw a filled rectangle for the background of the preview box
   // This improves contrast for the GOLD piece and WHITE border/text.
   // Ensure the background rectangle uses the new larger previewSize.
   DrawRectangle(previewX, previewY, previewSize, previewSize, BLACK);
-  
+
   // Ensure the border rectangle uses the new larger previewSize.
   DrawRectangleLines(previewX, previewY, previewSize, previewSize, WHITE);
 
@@ -270,8 +278,12 @@ void Game::DrawNextPiece() {
     // Adjust centerX and centerY calculation to ensure pieces are centered
     // within the new 6x6 preview box, assuming pieces fit within a 4x4 grid.
     // (6 * cellSize - 4 * cellSize) / 2 = 1 * cellSize padding on each side.
-    int centerX = previewX + cellSize; // Shift by 1 cell from the left edge of the preview box
-    int centerY = previewY + cellSize; // Shift by 1 cell from the top edge of the preview box
+    int centerX =
+        previewX +
+        cellSize; // Shift by 1 cell from the left edge of the preview box
+    int centerY =
+        previewY +
+        cellSize; // Shift by 1 cell from the top edge of the preview box
 
     for (int i = 0; i < 4; i++) {
       int bx, by;
@@ -334,20 +346,26 @@ void Game::Draw() {
     DrawRectangle(offsetX, offsetY, boardWidth, boardHeight, Fade(BLACK, 0.7f));
 
     // Draw "GAME OVER" text
-    const char* gameOverText = "GAME OVER";
+    const char *gameOverText = "GAME OVER";
     int textFontSize = 50;
     int textWidth = MeasureText(gameOverText, textFontSize);
     int textX = offsetX + (boardWidth - textWidth) / 2;
-    int textY = offsetY + (boardHeight / 2) - textFontSize; // Slightly above center
+    int textY =
+        offsetY + (boardHeight / 2) - textFontSize; // Slightly above center
 
     DrawText(gameOverText, textX, textY, textFontSize, RED);
 
     // Draw the Restart button
-    DrawRectangleRec(btnRestart.rect, btnRestart.active ? Fade(btnRestart.color, 0.5f) : btnRestart.color);
+    DrawRectangleRec(btnRestart.rect, btnRestart.active
+                                          ? Fade(btnRestart.color, 0.5f)
+                                          : btnRestart.color);
     DrawRectangleLinesEx(btnRestart.rect, 2, DARKGRAY);
     int btnTextFontSize = 30;
     int btnTextWidth = MeasureText(btnRestart.text.c_str(), btnTextFontSize);
-    DrawText(btnRestart.text.c_str(), btnRestart.rect.x + (btnRestart.rect.width / 2 - btnTextWidth / 2),
-             btnRestart.rect.y + (btnRestart.rect.height / 2 - (btnTextFontSize / 2)), btnTextFontSize, WHITE);
+    DrawText(btnRestart.text.c_str(),
+             btnRestart.rect.x + (btnRestart.rect.width / 2 - btnTextWidth / 2),
+             btnRestart.rect.y +
+                 (btnRestart.rect.height / 2 - (btnTextFontSize / 2)),
+             btnTextFontSize, WHITE);
   }
 }
