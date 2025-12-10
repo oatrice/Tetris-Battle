@@ -42,4 +42,8 @@ private:
 
   // Touch Controls
   Button btnLeft, btnRight, btnRotate, btnDrop;
+
+  // Soft Drop Safety (Reset on Spawn)
+  int lastSpawnCounter = 0;      // New: Tracks logic.spawnCounter to detect new piece spawns
+  bool waitForDownRelease = false; // New: True if KEY_DOWN was held during spawn, requiring release
 };

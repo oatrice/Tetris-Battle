@@ -4,6 +4,9 @@ Game::Game() {
   // Start Game
   logic.SpawnPiece(); // Next -> Current, New Next
 
+  // Initialize lastSpawnCounter to sync with the initial piece spawn
+  lastSpawnCounter = logic.spawnCounter;
+
   // Init Controls (Mobile UI)
   int btnY = 620;
   int btnSize = 80;
@@ -34,6 +37,23 @@ Game::Game() {
 Game::~Game() {}
 
 void Game::HandleInput() {
+  // --- Soft Drop Safety Logic ---
+  // 1. Detect if a new piece has spawned since the last frame
+  if (logic.spawnCounter != lastSpawnCounter) {
+    lastSpawnCounter = logic.spawnCounter;
+    // If KEY_DOWN is currently held, activate the safety flag
+    if (IsKeyDown(KEY_DOWN)) {
+      waitForDownRelease = true;
+    }
+  }
+
+  // 2. If the safety flag is active, check if KEY_DOWN has been released
+  if (!IsKeyDown(KEY_DOWN)) {
+    waitForDownRelease = false;
+  }
+  // --- End Soft Drop Safety Logic ---
+
+
   // Reset Active State for touch buttons
   btnLeft.active = false;
   btnRight.active = false;
@@ -105,8 +125,8 @@ void Game::HandleInput() {
   if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE)) {
     logic.Rotate();
   }
-  // Soft Drop (continuous)
-  if (IsKeyDown(KEY_DOWN)) {
+  // Soft Drop (continuous) - now includes soft drop safety check
+  if (IsKeyDown(KEY_DOWN) && !waitForDownRelease) {
     logic.Move(0, 1);
   }
   // --- End Other Keyboard Controls ---

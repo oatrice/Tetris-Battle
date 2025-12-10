@@ -33,6 +33,9 @@ void Logic::SpawnPiece() {
   nextPiece.y = 0;
   nextPiece.rotation = 0;
 
+  // Increment spawn counter for the newly spawned piece
+  spawnCounter++;
+
   // Game Over Check: If the newly spawned currentPiece is immediately invalid,
   // it means the game is over.
   if (!IsValidPosition(currentPiece)) {
