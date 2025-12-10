@@ -20,6 +20,7 @@ public:
   void HandleInput();   // New
   void DrawControls();  // New
   void DrawNextPiece(); // New Feature // New
+  void ResetGame();     // New: Resets the entire game state
 
 private:
   Logic logic; // Replace direct grid manipulation
@@ -42,6 +43,7 @@ private:
 
   // Touch Controls
   Button btnLeft, btnRight, btnRotate, btnDrop;
+  Button btnRestart; // New: Restart button
 
   // Soft Drop Safety (Reset on Spawn)
   int lastSpawnCounter = 0;      // New: Tracks logic.spawnCounter to detect new piece spawns

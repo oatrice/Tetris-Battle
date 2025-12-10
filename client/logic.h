@@ -24,6 +24,10 @@ public:
   void LockPiece();
   void CheckLines();
 
+  // New: Game Over State and Reset
+  bool isGameOver = false; // Indicates if the game is currently over
+  void Reset();            // Resets the game state
+
   Board board;
   Piece currentPiece;
   Piece nextPiece; // Feature: Stores the upcoming piece for preview

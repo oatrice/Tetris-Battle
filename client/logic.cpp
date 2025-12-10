@@ -1,6 +1,7 @@
 #include "logic.h"
 #include <iostream>
 #include <random>
+#include <cstring> // For memset
 
 // Static random setup
 static std::random_device rd;
@@ -39,13 +40,13 @@ void Logic::SpawnPiece() {
   // Game Over Check: If the newly spawned currentPiece is immediately invalid,
   // it means the game is over.
   if (!IsValidPosition(currentPiece)) {
-    board.Reset(); // Simple restart for now.
-    // In a full game, this would trigger a game over state.
-    // For this task, we maintain the existing behavior of just resetting the board.
+    isGameOver = true; // Set game over state
   }
 }
 
 void Logic::Tick() {
+  if (isGameOver) return; // Do nothing if game is over
+
   Move(0, 1); // Gravity: Move Down 1
 
   // Check if the piece could move down. If not, it means it collided,
@@ -61,6 +62,8 @@ void Logic::Tick() {
 }
 
 void Logic::Move(int dx, int dy) {
+  if (isGameOver) return; // Cannot move if game is over
+
   Piece next = currentPiece;
   next.x += dx;
   next.y += dy;
@@ -70,6 +73,8 @@ void Logic::Move(int dx, int dy) {
 }
 
 void Logic::Rotate() {
+  if (isGameOver) return; // Cannot rotate if game is over
+
   Piece next = currentPiece;
   next.rotation = (next.rotation + 1) % 4;
 
@@ -102,6 +107,8 @@ bool Logic::IsValidPosition(const Piece &p) const {
 }
 
 void Logic::LockPiece() {
+  if (isGameOver) return; // Cannot lock if game is over
+
   for (int i = 0; i < 4; i++) {
     int bx, by;
     currentPiece.GetBlock(currentPiece.rotation, i, bx, by);
@@ -119,6 +126,8 @@ void Logic::LockPiece() {
 }
 
 void Logic::CheckLines() {
+  if (isGameOver) return; // Cannot check lines if game is over
+
   for (int y = BOARD_HEIGHT - 1; y >= 0; y--) {
     bool full = true;
     for (int x = 0; x < BOARD_WIDTH; x++) {
@@ -142,4 +151,24 @@ void Logic::CheckLines() {
       y++; // Re-check the current row, as it now contains the row that was above it
     }
   }
+}
+
+void Logic::Reset() {
+  // Clear the board
+  board.Reset();
+
+  // Reset score/lines (if they were stored in Logic)
+  // For now, only spawnCounter is here.
+  spawnCounter = 0;
+
+  // Reset game over state
+  isGameOver = false;
+
+  // Spawn a new piece to start the game
+  // Re-initialize nextPiece and then spawn it.
+  nextPiece = Piece(static_cast<PieceType>(distrib(gen)));
+  nextPiece.x = 0;
+  nextPiece.y = 0;
+  nextPiece.rotation = 0;
+  SpawnPiece();
 }

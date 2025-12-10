@@ -32,11 +32,59 @@ Game::Game() {
              ORANGE,
              "v",
              false};
+
+  // Initialize Restart Button
+  // Centered horizontally on the board, below the "GAME OVER" text
+  int boardWidth = BOARD_WIDTH * cellSize;
+  int boardHeight = BOARD_HEIGHT * cellSize;
+  int restartBtnWidth = 150;
+  int restartBtnHeight = 50;
+  int restartBtnX = offsetX + (boardWidth - restartBtnWidth) / 2;
+  int restartBtnY = offsetY + (boardHeight / 2) + 20; // Below "GAME OVER" text
+
+  btnRestart = {{(float)restartBtnX, (float)restartBtnY, (float)restartBtnWidth, (float)restartBtnHeight},
+                DARKBLUE,
+                "Restart",
+                false};
 }
 
 Game::~Game() {}
 
+void Game::ResetGame() {
+  logic.Reset();
+  gravityTimer = 0.0f;
+  dasTimer = 0.0f;
+  lastMoveDir = 0;
+  lastSpawnCounter = logic.spawnCounter; // Sync after logic.Reset() spawns a new piece
+  waitForDownRelease = false;
+  btnRestart.active = false; // Ensure button is not active after reset
+}
+
 void Game::HandleInput() {
+  // --- Input for Restart Button (always active) ---
+  btnRestart.active = false; // Reset state for this frame
+  if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+    Vector2 mouse = GetMousePosition();
+    if (CheckCollisionPointRec(mouse, btnRestart.rect)) {
+      btnRestart.active = true;
+      if (logic.isGameOver) { // Only act on click if game is over
+        ResetGame();
+        return; // Game reset, no further input processing this frame
+      }
+    }
+  }
+
+  // Keyboard input for Restart (e.g., 'R' key)
+  if (logic.isGameOver && IsKeyPressed(KEY_R)) {
+    ResetGame();
+    return; // Game reset, no further input processing this frame
+  }
+
+  // If game is over, skip all normal game controls
+  if (logic.isGameOver) {
+    return;
+  }
+
   // --- Soft Drop Safety Logic ---
   // 1. Detect if a new piece has spawned since the last frame
   if (logic.spawnCounter != lastSpawnCounter) {
@@ -54,13 +102,13 @@ void Game::HandleInput() {
   // --- End Soft Drop Safety Logic ---
 
 
-  // Reset Active State for touch buttons
+  // Reset Active State for non-restart touch buttons
   btnLeft.active = false;
   btnRight.active = false;
   btnRotate.active = false;
   btnDrop.active = false;
 
-  // Mouse / Touch input for buttons
+  // Mouse / Touch input for game buttons
   if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
     Vector2 mouse = GetMousePosition();
     if (CheckCollisionPointRec(mouse, btnLeft.rect))
@@ -159,8 +207,14 @@ void Game::HandleInput() {
 }
 
 void Game::Update() {
-  HandleInput();
+  HandleInput(); // Always handle input to check for restart
 
+  if (logic.isGameOver) {
+    // If game is over, skip all game logic updates
+    return;
+  }
+
+  // Normal game logic if not game over
   // Gravity System
   gravityTimer += GetFrameTime();
   if (gravityTimer >= gravityInterval) {
@@ -174,7 +228,7 @@ void Game::DrawControls() {
   for (auto b : btns) {
     DrawRectangleRec(b->rect, b->active ? Fade(b->color, 0.5f) : b->color);
     DrawRectangleLinesEx(b->rect, 2, DARKGRAY);
-    DrawText(b->text.c_str(), b->rect.x + (b->rect.width / 2 - 10),
+    DrawText(b->text.c_str(), b->rect.x + (b->rect.width / 2 - MeasureText(b->text.c_str(), 30) / 2),
              b->rect.y + (b->rect.height / 2 - 15), 30, WHITE);
   }
 }
@@ -255,5 +309,31 @@ void Game::Draw() {
 
   // 5. UI Elements
   DrawControls();
-  DrawNextPiece(); // <--- New Feature!
+  DrawNextPiece();
+
+  // Draw Game Over overlay and button if game is over
+  if (logic.isGameOver) {
+    int boardWidth = BOARD_WIDTH * cellSize;
+    int boardHeight = BOARD_HEIGHT * cellSize;
+
+    // Draw semi-transparent black overlay over the board area
+    DrawRectangle(offsetX, offsetY, boardWidth, boardHeight, Fade(BLACK, 0.7f));
+
+    // Draw "GAME OVER" text
+    const char* gameOverText = "GAME OVER";
+    int textFontSize = 50;
+    int textWidth = MeasureText(gameOverText, textFontSize);
+    int textX = offsetX + (boardWidth - textWidth) / 2;
+    int textY = offsetY + (boardHeight / 2) - textFontSize; // Slightly above center
+
+    DrawText(gameOverText, textX, textY, textFontSize, RED);
+
+    // Draw the Restart button
+    DrawRectangleRec(btnRestart.rect, btnRestart.active ? Fade(btnRestart.color, 0.5f) : btnRestart.color);
+    DrawRectangleLinesEx(btnRestart.rect, 2, DARKGRAY);
+    int btnTextFontSize = 30;
+    int btnTextWidth = MeasureText(btnRestart.text.c_str(), btnTextFontSize);
+    DrawText(btnRestart.text.c_str(), btnRestart.rect.x + (btnRestart.rect.width / 2 - btnTextWidth / 2),
+             btnRestart.rect.y + (btnRestart.rect.height / 2 - (btnTextFontSize / 2)), btnTextFontSize, WHITE);
+  }
 }
