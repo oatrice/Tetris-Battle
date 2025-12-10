@@ -25,7 +25,7 @@ Game::Game() {
   btnRotate = {{(float)startX + 2 * (btnSize + gap), (float)btnY,
                 (float)btnSize, (float)btnSize},
                GREEN,
-               "R",
+               "^",
                false};
   btnDrop = {{(float)startX + 3 * (btnSize + gap), (float)btnY, (float)btnSize,
               (float)btnSize},
