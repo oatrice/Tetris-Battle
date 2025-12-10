@@ -171,3 +171,104 @@ TEST_F(LogicTest, ResetClearsGameState) {
   // Should have a valid current piece spawned
   EXPECT_NE(logic.currentPiece.type, PieceType::NONE);
 }
+
+TEST_F(LogicTest, MoveLeftBoundary) {
+  // Find left-most valid x
+  while (true) {
+    Piece test = logic.currentPiece;
+    test.x--;
+    if (!logic.IsValidPosition(test))
+      break;
+    logic.currentPiece.x--;
+  }
+
+  int minX = logic.currentPiece.x;
+
+  // Try to move left again (hit wall)
+  logic.Move(-1, 0);
+
+  // Should stay at minX
+  EXPECT_EQ(logic.currentPiece.x, minX);
+}
+
+TEST_F(LogicTest, MoveRightBoundary) {
+  // Move to right-most valid position
+  while (true) {
+    Piece test = logic.currentPiece;
+    test.x++;
+    if (!logic.IsValidPosition(test))
+      break;
+    logic.currentPiece.x++;
+  }
+
+  int maxX = logic.currentPiece.x;
+
+  // Try to move right again (hit wall)
+  logic.Move(1, 0);
+
+  // Should stay at maxX
+  EXPECT_EQ(logic.currentPiece.x, maxX);
+}
+
+TEST_F(LogicTest, MoveCollision) {
+  // Test Collision Logic
+  // Place piece at specific location (5,5)
+  logic.currentPiece.x = 5;
+  logic.currentPiece.y = 5;
+
+  // Ensure assumed start position is valid
+  if (!logic.IsValidPosition(logic.currentPiece)) {
+    // Fallback: clear board area just in case
+    for (int r = 0; r < 10; r++)
+      for (int c = 0; c < 10; c++)
+        logic.board.SetCell(r, c, 0);
+  }
+  ASSERT_TRUE(logic.IsValidPosition(logic.currentPiece));
+
+  // Build a WALL at x=4 (Left of piece)
+  for (int r = 0; r < 20; r++)
+    logic.board.SetCell(r, 4, 1);
+
+  // Try to move LEFT (from 5 to 4) -> Should Fail due to Wall
+  int startX = logic.currentPiece.x;
+  logic.Move(-1, 0);
+
+  EXPECT_EQ(logic.currentPiece.x, startX);
+}
+
+TEST_F(LogicTest, LineClearGravity) {
+  // Setup:
+  // Row 19 (Bottom): Full -> Should be cleared
+  // Row 18 (Above):  Has one block at x=5 -> Should drop to Row 19
+  FillRow(BOARD_HEIGHT - 1);
+  logic.board.SetCell(BOARD_HEIGHT - 2, 5, 1);
+
+  // Action
+  logic.CheckLines();
+
+  // Assert:
+  // Row 19 should now contain the block that fell from Row 18
+  EXPECT_EQ(logic.board.GetCell(BOARD_HEIGHT - 1, 5), 1);
+  // Row 18 should be empty now
+  EXPECT_EQ(logic.board.GetCell(BOARD_HEIGHT - 2, 5), 0);
+}
+
+TEST_F(LogicTest, MultiLineClear) {
+  // Setup:
+  // Row 18, 19: Full -> Should be cleared
+  // Row 17: Block at x=0 -> Should drop to Row 19 (drop 2 lines)
+  FillRow(BOARD_HEIGHT - 1);                   // Row 19
+  FillRow(BOARD_HEIGHT - 2);                   // Row 18
+  logic.board.SetCell(BOARD_HEIGHT - 3, 0, 1); // Row 17
+
+  // Action
+  logic.CheckLines();
+
+  // Assert:
+  // Rows 18, 17 should be empty (Row 17 fell, Row 18 cleared)
+  // Actually, Row 17's block fell to Row 19.
+  EXPECT_EQ(logic.board.GetCell(BOARD_HEIGHT - 1, 0), 1); // From Row 17 -> 19
+  EXPECT_EQ(logic.board.GetCell(BOARD_HEIGHT - 2, 0),
+            0); // Row 18 was cleared, nothing above to fill it
+  EXPECT_EQ(logic.board.GetCell(BOARD_HEIGHT - 3, 0), 0); // Row 17 moved down
+}
