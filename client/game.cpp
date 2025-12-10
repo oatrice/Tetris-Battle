@@ -57,11 +57,36 @@ void Game::HandleInput() {
       btnDrop.active = true;
   }
 
-  // Keyboard
-  if (IsKeyDown(KEY_LEFT))
-    btnLeft.active = true;
-  if (IsKeyDown(KEY_RIGHT))
-    btnRight.active = true;
+  // Keyboard & Button Logic
+  static bool leftPressed = false;
+  static bool rightPressed = false;
+  static bool rotatePressed = false;
+  static bool dropPressed = false;
+
+  // Helper to handle both Key and Virtual Button (Single Press)
+  bool left = IsKeyPressed(KEY_LEFT) || (btnLeft.active && !leftPressed);
+  if (left)
+    logic.Move(-1, 0);
+
+  bool right = IsKeyPressed(KEY_RIGHT) || (btnRight.active && !rightPressed);
+  if (right)
+    logic.Move(1, 0);
+
+  bool rotate = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE) ||
+                (btnRotate.active && !rotatePressed);
+  if (rotate)
+    logic.Rotate();
+
+  // Soft Drop (Continuous)
+  if (IsKeyDown(KEY_DOWN) || btnDrop.active) {
+    // Slow down drop speed slightly compared to free fall if needed
+    logic.Move(0, 1);
+  }
+
+  // Update button states for single-press detection
+  leftPressed = btnLeft.active;
+  rightPressed = btnRight.active;
+  rotatePressed = btnRotate.active;
 }
 
 void Game::Update() {

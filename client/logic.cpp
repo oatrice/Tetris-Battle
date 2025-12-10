@@ -1,81 +1,125 @@
 
 #include "logic.h"
-#include <random> // For random piece generation
+#include <iostream>
+#include <random>
 
-// Static random device and generator for piece types
+// Static random setup
 static std::random_device rd;
 static std::mt19937 gen(rd());
-static std::uniform_int_distribution<> distrib(static_cast<int>(PieceType::I),
-                                               static_cast<int>(PieceType::Z));
+static std::uniform_int_distribution<> distrib(1, 7); // Types 1-7
 
 Logic::Logic() { SpawnPiece(); }
 
-void Logic::Tick() {
-  // Attempt to move the piece down
-  Piece nextPiece = currentPiece;
-  nextPiece.y++; // Simulate moving down
+void Logic::SpawnPiece() {
+  // Random piece
+  PieceType t = static_cast<PieceType>(distrib(gen));
+  currentPiece = Piece(t);
+  currentPiece.x = BOARD_WIDTH / 2 - 2; // Approximate center
+  currentPiece.y = 0;
+  currentPiece.rotation = 0;
 
-  if (IsValidPosition(nextPiece)) {
-    currentPiece = nextPiece; // Move piece down
-  } else {
-    // Collision detected (either floor or another locked piece)
-    LockPiece();  // Lock the current piece into the board
-    SpawnPiece(); // Spawn a new piece
+  // Game Over Check
+  if (!IsValidPosition(currentPiece)) {
+    board.Reset(); // Simple restart for now
   }
 }
 
-void Logic::SpawnPiece() {
-  // Randomly select a piece type
-  currentPiece.type = static_cast<PieceType>(distrib(gen));
-  currentPiece.rotation = 0;            // Initial rotation
-  currentPiece.x = BOARD_WIDTH / 2 - 2; // Spawn in the middle top
-  currentPiece.y = 0;
+void Logic::Tick() {
+  Move(0, 1); // Gravity: Move Down 1
+  // Note: Move() handles IsValid check.
+  // If invalid (collision), we need to Lock.
 
-  // Check if the newly spawned piece is immediately in an invalid position
-  // This indicates a game over condition
-  if (!IsValidPosition(currentPiece)) {
-    // Game Over logic -> Reset for now
-    board.Reset();
+  // Check if gravity move actually happened?
+  // Wait, Move() updates currentPiece IF valid.
+  // We need to know if it failed to Lock.
+
+  Piece next = currentPiece;
+  next.y++;
+  if (IsValidPosition(next)) {
+    currentPiece = next;
+  } else {
+    LockPiece();
+    SpawnPiece();
   }
+}
+
+void Logic::Move(int dx, int dy) {
+  Piece next = currentPiece;
+  next.x += dx;
+  next.y += dy;
+  if (IsValidPosition(next)) {
+    currentPiece = next;
+  }
+}
+
+void Logic::Rotate() {
+  Piece next = currentPiece;
+  next.rotation = (next.rotation + 1) % 4;
+
+  if (IsValidPosition(next)) {
+    currentPiece = next;
+  }
+  // TODO: Add Wall Kick (try checking x-1, x+1, etc.)
 }
 
 bool Logic::IsValidPosition(const Piece &p) const {
-  for (int i = 0; i < 4; ++i) { // Each piece has 4 blocks
-    int blockOffsetX, blockOffsetY;
-    p.GetBlock(p.rotation, i, blockOffsetX, blockOffsetY);
+  for (int i = 0; i < 4; i++) {
+    int bx, by;
+    p.GetBlock(p.rotation, i, bx, by); // Use updated Piece.h logic
 
-    int boardX = p.x + blockOffsetX;
-    int boardY = p.y + blockOffsetY;
+    int boardX = p.x + bx;
+    int boardY = p.y + by;
 
-    // Check board boundaries
+    // Boundaries
     if (boardX < 0 || boardX >= BOARD_WIDTH || boardY < 0 ||
-        boardY >= BOARD_HEIGHT) {
-      return false; // Out of bounds
-    }
+        boardY >= BOARD_HEIGHT)
+      return false;
 
-    // Check for collision with existing blocks on the board
-    // GetCell returns 0 for empty, >0 for occupied
-    // FIXED: Using (boardY, boardX) because GetCell expects (row, col)
-    if (board.GetCell(boardY, boardX) != 0) {
-      return false; // Cell already occupied
-    }
+    // Collision (Swap X,Y fixed)
+    if (board.GetCell(boardY, boardX) != 0)
+      return false;
   }
-  return true; // All blocks are in valid, empty positions
+  return true;
 }
 
 void Logic::LockPiece() {
-  for (int i = 0; i < 4; ++i) { // Each piece has 4 blocks
-    int blockOffsetX, blockOffsetY;
-    currentPiece.GetBlock(currentPiece.rotation, i, blockOffsetX, blockOffsetY);
+  for (int i = 0; i < 4; i++) {
+    int bx, by;
+    currentPiece.GetBlock(currentPiece.rotation, i, bx, by);
 
-    int boardX = currentPiece.x + blockOffsetX;
-    int boardY = currentPiece.y + blockOffsetY;
+    int boardX = currentPiece.x + bx;
+    int boardY = currentPiece.y + by;
 
-    // Only set if within bounds
     if (boardX >= 0 && boardX < BOARD_WIDTH && boardY >= 0 &&
         boardY < BOARD_HEIGHT) {
-      // FIXED: Using (boardY, boardX) because SetCell expects (row, col)
-      board.SetCell(boardY, boardX, static_cast<int>(currentPiece.type));
+      board.SetCell(boardY, boardX, (int)currentPiece.type);
+    }
+  }
+  CheckLines();
+}
+
+void Logic::CheckLines() {
+  for (int y = BOARD_HEIGHT - 1; y >= 0; y--) {
+    bool full = true;
+    for (int x = 0; x < BOARD_WIDTH; x++) {
+      if (board.GetCell(y, x) == 0) {
+        full = false;
+        break;
+      }
+    }
+
+    if (full) {
+      // Shift Down
+      for (int r = y; r > 0; r--) {
+        for (int c = 0; c < BOARD_WIDTH; c++) {
+          board.SetCell(r, c, board.GetCell(r - 1, c));
+        }
+      }
+      // Clear Top
+      for (int c = 0; c < BOARD_WIDTH; c++)
+        board.SetCell(0, c, 0);
+
+      y++; // Check same row again
     }
   }
 }
