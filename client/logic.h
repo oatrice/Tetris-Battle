@@ -1,21 +1,23 @@
+#ifndef LOGIC_H
+#define LOGIC_H
 
-#pragma once
 #include "board.h"
+#include "piece.h"
 
-struct Piece {
-  int x, y;
-  int type; // 0=None, 1..7=Shapes
-};
+// Constants (can be moved to a config header later)
+const int BOARD_WIDTH = 10;
+const int BOARD_HEIGHT = 20;
 
-class TetrisLogic {
+class Logic {
 public:
-  TetrisLogic();
-  void SpawnPiece(int type);
-  void Tick(); // Move active piece down
-  Piece GetActivePiece() const;
-  const Board &GetBoard() const;
+    Logic();
+    void Tick(); // Advances game state by one frame/step
+    void SpawnPiece(); // Spawns a new piece at the top
+    bool IsValidPosition(const Piece& p) const; // Checks if a piece's position is valid
+    void LockPiece(); // Locks the current piece into the board
 
-private:
-  Board board;
-  Piece activePiece;
+    Board board;
+    Piece currentPiece;
 };
+
+#endif // LOGIC_H

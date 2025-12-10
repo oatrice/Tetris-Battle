@@ -21,7 +21,7 @@ public:
   void DrawControls(); // New
 
 private:
-  TetrisLogic logic; // Replace direct grid manipulation
+  Logic logic; // Replace direct grid manipulation
 
   // Gravity
   float gravityTimer = 0.0f;

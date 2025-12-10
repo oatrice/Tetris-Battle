@@ -2,9 +2,11 @@
 
 #include "game.h"
 
+#include "game.h"
+
 Game::Game() {
   // Start Game
-  logic.SpawnPiece(1); // Test Piece
+  logic.SpawnPiece(); // Random Piece
 
   // Init Buttons (Layout for Mobile)
   int btnY = 620; // Lower area
@@ -88,13 +90,13 @@ void Game::Draw() {
   DrawRectangle(offsetX, offsetY, 10 * cellSize, 20 * cellSize, DARKGRAY);
 
   // 1. Draw Static Grid Cells
-  const Board &board = logic.GetBoard();
+  // Direct access to public 'board' member
   for (int i = 0; i < 20; i++) {
     for (int j = 0; j < 10; j++) {
       int x = offsetX + j * cellSize;
       int y = offsetY + i * cellSize;
 
-      if (board.GetCell(i, j) != 0) {
+      if (logic.board.GetCell(i, j) != 0) {
         DrawRectangle(x + 1, y + 1, cellSize - 2, cellSize - 2, RED);
       } else {
         DrawRectangleLines(x, y, cellSize, cellSize, Fade(LIGHTGRAY, 0.3f));
@@ -102,12 +104,20 @@ void Game::Draw() {
     }
   }
 
-  // 2. Draw Active Piece (Simple single block visualization for MVP)
-  Piece p = logic.GetActivePiece();
-  if (p.type != 0) {
-    int px = offsetX + p.x * cellSize;
-    int py = offsetY + p.y * cellSize;
-    DrawRectangle(px + 1, py + 1, cellSize - 2, cellSize - 2, GREEN);
+  // 2. Draw Active Piece
+  // Direct access to public 'currentPiece' member
+  Piece p = logic.currentPiece;
+  if (p.type != PieceType::NONE) {
+    // Draw all 4 blocks of the piece
+    for (int i = 0; i < 4; i++) {
+      int bx, by;
+      p.GetBlock(p.rotation, i, bx, by);
+
+      int worldX = offsetX + (p.x + bx) * cellSize;
+      int worldY = offsetY + (p.y + by) * cellSize;
+
+      DrawRectangle(worldX + 1, worldY + 1, cellSize - 2, cellSize - 2, GREEN);
+    }
   }
 
   // Draw Border
