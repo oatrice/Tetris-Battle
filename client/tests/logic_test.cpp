@@ -117,6 +117,8 @@ TEST(LogicNextPieceTest, NextPieceSpawn) {
   // Now, call LockPiece. This will lock the currentPiece and then call
   // SpawnPiece internally.
   logic.LockPiece();
+  logic.SpawnPiece(); // Fix: LockPiece no longer calls SpawnPiece
+                      // automatically, manual call required for test
 
   // 4. Assert that the new currentPiece's type is equal to the type of the OLD
   // nextPiece.
@@ -132,4 +134,40 @@ TEST(LogicNextPieceTest, NextPieceSpawn) {
   ASSERT_NE(logic.nextPiece.type, PieceType::NONE);
   // Note: It IS possible for nextPiece to be same type as currentPiece (random
   // 1/7 chance), so we don't assert inequality here.
+}
+
+TEST_F(LogicTest, GameOverOnSpawnCollision) {
+  // Fill the spawn area (top center) with blocks
+  // Spawn usually happens at (BOARD_WIDTH/2 - 2, 0) => (3, 0) roughly
+  // Let's fill row 0 and 1 completely to guarantee collision
+  for (int x = 0; x < 10; x++) {
+    logic.board.SetCell(0, x, 1);
+    logic.board.SetCell(1, x, 1);
+  }
+
+  // Attempt to spawn a new piece
+  logic.SpawnPiece();
+
+  // Should trigger Game Over because the new piece collides immediately
+  EXPECT_TRUE(logic.isGameOver);
+}
+
+TEST_F(LogicTest, ResetClearsGameState) {
+  // 1. Set up a "dirty" state
+  logic.isGameOver = true;
+  // Note: logic.score/lines might not be public or implemented yet in Logic
+  // class, but we can check board and gameOver state.
+  logic.board.SetCell(5, 5, 1); // Set a random block
+
+  // 2. Call Reset
+  logic.Reset();
+
+  // 3. Assert clean state
+  EXPECT_FALSE(logic.isGameOver);
+
+  // Board should be empty
+  EXPECT_EQ(logic.board.GetCell(5, 5), 0);
+
+  // Should have a valid current piece spawned
+  EXPECT_NE(logic.currentPiece.type, PieceType::NONE);
 }
