@@ -1,16 +1,10 @@
 #include "game.h"
 
-Game::Game() {
-  // Initialize grid logic
-  for (int i = 0; i < 20; i++) {
-    for (int j = 0; j < 10; j++) {
-      grid[i][j] = 0;
-    }
-  }
+#include "game.h"
 
-  // Debug: Add some blocks
-  grid[19][0] = 1;
-  grid[19][9] = 1;
+Game::Game() {
+  // Start Game
+  logic.SpawnPiece(1); // Test Piece
 
   // Init Buttons (Layout for Mobile)
   int btnY = 620; // Lower area
@@ -61,14 +55,23 @@ void Game::HandleInput() {
       btnDrop.active = true;
   }
 
-  // Keyboard fallback
+  // Keyboard
   if (IsKeyDown(KEY_LEFT))
     btnLeft.active = true;
   if (IsKeyDown(KEY_RIGHT))
     btnRight.active = true;
 }
 
-void Game::Update() { HandleInput(); }
+void Game::Update() {
+  HandleInput();
+
+  // Gravity System
+  gravityTimer += GetFrameTime();
+  if (gravityTimer >= gravityInterval) {
+    logic.Tick();
+    gravityTimer = 0.0f;
+  }
+}
 
 void Game::DrawControls() {
   Button *btns[] = {&btnLeft, &btnRight, &btnRotate, &btnDrop};
@@ -84,18 +87,27 @@ void Game::Draw() {
   // Draw Board Background
   DrawRectangle(offsetX, offsetY, 10 * cellSize, 20 * cellSize, DARKGRAY);
 
-  // Draw Grid Cells
+  // 1. Draw Static Grid Cells
+  const Board &board = logic.GetBoard();
   for (int i = 0; i < 20; i++) {
     for (int j = 0; j < 10; j++) {
       int x = offsetX + j * cellSize;
       int y = offsetY + i * cellSize;
 
-      if (grid[i][j] != 0) {
+      if (board.GetCell(i, j) != 0) {
         DrawRectangle(x + 1, y + 1, cellSize - 2, cellSize - 2, RED);
       } else {
         DrawRectangleLines(x, y, cellSize, cellSize, Fade(LIGHTGRAY, 0.3f));
       }
     }
+  }
+
+  // 2. Draw Active Piece (Simple single block visualization for MVP)
+  Piece p = logic.GetActivePiece();
+  if (p.type != 0) {
+    int px = offsetX + p.x * cellSize;
+    int py = offsetY + p.y * cellSize;
+    DrawRectangle(px + 1, py + 1, cellSize - 2, cellSize - 2, GREEN);
   }
 
   // Draw Border
