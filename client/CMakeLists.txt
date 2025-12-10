@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.20)
 project(TetrisClient LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -14,8 +14,30 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(raylib)
 
+
+if (EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    # Define the build type for Raylib
+    set(PLATFORM "Web")
+    # Add compile definitions for Raylib Web
+    add_compile_definitions(PLATFORM_WEB)
+else()
+    set(PLATFORM "Desktop")
+endif()
+
 add_executable(TetrisClient main.cpp game.cpp board.cpp logic.cpp)
 target_link_libraries(TetrisClient PRIVATE raylib)
+
+if (EMSCRIPTEN)
+    # Emscripten specific options
+    target_link_options(TetrisClient PRIVATE 
+        "-sUSE_GLFW=3"
+        "-sWASM=1"
+        "-sALLOW_MEMORY_GROWTH=1"
+        "--shell-file ${CMAKE_SOURCE_DIR}/minshell.html"
+    )
+endif()
+
 
 # --- TDD: GoogleTest Infrastructure ---
 enable_testing()
