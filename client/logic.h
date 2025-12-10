@@ -1,4 +1,3 @@
-
 #ifndef LOGIC_H
 #define LOGIC_H
 
@@ -27,6 +26,7 @@ public:
 
   Board board;
   Piece currentPiece;
+  Piece nextPiece; // Feature: Stores the upcoming piece for preview
 };
 
 #endif

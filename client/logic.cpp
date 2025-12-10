@@ -1,4 +1,3 @@
-
 #include "logic.h"
 #include <iostream>
 #include <random>
@@ -6,40 +5,55 @@
 // Static random setup
 static std::random_device rd;
 static std::mt19937 gen(rd());
-static std::uniform_int_distribution<> distrib(1, 7); // Types 1-7
+static std::uniform_int_distribution<> distrib(1, 7); // PieceTypes 1-7 (I, O, T, S, Z, J, L)
 
-Logic::Logic() { SpawnPiece(); }
+Logic::Logic() {
+  // Initialize nextPiece first with a random piece.
+  // Its position doesn't matter until it becomes currentPiece.
+  nextPiece = Piece(static_cast<PieceType>(distrib(gen)));
+  nextPiece.x = 0;
+  nextPiece.y = 0;
+  nextPiece.rotation = 0;
+
+  // Call SpawnPiece, which will move the initialized nextPiece to currentPiece
+  // and then generate a new random piece for nextPiece.
+  SpawnPiece();
+}
 
 void Logic::SpawnPiece() {
-  // Random piece
-  PieceType t = static_cast<PieceType>(distrib(gen));
-  currentPiece = Piece(t);
-  currentPiece.x = BOARD_WIDTH / 2 - 2; // Approximate center
+  // 1. Shift the 'nextPiece' to become the 'currentPiece'.
+  currentPiece = nextPiece;
+  currentPiece.x = BOARD_WIDTH / 2 - 2; // Approximate center spawn position
   currentPiece.y = 0;
   currentPiece.rotation = 0;
 
-  // Game Over Check
+  // 2. Generate a NEW random piece for 'nextPiece'.
+  nextPiece = Piece(static_cast<PieceType>(distrib(gen)));
+  nextPiece.x = 0; // Reset position for the new nextPiece
+  nextPiece.y = 0;
+  nextPiece.rotation = 0;
+
+  // Game Over Check: If the newly spawned currentPiece is immediately invalid,
+  // it means the game is over.
   if (!IsValidPosition(currentPiece)) {
-    board.Reset(); // Simple restart for now
+    board.Reset(); // Simple restart for now.
+    // In a full game, this would trigger a game over state.
+    // For this task, we maintain the existing behavior of just resetting the board.
   }
 }
 
 void Logic::Tick() {
   Move(0, 1); // Gravity: Move Down 1
-  // Note: Move() handles IsValid check.
-  // If invalid (collision), we need to Lock.
 
-  // Check if gravity move actually happened?
-  // Wait, Move() updates currentPiece IF valid.
-  // We need to know if it failed to Lock.
-
+  // Check if the piece could move down. If not, it means it collided,
+  // so lock it and spawn a new one.
   Piece next = currentPiece;
   next.y++;
   if (IsValidPosition(next)) {
     currentPiece = next;
   } else {
     LockPiece();
-    SpawnPiece();
+    SpawnPiece(); // This will now correctly use nextPiece and generate a new one.
   }
 }
 
@@ -65,17 +79,19 @@ void Logic::Rotate() {
 bool Logic::IsValidPosition(const Piece &p) const {
   for (int i = 0; i < 4; i++) {
     int bx, by;
-    p.GetBlock(p.rotation, i, bx, by); // Use updated Piece.h logic
+    p.GetBlock(p.rotation, i, bx, by);
 
     int boardX = p.x + bx;
     int boardY = p.y + by;
 
-    // Boundaries
+    // Check board boundaries
     if (boardX < 0 || boardX >= BOARD_WIDTH || boardY < 0 ||
         boardY >= BOARD_HEIGHT)
       return false;
 
-    // Collision (Swap X,Y fixed)
+    // Check for collision with existing locked blocks on the board
+    // This check is only performed if boardX and boardY are within valid bounds,
+    // as guaranteed by the previous 'if' statement.
     if (board.GetCell(boardY, boardX) != 0)
       return false;
   }
@@ -90,6 +106,7 @@ void Logic::LockPiece() {
     int boardX = currentPiece.x + bx;
     int boardY = currentPiece.y + by;
 
+    // Ensure coordinates are within board limits before setting cell
     if (boardX >= 0 && boardX < BOARD_WIDTH && boardY >= 0 &&
         boardY < BOARD_HEIGHT) {
       board.SetCell(boardY, boardX, (int)currentPiece.type);
@@ -109,17 +126,17 @@ void Logic::CheckLines() {
     }
 
     if (full) {
-      // Shift Down
+      // Shift all rows above down by one
       for (int r = y; r > 0; r--) {
         for (int c = 0; c < BOARD_WIDTH; c++) {
           board.SetCell(r, c, board.GetCell(r - 1, c));
         }
       }
-      // Clear Top
+      // Clear the top row
       for (int c = 0; c < BOARD_WIDTH; c++)
         board.SetCell(0, c, 0);
 
-      y++; // Check same row again
+      y++; // Re-check the current row, as it now contains the row that was above it
     }
   }
 }
