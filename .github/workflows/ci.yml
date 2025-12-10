@@ -1,0 +1,33 @@
+name: C++ CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    # Install dependencies for Raylib (Linux/Ubuntu needs these)
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev wayland-protocols libwayland-dev libxkbcommon-dev
+
+    - name: Configure CMake
+      # Run cmake in the client directory
+      run: cmake -B ${{github.workspace}}/client/build -S ${{github.workspace}}/client
+
+    - name: Build
+      # Build all targets (client game + tests)
+      run: cmake --build ${{github.workspace}}/client/build
+
+    - name: Test
+      # Run the test executable
+      working-directory: ${{github.workspace}}/client/build
+      run: ctest --output-on-failure
