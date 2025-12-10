@@ -1,10 +1,9 @@
-
 #include "game.h"
 #include "raylib.h"
 
 int main() {
   const int screenWidth = 800;
-  const int screenHeight = 600;
+  const int screenHeight = 750; // Increased for touch controls
 
   InitWindow(screenWidth, screenHeight, "Tetris Battle");
   SetTargetFPS(60);

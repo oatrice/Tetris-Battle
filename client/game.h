@@ -1,6 +1,14 @@
-
 #pragma once
 #include "raylib.h"
+
+#include <string>
+
+struct Button {
+  Rectangle rect;
+  Color color;
+  std::string text;
+  bool active;
+};
 
 class Game {
 public:
@@ -8,6 +16,8 @@ public:
   ~Game();
   void Update();
   void Draw();
+  void HandleInput();  // New
+  void DrawControls(); // New
 
 private:
   int grid[20][10]; // 20 rows, 10 cols
@@ -16,4 +26,7 @@ private:
   // Center X: (800 - 300) / 2 = 250.
   const int offsetX = 250;
   const int offsetY = 0; // Full height
+
+  // Touch Controls
+  Button btnLeft, btnRight, btnRotate, btnDrop;
 };
