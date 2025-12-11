@@ -1,4 +1,5 @@
 #include "game.h"
+#include <algorithm> // Required for std::max
 
 Game::Game() {
   // Initialize game state to TITLE_SCREEN to prompt for player name
@@ -37,7 +38,14 @@ Game::Game() {
   int previewBoxHeight = 6 * cellSize;
   int currentY = offsetY + previewBoxHeight + 20; // Below Next Piece preview
 
-  int btnWidth = 100;
+  // Calculate required button width based on text to prevent overflow
+  int btnTextFontSize = 30; // Matches the font size used in Draw()
+  int restartTextWidth = MeasureText("Restart", btnTextFontSize);
+  int pauseTextWidth = MeasureText("Pause", btnTextFontSize);
+  
+  // Choose the maximum width and add padding (e.g., 20px on each side)
+  int btnWidth = std::max(restartTextWidth, pauseTextWidth) + 40; 
+  
   int btnHeight = 40;
   int btnVerticalGap = 10;
 
