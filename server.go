@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 // Server represents our HTTP server.
 type Server struct {
 	sessions map[string]*GameSession // A map to hold active game sessions
-	mu       sync.RWMutex          // For thread-safe access to the sessions map
+	mu       sync.RWMutex            // For thread-safe access to the sessions map
 }
 
 // NewServer creates and returns a new Server instance.
@@ -25,34 +27,33 @@ func (s *Server) ServeHello(w http.ResponseWriter, r *http.Request) {
 }
 
 // ServeWS handles WebSocket connections.
-// This is a placeholder implementation to satisfy the test's expectation.
 func (s *Server) ServeWS(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "WebSocket endpoint - not yet implemented")
-	// Example using gorilla/websocket:
-	// var upgrader = websocket.Upgrader{
-	// 	ReadBufferSize:  1024,
-	// 	WriteBufferSize: 1024,
-	// }
-	// conn, err := upgrader.Upgrade(w, r, nil)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return
-	// }
-	// defer conn.Close()
-	// // Handle WebSocket messages here
-	// for {
-	// 	mt, message, err := conn.ReadMessage()
-	// 	if err != nil {
-	// 		log.Println("read:", err)
-	// 		break
-	// 	}
-	// 	log.Printf("recv: %s", message)
-	// 	err = conn.WriteMessage(mt, message)
-	// 	if err != nil {
-	// 		log.Println("write:", err)
-	// 		break
-	// 	}
-	// }
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin:     func(r *http.Request) bool { return true },
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Printf("Upgrade error: %v\n", err)
+		return
+	}
+	defer conn.Close()
+
+	// Handle WebSocket messages here
+	for {
+		mt, message, err := conn.ReadMessage()
+		if err != nil {
+			// log.Println("read:", err)
+			break
+		}
+		// Echo back
+		err = conn.WriteMessage(mt, message)
+		if err != nil {
+			// log.Println("write:", err)
+			break
+		}
+	}
 }
 
 // ServeHTTP routes incoming requests to the appropriate handler.
@@ -79,6 +80,7 @@ type GameSession struct {
 	id        string
 	players   []string // Example field, could hold player IDs or connections
 	isStarted bool
+	score     int        // Current score
 	mu        sync.Mutex // Mutex for thread-safe access to GameSession fields
 }
 
@@ -88,6 +90,7 @@ func NewGameSession() *GameSession {
 		id:        "", // Default ID, a real game would likely generate or accept an ID
 		players:   make([]string, 0),
 		isStarted: false, // Initialize as not started
+		score:     0,
 	}
 }
 
@@ -113,16 +116,49 @@ func (gs *GameSession) IsStarted() bool {
 	return gs.isStarted
 }
 
+const (
+	ScoreOneLine    = 100
+	ScoreTwoLines   = 300
+	ScoreThreeLines = 500
+	ScoreFourLines  = 800
+)
+
+// AddLinesCleared updates the score based on the number of lines cleared.
+func (gs *GameSession) AddLinesCleared(lines int) {
+	gs.mu.Lock()
+	defer gs.mu.Unlock()
+
+	points := 0
+	switch lines {
+	case 1:
+		points = ScoreOneLine
+	case 2:
+		points = ScoreTwoLines
+	case 3:
+		points = ScoreThreeLines
+	case 4:
+		points = ScoreFourLines
+	}
+	gs.score += points
+}
+
+// GetScore returns the current score in a thread-safe manner.
+func (gs *GameSession) GetScore() int {
+	gs.mu.Lock()
+	defer gs.mu.Unlock()
+	return gs.score
+}
+
 func main() {
 	server := NewServer()
 
 	// Example usage of GameSession:
 	game1 := NewGameSession()
-	game1.id = "tetris-game-1" // Manually set ID for demonstration purposes
+	game1.id = "tetris-game-1"                                              // Manually set ID for demonstration purposes
 	fmt.Printf("Game %s started status: %t\n", game1.id, game1.IsStarted()) // Should be false
-	game1.StartGame()                                                    // Should print "Game session tetris-game-1 started."
+	game1.StartGame()                                                       // Should print "Game session tetris-game-1 started."
 	fmt.Printf("Game %s started status: %t\n", game1.id, game1.IsStarted()) // Should be true
-	game1.StartGame()                                                    // Should print "Game session tetris-game-1 is already started."
+	game1.StartGame()                                                       // Should print "Game session tetris-game-1 is already started."
 
 	// Start the HTTP server
 	if err := server.Run(":8080"); err != nil {
