@@ -20,7 +20,7 @@ void UpdateDrawFrame() {
   ClearBackground(BLACK); // Changed to BLACK for a darker main app background
   DrawText("Tetris Battle Client", 10, 10, 20,
            WHITE);                            // Changed text color to WHITE
-  DrawText("FPS: 60", 10, 30, 10, LIGHTGRAY); // Changed text color to LIGHTGRAY
+  // DrawText("FPS: 60", 10, 30, 10, LIGHTGRAY); // Changed text color to LIGHTGRAY
 
   gameInstance->Draw();
 

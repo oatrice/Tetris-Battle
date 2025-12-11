@@ -25,6 +25,9 @@ public:
 private:
   Logic logic; // Replace direct grid manipulation
 
+  // Game State
+  bool isPaused = false; // Added: Pause state
+
   // Gravity
   float gravityTimer = 0.0f;
   float gravityInterval = 1.0f; // 1 sec
@@ -32,7 +35,7 @@ private:
   // Delayed Auto Shift (DAS) for movement
   float dasTimer = 0.0f;   // Timer for auto shift
   float dasDelay = 0.2f;   // Initial delay before repeating (e.g., 0.2s)
-  float dasRate = 0.05f;   // Speed of repeating (e.g., 0.05s)
+  float dasRate = 0.05f;   // Speed of repeating (e.05s)
   int lastMoveDir = 0;     // -1 for left, 1 for right, 0 for none/reset
 
   const int cellSize = 30;
@@ -44,6 +47,7 @@ private:
   // Touch Controls
   Button btnLeft, btnRight, btnRotate, btnDrop;
   Button btnRestart; // New: Restart button
+  Button btnPause;   // Added: Pause button
 
   // Soft Drop Safety (Reset on Spawn)
   int lastSpawnCounter = 0;      // New: Tracks logic.spawnCounter to detect new piece spawns

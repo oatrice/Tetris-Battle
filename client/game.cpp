@@ -4,8 +4,9 @@ Game::Game() {
   // Start Game
   logic.SpawnPiece(); // Next -> Current, New Next
 
-  // Initialize lastSpawnCounter to sync with the initial piece spawn
-  lastSpawnCounter = logic.spawnCounter;
+  // Initialize game state variables
+  isPaused = false; // Added: Initialize pause state
+  lastSpawnCounter = logic.spawnCounter; // Sync with initial piece spawn
 
   // Init Controls (Mobile UI)
   int btnY = 620;
@@ -33,26 +34,36 @@ Game::Game() {
              "v",
              false};
 
-  // Initialize Restart Button
-  // Centered horizontally on the board, below the "GAME OVER" text
-  int boardWidth = BOARD_WIDTH * cellSize;
-  int boardHeight = BOARD_HEIGHT * cellSize;
-  int restartBtnWidth = 150;
-  int restartBtnHeight = 50;
-  int restartBtnX = offsetX + (boardWidth - restartBtnWidth) / 2;
-  int restartBtnY = offsetY + (boardHeight / 2) + 20; // Below "GAME OVER" text
+  // Initialize Restart and Pause Buttons (UI Area, right of board)
+  int uiAreaX = offsetX + (10 * cellSize) + 20; // X position for UI elements
+  int previewBoxHeight = 6 * cellSize;
+  int currentY = offsetY + previewBoxHeight + 20; // Below Next Piece preview
 
-  btnRestart = {{(float)restartBtnX, (float)restartBtnY, (float)restartBtnWidth,
-                 (float)restartBtnHeight},
+  int btnWidth = 100;
+  int btnHeight = 40;
+  int btnVerticalGap = 10;
+
+  btnRestart = {{(float)uiAreaX, (float)currentY, (float)btnWidth,
+                 (float)btnHeight},
                 DARKBLUE,
                 "Restart",
                 false};
+
+  currentY += btnHeight + btnVerticalGap; // Move Y down for next button
+
+  btnPause = {{(float)uiAreaX, (float)currentY, (float)btnWidth,
+               (float)btnHeight},
+              GOLD, // Color: GOLD as requested
+              "Pause",
+              false};
 }
 
 Game::~Game() {}
 
 void Game::ResetGame() {
   logic.Reset();
+  isPaused = false; // Added: Reset pause state
+  // logic.isGameOver is set to false by logic.Reset()
   gravityTimer = 0.0f;
   dasTimer = 0.0f;
   lastMoveDir = 0;
@@ -60,31 +71,48 @@ void Game::ResetGame() {
       logic.spawnCounter; // Sync after logic.Reset() spawns a new piece
   waitForDownRelease = false;
   btnRestart.active = false; // Ensure button is not active after reset
+  btnPause.active = false;   // Added: Ensure pause button is not active
 }
 
 void Game::HandleInput() {
-  // --- Input for Restart Button (always active) ---
-  btnRestart.active = false; // Reset state for this frame
-  if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-    Vector2 mouse = GetMousePosition();
-    if (CheckCollisionPointRec(mouse, btnRestart.rect)) {
+  Vector2 mouse = GetMousePosition();
+  // Use IsMouseButtonPressed for single-click actions to prevent repeated toggles/resets
+  bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
+
+  // --- Input for Persistent Restart Button ---
+  btnRestart.active = false; // Reset visual state for this frame
+  if (CheckCollisionPointRec(mouse, btnRestart.rect)) {
       btnRestart.active = true;
-      if (logic.isGameOver) { // Only act on click if game is over
-        ResetGame();
-        return; // Game reset, no further input processing this frame
+      if (mouseClicked) {
+          ResetGame();
+          return; // Game reset, no further input processing this frame
       }
-    }
   }
 
   // Keyboard input for Restart (e.g., 'R' key)
-  if (logic.isGameOver && IsKeyPressed(KEY_R)) {
+  if (IsKeyPressed(KEY_R)) { // Allow restart anytime
     ResetGame();
     return; // Game reset, no further input processing this frame
   }
 
-  // If game is over, skip all normal game controls
-  if (logic.isGameOver) {
-    return;
+  // --- Input for Pause Button ---
+  btnPause.active = false; // Reset visual state for this frame
+  if (CheckCollisionPointRec(mouse, btnPause.rect)) {
+      btnPause.active = true;
+      if (mouseClicked) {
+          isPaused = !isPaused; // Toggle pause state
+      }
+  }
+
+  // Keyboard input for Pause (e.g., 'P' key)
+  if (IsKeyPressed(KEY_P)) {
+      isPaused = !isPaused; // Toggle pause state
+  }
+
+  // IMPORTANT: If game is paused or over, ignore other game inputs (movement, rotation)
+  // but allow restart and pause buttons to function.
+  if (isPaused || logic.isGameOver) {
+    return; // Skip all normal game controls
   }
 
   // --- Soft Drop Safety Logic ---
@@ -103,15 +131,14 @@ void Game::HandleInput() {
   }
   // --- End Soft Drop Safety Logic ---
 
-  // Reset Active State for non-restart touch buttons
+  // Reset Active State for non-restart/pause touch buttons
   btnLeft.active = false;
   btnRight.active = false;
   btnRotate.active = false;
   btnDrop.active = false;
 
-  // Mouse / Touch input for game buttons
+  // Mouse / Touch input for game buttons (using IsMouseButtonDown for continuous feedback)
   if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-    Vector2 mouse = GetMousePosition();
     if (CheckCollisionPointRec(mouse, btnLeft.rect))
       btnLeft.active = true;
     if (CheckCollisionPointRec(mouse, btnRight.rect))
@@ -210,14 +237,14 @@ void Game::HandleInput() {
 }
 
 void Game::Update() {
-  HandleInput(); // Always handle input to check for restart
+  HandleInput(); // Always handle input to check for restart/pause
 
-  if (logic.isGameOver) {
-    // If game is over, skip all game logic updates
+  // Added: If game is paused or over, skip all game logic updates
+  if (isPaused || logic.isGameOver) {
     return;
   }
 
-  // Normal game logic if not game over
+  // Normal game logic if not game over and not paused
   // Gravity System
   gravityTimer += GetFrameTime();
   if (gravityTimer >= gravityInterval) {
@@ -340,7 +367,34 @@ void Game::Draw() {
   // Display the score
   DrawText(TextFormat("SCORE: %d", logic.score), 50, 50, 20, WHITE);
 
-  // Draw Game Over overlay and button if game is over
+  // --- Draw Restart and Pause buttons always ---
+  int btnTextFontSize = 30; // Defined once for both buttons
+
+  // Draw Restart button
+  DrawRectangleRec(btnRestart.rect, btnRestart.active
+                                        ? Fade(btnRestart.color, 0.5f)
+                                        : btnRestart.color);
+  DrawRectangleLinesEx(btnRestart.rect, 2, DARKGRAY);
+  int btnTextWidth = MeasureText(btnRestart.text.c_str(), btnTextFontSize);
+  DrawText(btnRestart.text.c_str(),
+           btnRestart.rect.x + (btnRestart.rect.width / 2 - btnTextWidth / 2),
+           btnRestart.rect.y +
+               (btnRestart.rect.height / 2 - (btnTextFontSize / 2)),
+           btnTextFontSize, WHITE);
+
+  // Draw Pause button
+  DrawRectangleRec(btnPause.rect, btnPause.active
+                                      ? Fade(btnPause.color, 0.5f)
+                                      : btnPause.color);
+  DrawRectangleLinesEx(btnPause.rect, 2, DARKGRAY);
+  btnTextWidth = MeasureText(btnPause.text.c_str(), btnTextFontSize); // Recalculate for Pause text
+  DrawText(btnPause.text.c_str(),
+           btnPause.rect.x + (btnPause.rect.width / 2 - btnTextWidth / 2),
+           btnPause.rect.y +
+               (btnPause.rect.height / 2 - (btnTextFontSize / 2)),
+           btnTextFontSize, WHITE);
+
+  // --- Draw Game Over overlay if game is over ---
   if (logic.isGameOver) {
     int boardWidth = BOARD_WIDTH * cellSize;
     int boardHeight = BOARD_HEIGHT * cellSize;
@@ -350,25 +404,31 @@ void Game::Draw() {
 
     // Draw "GAME OVER" text
     const char *gameOverText = "GAME OVER";
-    int textFontSize = 50;
-    int textWidth = MeasureText(gameOverText, textFontSize);
-    int textX = offsetX + (boardWidth - textWidth) / 2;
+    int textFontSizeGameOver = 50; // Use a different font size variable for game over text
+    int textWidthGameOver = MeasureText(gameOverText, textFontSizeGameOver);
+    int textX = offsetX + (boardWidth - textWidthGameOver) / 2;
     int textY =
-        offsetY + (boardHeight / 2) - textFontSize; // Slightly above center
+        offsetY + (boardHeight / 2) - textFontSizeGameOver; // Slightly above center
 
-    DrawText(gameOverText, textX, textY, textFontSize, RED);
+    DrawText(gameOverText, textX, textY, textFontSizeGameOver, RED);
+  }
 
-    // Draw the Restart button
-    DrawRectangleRec(btnRestart.rect, btnRestart.active
-                                          ? Fade(btnRestart.color, 0.5f)
-                                          : btnRestart.color);
-    DrawRectangleLinesEx(btnRestart.rect, 2, DARKGRAY);
-    int btnTextFontSize = 30;
-    int btnTextWidth = MeasureText(btnRestart.text.c_str(), btnTextFontSize);
-    DrawText(btnRestart.text.c_str(),
-             btnRestart.rect.x + (btnRestart.rect.width / 2 - btnTextWidth / 2),
-             btnRestart.rect.y +
-                 (btnRestart.rect.height / 2 - (btnTextFontSize / 2)),
-             btnTextFontSize, WHITE);
+  // --- Draw PAUSED overlay if game is paused ---
+  if (isPaused && !logic.isGameOver) { // Only draw if paused and not game over
+    int boardWidth = BOARD_WIDTH * cellSize;
+    int boardHeight = BOARD_HEIGHT * cellSize;
+
+    // Draw semi-transparent black overlay over the board area
+    DrawRectangle(offsetX, offsetY, boardWidth, boardHeight, Fade(BLACK, 0.7f));
+
+    // Draw "PAUSED" text
+    const char *pausedText = "PAUSED";
+    int textFontSizePaused = 50; // Use a different font size variable for paused text
+    int textWidthPaused = MeasureText(pausedText, textFontSizePaused);
+    int textX = offsetX + (boardWidth - textWidthPaused) / 2;
+    int textY =
+        offsetY + (boardHeight / 2) - textFontSizePaused; // Center vertically
+
+    DrawText(pausedText, textX, textY, textFontSizePaused, WHITE);
   }
 }
