@@ -155,8 +155,7 @@ TEST_F(LogicTest, GameOverOnSpawnCollision) {
 TEST_F(LogicTest, ResetClearsGameState) {
   // 1. Set up a "dirty" state
   logic.isGameOver = true;
-  // Note: logic.score/lines might not be public or implemented yet in Logic
-  // class, but we can check board and gameOver state.
+  logic.score = 5000;           // Simulate some score
   logic.board.SetCell(5, 5, 1); // Set a random block
 
   // 2. Call Reset
@@ -164,12 +163,45 @@ TEST_F(LogicTest, ResetClearsGameState) {
 
   // 3. Assert clean state
   EXPECT_FALSE(logic.isGameOver);
+  EXPECT_EQ(logic.score, 0); // Score should be reset to 0
 
   // Board should be empty
   EXPECT_EQ(logic.board.GetCell(5, 5), 0);
 
   // Should have a valid current piece spawned
   EXPECT_NE(logic.currentPiece.type, PieceType::NONE);
+}
+
+TEST_F(LogicTest, ScoreCalculation) {
+  // 1. Single Line Clear (100)
+  logic.score = 0;
+  FillRow(BOARD_HEIGHT - 1);
+  logic.CheckLines();
+  EXPECT_EQ(logic.score, 100);
+
+  // 2. Double Line Clear (300) -> Total 400
+  logic.score = 0; // Reset for clarity
+  FillRow(BOARD_HEIGHT - 1);
+  FillRow(BOARD_HEIGHT - 2);
+  logic.CheckLines();
+  EXPECT_EQ(logic.score, 300);
+
+  // 3. Triple Line Clear (500)
+  logic.score = 0;
+  FillRow(BOARD_HEIGHT - 1);
+  FillRow(BOARD_HEIGHT - 2);
+  FillRow(BOARD_HEIGHT - 3);
+  logic.CheckLines();
+  EXPECT_EQ(logic.score, 500);
+
+  // 4. Tetris (4 Lines) (800)
+  logic.score = 0;
+  FillRow(BOARD_HEIGHT - 1);
+  FillRow(BOARD_HEIGHT - 2);
+  FillRow(BOARD_HEIGHT - 3);
+  FillRow(BOARD_HEIGHT - 4);
+  logic.CheckLines();
+  EXPECT_EQ(logic.score, 800);
 }
 
 TEST_F(LogicTest, MoveLeftBoundary) {
