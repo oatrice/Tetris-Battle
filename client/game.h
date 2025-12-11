@@ -11,6 +11,9 @@ struct Button {
   bool active;
 };
 
+// Define game states for managing different screens/flows
+enum class GameState { TITLE_SCREEN, PLAYING, PAUSED, GAME_OVER };
+
 class Game {
 public:
   Game();
@@ -25,8 +28,16 @@ public:
 private:
   Logic logic; // Replace direct grid manipulation
 
-  // Game State
-  bool isPaused = false; // Added: Pause state
+  // Game State Management
+  GameState currentGameState; // Current state of the game
+  std::string playerName;     // Stores the player's name
+  std::string
+      playerNameInputBuffer; // Buffer for name input in TITLE_SCREEN
+  const int maxNameLength = 10; // Maximum length for player name
+
+  // Cursor for name input
+  float cursorBlinkTimer = 0.0f;
+  bool showCursor = true;
 
   // Gravity
   float gravityTimer = 0.0f;

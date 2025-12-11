@@ -1,12 +1,10 @@
 #include "game.h"
 
 Game::Game() {
-  // Start Game
-  logic.SpawnPiece(); // Next -> Current, New Next
-
-  // Initialize game state variables
-  isPaused = false; // Added: Initialize pause state
-  lastSpawnCounter = logic.spawnCounter; // Sync with initial piece spawn
+  // Initialize game state to TITLE_SCREEN to prompt for player name
+  currentGameState = GameState::TITLE_SCREEN;
+  playerNameInputBuffer = "";
+  playerName = "Player"; // Default name in case user just presses enter
 
   // Init Controls (Mobile UI)
   int btnY = 620;
@@ -61,9 +59,7 @@ Game::Game() {
 Game::~Game() {}
 
 void Game::ResetGame() {
-  logic.Reset();
-  isPaused = false; // Added: Reset pause state
-  // logic.isGameOver is set to false by logic.Reset()
+  logic.Reset(); // Resets board, score, and spawns a new piece
   gravityTimer = 0.0f;
   dasTimer = 0.0f;
   lastMoveDir = 0;
@@ -71,185 +67,244 @@ void Game::ResetGame() {
       logic.spawnCounter; // Sync after logic.Reset() spawns a new piece
   waitForDownRelease = false;
   btnRestart.active = false; // Ensure button is not active after reset
-  btnPause.active = false;   // Added: Ensure pause button is not active
+  btnPause.active = false;   // Ensure pause button is not active
 }
 
 void Game::HandleInput() {
   Vector2 mouse = GetMousePosition();
-  // Use IsMouseButtonPressed for single-click actions to prevent repeated toggles/resets
   bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 
-  // --- Input for Persistent Restart Button ---
+  // Update cursor blink timer (always active for visual consistency)
+  cursorBlinkTimer += GetFrameTime();
+  if (cursorBlinkTimer >= 0.5f) { // Toggle every 0.5 seconds
+    showCursor = !showCursor;
+    cursorBlinkTimer = 0.0f;
+  }
+
+  // --- Global Input for Restart Button ---
+  // This allows restart from any state except TITLE_SCREEN,
+  // where "Restart" doesn't make sense yet.
   btnRestart.active = false; // Reset visual state for this frame
   if (CheckCollisionPointRec(mouse, btnRestart.rect)) {
-      btnRestart.active = true;
-      if (mouseClicked) {
-          ResetGame();
-          return; // Game reset, no further input processing this frame
+    btnRestart.active = true;
+    if (mouseClicked) {
+      if (currentGameState != GameState::TITLE_SCREEN) {
+        ResetGame();
+        currentGameState = GameState::PLAYING; // After reset, always go to playing
+        return; // Game reset, no further input processing this frame
       }
+    }
   }
 
   // Keyboard input for Restart (e.g., 'R' key)
-  if (IsKeyPressed(KEY_R)) { // Allow restart anytime
-    ResetGame();
-    return; // Game reset, no further input processing this frame
+  if (IsKeyPressed(KEY_R)) {
+    if (currentGameState != GameState::TITLE_SCREEN) {
+      ResetGame();
+      currentGameState = GameState::PLAYING;
+      return; // Game reset, no further input processing this frame
+    }
   }
 
-  // --- Input for Pause Button ---
-  btnPause.active = false; // Reset visual state for this frame
-  if (CheckCollisionPointRec(mouse, btnPause.rect)) {
+  // --- State-specific input handling ---
+  switch (currentGameState) {
+  case GameState::TITLE_SCREEN: {
+    int key = GetCharPressed();
+    // Allow alphanumeric and some common symbols for name, limit length
+    while (key > 0) {
+      if ((key >= 32) && (key <= 125) &&
+          (playerNameInputBuffer.length() < maxNameLength)) {
+        playerNameInputBuffer += (char)key;
+      }
+      key = GetCharPressed();
+    }
+
+    if (IsKeyPressed(KEY_BACKSPACE)) {
+      if (!playerNameInputBuffer.empty()) {
+        playerNameInputBuffer.pop_back();
+      }
+    }
+
+    if (IsKeyPressed(KEY_ENTER)) {
+      if (!playerNameInputBuffer.empty()) {
+        playerName = playerNameInputBuffer;
+      } else {
+        playerName = "Player"; // Default if no name entered
+      }
+      ResetGame();                  // Initialize game for playing state
+      currentGameState = GameState::PLAYING; // Transition to playing
+    }
+    break;
+  }
+
+  case GameState::PLAYING: {
+    // --- Input for Pause Button ---
+    btnPause.active = false; // Reset visual state for this frame
+    if (CheckCollisionPointRec(mouse, btnPause.rect)) {
       btnPause.active = true;
       if (mouseClicked) {
-          isPaused = !isPaused; // Toggle pause state
+        currentGameState = GameState::PAUSED; // Toggle to paused
       }
-  }
-
-  // Keyboard input for Pause (e.g., 'P' key)
-  if (IsKeyPressed(KEY_P)) {
-      isPaused = !isPaused; // Toggle pause state
-  }
-
-  // IMPORTANT: If game is paused or over, ignore other game inputs (movement, rotation)
-  // but allow restart and pause buttons to function.
-  if (isPaused || logic.isGameOver) {
-    return; // Skip all normal game controls
-  }
-
-  // --- Soft Drop Safety Logic ---
-  // 1. Detect if a new piece has spawned since the last frame
-  if (logic.spawnCounter != lastSpawnCounter) {
-    lastSpawnCounter = logic.spawnCounter;
-    // If KEY_DOWN is currently held, activate the safety flag
-    if (IsKeyDown(KEY_DOWN)) {
-      waitForDownRelease = true;
     }
-  }
-
-  // 2. If the safety flag is active, check if KEY_DOWN has been released
-  if (!IsKeyDown(KEY_DOWN)) {
-    waitForDownRelease = false;
-  }
-  // --- End Soft Drop Safety Logic ---
-
-  // Reset Active State for non-restart/pause touch buttons
-  btnLeft.active = false;
-  btnRight.active = false;
-  btnRotate.active = false;
-  btnDrop.active = false;
-
-  // Mouse / Touch input for game buttons (using IsMouseButtonDown for continuous feedback)
-  if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-    if (CheckCollisionPointRec(mouse, btnLeft.rect))
-      btnLeft.active = true;
-    if (CheckCollisionPointRec(mouse, btnRight.rect))
-      btnRight.active = true;
-    if (CheckCollisionPointRec(mouse, btnRotate.rect))
-      btnRotate.active = true;
-    if (CheckCollisionPointRec(mouse, btnDrop.rect))
-      btnDrop.active = true;
-  }
-
-  // --- Keyboard Delayed Auto Shift (DAS) for LEFT/RIGHT movement ---
-  // Handle key releases first to clear `lastMoveDir` if the active key is let
-  // go. This is important for "rolling" from one key to another (e.g., Left
-  // held, then Right pressed, then Right released, Left should become active
-  // again with a fresh DAS timer).
-  if (IsKeyReleased(KEY_LEFT) && lastMoveDir == -1) {
-    dasTimer = 0.0f;
-    lastMoveDir = 0;
-  }
-  if (IsKeyReleased(KEY_RIGHT) && lastMoveDir == 1) {
-    dasTimer = 0.0f;
-    lastMoveDir = 0;
-  }
-
-  // Determine the current desired move direction from keyboard (right takes
-  // precedence if both are down)
-  int currentKeyboardMoveDir = 0;
-  if (IsKeyDown(KEY_LEFT)) {
-    currentKeyboardMoveDir = -1;
-  }
-  if (IsKeyDown(KEY_RIGHT)) {
-    currentKeyboardMoveDir = 1;
-  }
-
-  // Check for initial press or change in active DAS direction
-  if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir != lastMoveDir) {
-    // New key is pressed or a different key took over.
-    logic.Move(currentKeyboardMoveDir, 0); // Initial move for the new direction
-    dasTimer = 0.0f;                       // Reset timer for the new direction
-    lastMoveDir = currentKeyboardMoveDir;
-  }
-  // If the same key is held down (DAS repeat)
-  else if (currentKeyboardMoveDir != 0 &&
-           currentKeyboardMoveDir == lastMoveDir) {
-    dasTimer += GetFrameTime();
-
-    // After initial delay, start repeating movement at dasRate
-    while (dasTimer >= dasDelay) {
-      logic.Move(lastMoveDir, 0);
-      dasTimer -= dasRate; // Subtract dasRate to schedule the next repeat
+    // Keyboard input for Pause (e.g., 'P' key)
+    if (IsKeyPressed(KEY_P)) {
+      currentGameState = GameState::PAUSED; // Toggle to paused
     }
-  }
-  // If no relevant keyboard key is down, reset DAS state
-  else if (currentKeyboardMoveDir == 0) {
-    dasTimer = 0.0f;
-    lastMoveDir = 0;
-  }
-  // --- End Keyboard DAS for LEFT/RIGHT ---
 
-  // --- Other Keyboard Controls ---
-  // Rotate
-  if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE)) {
-    logic.Rotate();
-  }
-  // Soft Drop (continuous) - now includes soft drop safety check
-  if (IsKeyDown(KEY_DOWN) && !waitForDownRelease) {
-    logic.Move(0, 1);
-  }
-  // --- End Other Keyboard Controls ---
+    // --- Soft Drop Safety Logic ---
+    // 1. Detect if a new piece has spawned since the last frame
+    if (logic.spawnCounter != lastSpawnCounter) {
+      lastSpawnCounter = logic.spawnCounter;
+      // If KEY_DOWN is currently held, activate the safety flag
+      if (IsKeyDown(KEY_DOWN)) {
+        waitForDownRelease = true;
+      }
+    }
+    // 2. If the safety flag is active, check if KEY_DOWN has been released
+    if (!IsKeyDown(KEY_DOWN)) {
+      waitForDownRelease = false;
+    }
+    // --- End Soft Drop Safety Logic ---
 
-  // --- Touch Controls (Single Press except for Soft Drop) ---
-  // Use static bools to ensure single activation per touch for non-continuous
-  // actions
-  static bool leftPressed = false;
-  static bool rightPressed = false;
-  static bool rotatePressed = false;
+    // Reset Active State for non-restart/pause touch buttons
+    btnLeft.active = false;
+    btnRight.active = false;
+    btnRotate.active = false;
+    btnDrop.active = false;
 
-  if (btnLeft.active && !leftPressed) {
-    logic.Move(-1, 0);
-  }
-  if (btnRight.active && !rightPressed) {
-    logic.Move(1, 0);
-  }
-  if (btnRotate.active && !rotatePressed) {
-    logic.Rotate();
-  }
-  if (btnDrop.active) { // Touch soft drop is continuous
-    logic.Move(0, 1);
+    // Mouse / Touch input for game buttons (using IsMouseButtonDown for
+    // continuous feedback)
+    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+      if (CheckCollisionPointRec(mouse, btnLeft.rect))
+        btnLeft.active = true;
+      if (CheckCollisionPointRec(mouse, btnRight.rect))
+        btnRight.active = true;
+      if (CheckCollisionPointRec(mouse, btnRotate.rect))
+        btnRotate.active = true;
+      if (CheckCollisionPointRec(mouse, btnDrop.rect))
+        btnDrop.active = true;
+    }
+
+    // --- Keyboard Delayed Auto Shift (DAS) for LEFT/RIGHT movement ---
+    // Handle key releases first to clear `lastMoveDir` if the active key is
+    // let go.
+    if (IsKeyReleased(KEY_LEFT) && lastMoveDir == -1) {
+      dasTimer = 0.0f;
+      lastMoveDir = 0;
+    }
+    if (IsKeyReleased(KEY_RIGHT) && lastMoveDir == 1) {
+      dasTimer = 0.0f;
+      lastMoveDir = 0;
+    }
+
+    // Determine the current desired move direction from keyboard
+    int currentKeyboardMoveDir = 0;
+    if (IsKeyDown(KEY_LEFT)) {
+      currentKeyboardMoveDir = -1;
+    }
+    if (IsKeyDown(KEY_RIGHT)) {
+      currentKeyboardMoveDir = 1;
+    }
+
+    // Check for initial press or change in active DAS direction
+    if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir != lastMoveDir) {
+      logic.Move(currentKeyboardMoveDir, 0); // Initial move
+      dasTimer = 0.0f;                       // Reset timer
+      lastMoveDir = currentKeyboardMoveDir;
+    }
+    // If the same key is held down (DAS repeat)
+    else if (currentKeyboardMoveDir != 0 &&
+             currentKeyboardMoveDir == lastMoveDir) {
+      dasTimer += GetFrameTime();
+      while (dasTimer >= dasDelay) {
+        logic.Move(lastMoveDir, 0);
+        dasTimer -= dasRate;
+      }
+    }
+    // If no relevant keyboard key is down, reset DAS state
+    else if (currentKeyboardMoveDir == 0) {
+      dasTimer = 0.0f;
+      lastMoveDir = 0;
+    }
+    // --- End Keyboard DAS for LEFT/RIGHT ---
+
+    // --- Other Keyboard Controls ---
+    // Rotate
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE)) {
+      logic.Rotate();
+    }
+    // Soft Drop (continuous) - now includes soft drop safety check
+    if (IsKeyDown(KEY_DOWN) && !waitForDownRelease) {
+      logic.Move(0, 1);
+    }
+    // --- End Other Keyboard Controls ---
+
+    // --- Touch Controls (Single Press except for Soft Drop) ---
+    static bool leftPressed = false;
+    static bool rightPressed = false;
+    static bool rotatePressed = false;
+
+    if (btnLeft.active && !leftPressed) {
+      logic.Move(-1, 0);
+    }
+    if (btnRight.active && !rightPressed) {
+      logic.Move(1, 0);
+    }
+    if (btnRotate.active && !rotatePressed) {
+      logic.Rotate();
+    }
+    if (btnDrop.active) { // Touch soft drop is continuous
+      logic.Move(0, 1);
+    }
+
+    // Update static states for touch buttons
+    leftPressed = btnLeft.active;
+    rightPressed = btnRight.active;
+    rotatePressed = btnRotate.active;
+    // --- End Touch Controls ---
+    break;
   }
 
-  // Update static states for touch buttons
-  leftPressed = btnLeft.active;
-  rightPressed = btnRight.active;
-  rotatePressed = btnRotate.active;
-  // --- End Touch Controls ---
+  case GameState::PAUSED: {
+    // --- Input for Pause Button (to unpause) ---
+    btnPause.active = false; // Reset visual state for this frame
+    if (CheckCollisionPointRec(mouse, btnPause.rect)) {
+      btnPause.active = true;
+      if (mouseClicked) {
+        currentGameState = GameState::PLAYING; // Toggle back to playing
+      }
+    }
+    // Keyboard input for Pause (e.g., 'P' key)
+    if (IsKeyPressed(KEY_P)) {
+      currentGameState = GameState::PLAYING; // Toggle back to playing
+    }
+    // No other game input is processed when paused
+    break;
+  }
+
+  case GameState::GAME_OVER: {
+    // No specific game input here; restart is handled globally.
+    break;
+  }
+  } // End switch (currentGameState)
 }
 
 void Game::Update() {
-  HandleInput(); // Always handle input to check for restart/pause
+  HandleInput(); // Always handle input to check for state transitions, restart,
+                 // and pause
 
-  // Added: If game is paused or over, skip all game logic updates
-  if (isPaused || logic.isGameOver) {
-    return;
-  }
+  // Only update game logic if in PLAYING state
+  if (currentGameState == GameState::PLAYING) {
+    // Gravity System
+    gravityTimer += GetFrameTime();
+    if (gravityTimer >= gravityInterval) {
+      logic.Tick();
+      gravityTimer = 0.0f;
+    }
 
-  // Normal game logic if not game over and not paused
-  // Gravity System
-  gravityTimer += GetFrameTime();
-  if (gravityTimer >= gravityInterval) {
-    logic.Tick();
-    gravityTimer = 0.0f;
+    // Check for game over after logic tick
+    if (logic.isGameOver) {
+      currentGameState = GameState::GAME_OVER;
+    }
   }
 }
 
@@ -259,8 +314,6 @@ void Game::DrawControls() {
     DrawRectangleRec(b->rect, b->active ? Fade(b->color, 0.5f) : b->color);
     DrawRectangleLinesEx(b->rect, 2, DARKGRAY);
     if (b->text == "^" || b->text == "v") {
-      // User Request: Use '<' rotated to form Up "^" and Down "v" arrows
-      // This ensures the style matches the other buttons (<, >) perfectly.
       const char *symbol = "<";
       float rotation = (b->text == "^") ? 90.0f : -90.0f;
 
@@ -284,33 +337,18 @@ void Game::DrawControls() {
 void Game::DrawNextPiece() {
   int previewX = offsetX + (10 * cellSize) + 20; // Right of board
   int previewY = offsetY;
-  // Increase previewSize to accommodate rotated 'I' piece and provide more
-  // padding.
-  int previewSize = 6 * cellSize; // Changed from 4 * cellSize
+  int previewSize = 6 * cellSize;
 
   // Draw Box
   DrawText("NEXT", previewX, previewY - 30, 20, WHITE);
-
-  // Draw a filled rectangle for the background of the preview box
-  // This improves contrast for the GOLD piece and WHITE border/text.
-  // Ensure the background rectangle uses the new larger previewSize.
   DrawRectangle(previewX, previewY, previewSize, previewSize, BLACK);
-
-  // Ensure the border rectangle uses the new larger previewSize.
   DrawRectangleLines(previewX, previewY, previewSize, previewSize, WHITE);
 
   // Draw Piece inside box
   Piece p = logic.nextPiece;
   if (p.type != PieceType::NONE) {
-    // Adjust centerX and centerY calculation to ensure pieces are centered
-    // within the new 6x6 preview box, assuming pieces fit within a 4x4 grid.
-    // (6 * cellSize - 4 * cellSize) / 2 = 1 * cellSize padding on each side.
-    int centerX =
-        previewX +
-        cellSize; // Shift by 1 cell from the left edge of the preview box
-    int centerY =
-        previewY +
-        cellSize; // Shift by 1 cell from the top edge of the preview box
+    int centerX = previewX + cellSize;
+    int centerY = previewY + cellSize;
 
     for (int i = 0; i < 4; i++) {
       int bx, by;
@@ -319,7 +357,6 @@ void Game::DrawNextPiece() {
       int drawX = centerX + (bx * cellSize);
       int drawY = centerY + (by * cellSize);
 
-      // Changed color from YELLOW to GOLD for higher contrast
       DrawRectangle(drawX + 1, drawY + 1, cellSize - 2, cellSize - 2, GOLD);
     }
   }
@@ -329,48 +366,62 @@ void Game::Draw() {
   // 1. Board Background
   DrawRectangle(offsetX, offsetY, 10 * cellSize, 20 * cellSize, DARKGRAY);
 
-  // 2. Static Grid (Locked Pieces)
-  for (int i = 0; i < 20; i++) {
-    for (int j = 0; j < 10; j++) {
-      int x = offsetX + j * cellSize;
-      int y = offsetY + i * cellSize;
+  // 2. Static Grid (Locked Pieces) - Always draw if not in TITLE_SCREEN
+  if (currentGameState != GameState::TITLE_SCREEN) {
+    for (int i = 0; i < 20; i++) {
+      for (int j = 0; j < 10; j++) {
+        int x = offsetX + j * cellSize;
+        int y = offsetY + i * cellSize;
 
-      if (logic.board.GetCell(i, j) != 0) {
-        DrawRectangle(x + 1, y + 1, cellSize - 2, cellSize - 2, RED);
-      } else {
-        DrawRectangleLines(x, y, cellSize, cellSize, Fade(LIGHTGRAY, 0.1f));
+        if (logic.board.GetCell(i, j) != 0) {
+          DrawRectangle(x + 1, y + 1, cellSize - 2, cellSize - 2, RED);
+        } else {
+          DrawRectangleLines(x, y, cellSize, cellSize, Fade(LIGHTGRAY, 0.1f));
+        }
       }
     }
   }
 
-  // 3. Active Piece (Current)
-  Piece p = logic.currentPiece;
-  if (p.type != PieceType::NONE) {
-    for (int i = 0; i < 4; i++) {
-      int bx, by;
-      p.GetBlock(p.rotation, i, bx, by);
-      int worldX = offsetX + (p.x + bx) * cellSize;
-      int worldY = offsetY + (p.y + by) * cellSize;
+  // 3. Active Piece (Current) - Only draw if game is in progress or paused/over
+  if (currentGameState == GameState::PLAYING ||
+      currentGameState == GameState::PAUSED ||
+      currentGameState == GameState::GAME_OVER) {
+    Piece p = logic.currentPiece;
+    if (p.type != PieceType::NONE) {
+      for (int i = 0; i < 4; i++) {
+        int bx, by;
+        p.GetBlock(p.rotation, i, bx, by);
+        int worldX = offsetX + (p.x + bx) * cellSize;
+        int worldY = offsetY + (p.y + by) * cellSize;
 
-      // Ghost / Shadow could be added here later
-      DrawRectangle(worldX + 1, worldY + 1, cellSize - 2, cellSize - 2, GREEN);
+        DrawRectangle(worldX + 1, worldY + 1, cellSize - 2, cellSize - 2,
+                      GREEN);
+      }
     }
   }
 
-  // 4. Board Border
-  DrawRectangleLines(offsetX, offsetY, 10 * cellSize, 20 * cellSize, WHITE);
+  // 4. Board Border - Always draw if not in TITLE_SCREEN
+  if (currentGameState != GameState::TITLE_SCREEN) {
+    DrawRectangleLines(offsetX, offsetY, 10 * cellSize, 20 * cellSize, WHITE);
+  }
 
-  // 5. UI Elements
-  DrawControls();
-  DrawNextPiece();
+  // 5. UI Elements (Controls, Next Piece, Score, Player Name)
+  if (currentGameState != GameState::TITLE_SCREEN) {
+    DrawControls();
+    DrawNextPiece();
 
-  // Display the score
-  DrawText(TextFormat("SCORE: %d", logic.score), 50, 50, 20, WHITE);
+    // Display the score
+    DrawText(TextFormat("SCORE: %d", logic.score), 50, 50, 20, WHITE);
+    // Display player name
+    if (!playerName.empty()) {
+      DrawText(TextFormat("PLAYER: %s", playerName.c_str()), 50, 80, 20,
+               WHITE);
+    }
+  }
 
-  // --- Draw Restart and Pause buttons always ---
-  int btnTextFontSize = 30; // Defined once for both buttons
+  // --- Draw Restart button always (global interaction) ---
+  int btnTextFontSize = 30;
 
-  // Draw Restart button
   DrawRectangleRec(btnRestart.rect, btnRestart.active
                                         ? Fade(btnRestart.color, 0.5f)
                                         : btnRestart.color);
@@ -382,39 +433,64 @@ void Game::Draw() {
                (btnRestart.rect.height / 2 - (btnTextFontSize / 2)),
            btnTextFontSize, WHITE);
 
-  // Draw Pause button
-  DrawRectangleRec(btnPause.rect, btnPause.active
-                                      ? Fade(btnPause.color, 0.5f)
-                                      : btnPause.color);
-  DrawRectangleLinesEx(btnPause.rect, 2, DARKGRAY);
-  btnTextWidth = MeasureText(btnPause.text.c_str(), btnTextFontSize); // Recalculate for Pause text
-  DrawText(btnPause.text.c_str(),
-           btnPause.rect.x + (btnPause.rect.width / 2 - btnTextWidth / 2),
-           btnPause.rect.y +
-               (btnPause.rect.height / 2 - (btnTextFontSize / 2)),
-           btnTextFontSize, WHITE);
-
-  // --- Draw Game Over overlay if game is over ---
-  if (logic.isGameOver) {
-    int boardWidth = BOARD_WIDTH * cellSize;
-    int boardHeight = BOARD_HEIGHT * cellSize;
-
-    // Draw semi-transparent black overlay over the board area
-    DrawRectangle(offsetX, offsetY, boardWidth, boardHeight, Fade(BLACK, 0.7f));
-
-    // Draw "GAME OVER" text
-    const char *gameOverText = "GAME OVER";
-    int textFontSizeGameOver = 50; // Use a different font size variable for game over text
-    int textWidthGameOver = MeasureText(gameOverText, textFontSizeGameOver);
-    int textX = offsetX + (boardWidth - textWidthGameOver) / 2;
-    int textY =
-        offsetY + (boardHeight / 2) - textFontSizeGameOver; // Slightly above center
-
-    DrawText(gameOverText, textX, textY, textFontSizeGameOver, RED);
+  // --- Draw Pause button (only if game is playing or paused) ---
+  if (currentGameState == GameState::PLAYING ||
+      currentGameState == GameState::PAUSED) {
+    DrawRectangleRec(btnPause.rect, btnPause.active
+                                        ? Fade(btnPause.color, 0.5f)
+                                        : btnPause.color);
+    DrawRectangleLinesEx(btnPause.rect, 2, DARKGRAY);
+    btnTextWidth =
+        MeasureText(btnPause.text.c_str(), btnTextFontSize); // Recalculate
+    DrawText(btnPause.text.c_str(),
+             btnPause.rect.x + (btnPause.rect.width / 2 - btnTextWidth / 2),
+             btnPause.rect.y +
+                 (btnPause.rect.height / 2 - (btnTextFontSize / 2)),
+             btnTextFontSize, WHITE);
   }
 
-  // --- Draw PAUSED overlay if game is paused ---
-  if (isPaused && !logic.isGameOver) { // Only draw if paused and not game over
+  // --- Draw State-specific overlays ---
+  switch (currentGameState) {
+  case GameState::TITLE_SCREEN: {
+    int screenWidth = 800;
+    int screenHeight = 600;
+
+    // Dark overlay for the title screen
+    DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
+
+    // Title text
+    const char *titleText = "TETRIS BATTLE";
+    int titleFontSize = 60;
+    int titleWidth = MeasureText(titleText, titleFontSize);
+    DrawText(titleText, (screenWidth - titleWidth) / 2, screenHeight / 4,
+             titleFontSize, GOLD);
+
+    // Prompt for name
+    const char *promptText = "ENTER YOUR NAME:";
+    int promptFontSize = 30;
+    int promptWidth = MeasureText(promptText, promptFontSize);
+    DrawText(promptText, (screenWidth - promptWidth) / 2,
+             screenHeight / 2 - 40, promptFontSize, WHITE);
+
+    // Draw input buffer and blinking cursor
+    int inputFontSize = 30;
+    std::string displayInput = playerNameInputBuffer;
+    if (showCursor) {
+      displayInput += "_";
+    }
+    int inputWidth = MeasureText(displayInput.c_str(), inputFontSize);
+    DrawText(displayInput.c_str(), (screenWidth - inputWidth) / 2,
+             screenHeight / 2, inputFontSize, WHITE);
+
+    // Instructions
+    const char *enterPrompt = "PRESS ENTER TO START";
+    int enterPromptFontSize = 20;
+    int enterPromptWidth = MeasureText(enterPrompt, enterPromptFontSize);
+    DrawText(enterPrompt, (screenWidth - enterPromptWidth) / 2,
+             screenHeight / 2 + 60, enterPromptFontSize, LIGHTGRAY);
+    break;
+  }
+  case GameState::PAUSED: {
     int boardWidth = BOARD_WIDTH * cellSize;
     int boardHeight = BOARD_HEIGHT * cellSize;
 
@@ -423,12 +499,36 @@ void Game::Draw() {
 
     // Draw "PAUSED" text
     const char *pausedText = "PAUSED";
-    int textFontSizePaused = 50; // Use a different font size variable for paused text
+    int textFontSizePaused = 50;
     int textWidthPaused = MeasureText(pausedText, textFontSizePaused);
     int textX = offsetX + (boardWidth - textWidthPaused) / 2;
     int textY =
         offsetY + (boardHeight / 2) - textFontSizePaused; // Center vertically
 
     DrawText(pausedText, textX, textY, textFontSizePaused, WHITE);
+    break;
   }
+  case GameState::GAME_OVER: {
+    int boardWidth = BOARD_WIDTH * cellSize;
+    int boardHeight = BOARD_HEIGHT * cellSize;
+
+    // Draw semi-transparent black overlay over the board area
+    DrawRectangle(offsetX, offsetY, boardWidth, boardHeight, Fade(BLACK, 0.7f));
+
+    // Draw "GAME OVER" text
+    const char *gameOverText = "GAME OVER";
+    int textFontSizeGameOver = 50;
+    int textWidthGameOver = MeasureText(gameOverText, textFontSizeGameOver);
+    int textX = offsetX + (boardWidth - textWidthGameOver) / 2;
+    int textY =
+        offsetY + (boardHeight / 2) - textFontSizeGameOver; // Slightly above center
+
+    DrawText(gameOverText, textX, textY, textFontSizeGameOver, RED);
+    break;
+  }
+  case GameState::PLAYING: {
+    // No specific overlay for PLAYING state
+    break;
+  }
+  } // End switch (currentGameState)
 }
