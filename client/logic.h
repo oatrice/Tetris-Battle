@@ -32,6 +32,7 @@ public:
   Piece currentPiece;
   Piece nextPiece; // Feature: Stores the upcoming piece for preview
   int spawnCounter = 0; // New: Tracks how many pieces have spawned
+  int score; // Feature: Stores the current game score
 };
 
 #endif

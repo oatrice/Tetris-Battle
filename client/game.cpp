@@ -337,6 +337,9 @@ void Game::Draw() {
   DrawControls();
   DrawNextPiece();
 
+  // Display the score
+  DrawText(TextFormat("SCORE: %d", logic.score), 50, 50, 20, WHITE);
+
   // Draw Game Over overlay and button if game is over
   if (logic.isGameOver) {
     int boardWidth = BOARD_WIDTH * cellSize;

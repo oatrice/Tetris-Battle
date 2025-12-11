@@ -19,6 +19,9 @@ Logic::Logic() {
   // Call SpawnPiece, which will move the initialized nextPiece to currentPiece
   // and then generate a new random piece for nextPiece.
   SpawnPiece();
+
+  // Initialize score
+  score = 0;
 }
 
 void Logic::SpawnPiece() {
@@ -128,6 +131,8 @@ void Logic::LockPiece() {
 void Logic::CheckLines() {
   if (isGameOver) return; // Cannot check lines if game is over
 
+  int linesClearedThisTurn = 0;
+
   for (int y = BOARD_HEIGHT - 1; y >= 0; y--) {
     bool full = true;
     for (int x = 0; x < BOARD_WIDTH; x++) {
@@ -138,6 +143,7 @@ void Logic::CheckLines() {
     }
 
     if (full) {
+      linesClearedThisTurn++;
       // Shift all rows above down by one
       for (int r = y; r > 0; r--) {
         for (int c = 0; c < BOARD_WIDTH; c++) {
@@ -151,17 +157,37 @@ void Logic::CheckLines() {
       y++; // Re-check the current row, as it now contains the row that was above it
     }
   }
+
+  // Award points based on lines cleared
+  if (linesClearedThisTurn > 0) {
+    switch (linesClearedThisTurn) {
+    case 1:
+      score += 100;
+      break;
+    case 2:
+      score += 300;
+      break;
+    case 3:
+      score += 500;
+      break;
+    case 4:
+      score += 800; // Tetris!
+      break;
+    default:
+      // For more than 4 lines, apply a generic multiplier or specific rule
+      score += linesClearedThisTurn * 100;
+      break;
+    }
+  }
 }
 
 void Logic::Reset() {
   // Clear the board
   board.Reset();
 
-  // Reset score/lines (if they were stored in Logic)
-  // For now, only spawnCounter is here.
+  // Reset game state variables
   spawnCounter = 0;
-
-  // Reset game over state
+  score = 0; // Reset score
   isGameOver = false;
 
   // Spawn a new piece to start the game
