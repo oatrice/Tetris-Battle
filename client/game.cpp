@@ -345,7 +345,7 @@ void Game::DrawControls() {
 void Game::DrawNextPiece() {
   int previewX = offsetX + (10 * cellSize) + 20; // Right of board
   int previewY = offsetY;
-  int previewSize = 6 * cellSize;
+  int previewSize = 6 * cellSize; // The preview box is 6 cells by 6 cells
 
   // Draw Box
   DrawText("NEXT", previewX, previewY - 30, 20, WHITE);
@@ -355,15 +355,43 @@ void Game::DrawNextPiece() {
   // Draw Piece inside box
   Piece p = logic.nextPiece;
   if (p.type != PieceType::NONE) {
-    int centerX = previewX + cellSize;
-    int centerY = previewY + cellSize;
+    // 1. Find the bounding box of the piece (min/max bx, by) for rotation 0
+    int minBx = 999, maxBx = -999, minBy = 999, maxBy = -999;
+    for (int i = 0; i < 4; i++) {
+      int bx, by;
+      p.GetBlock(0, i, bx, by); // Use rotation 0 for preview
+      minBx = std::min(minBx, bx);
+      maxBx = std::max(maxBx, bx);
+      minBy = std::min(minBy, by);
+      maxBy = std::max(maxBy, by);
+    }
 
+    // 2. Calculate the dimensions of the piece in blocks and pixels
+    int pieceWidthBlocks = maxBx - minBx + 1;
+    int pieceHeightBlocks = maxBy - minBy + 1;
+    int piecePixelWidth = pieceWidthBlocks * cellSize;
+    int piecePixelHeight = pieceHeightBlocks * cellSize;
+
+    // 3. Calculate the top-left corner of the piece's bounding box within the preview frame
+    // This positions the entire piece's visual bounding box centered within the preview box.
+    int targetPieceStartX = previewX + (previewSize - piecePixelWidth) / 2;
+    int targetPieceStartY = previewY + (previewSize - piecePixelHeight) / 2;
+
+    // 4. Calculate the effective "origin" (drawOriginX, drawOriginY) for the piece's internal block coordinates (bx, by)
+    // The piece's blocks are drawn at (drawOriginX + bx * cellSize, drawOriginY + by * cellSize).
+    // To align the piece's minimum block (minBx, minBy) with targetPieceStartX, targetPieceStartY:
+    // drawOriginX + minBx * cellSize = targetPieceStartX  =>  drawOriginX = targetPieceStartX - minBx * cellSize
+    // drawOriginY + minBy * cellSize = targetPieceStartY  =>  drawOriginY = targetPieceStartY - minBy * cellSize
+    int drawOriginX = targetPieceStartX - minBx * cellSize;
+    int drawOriginY = targetPieceStartY - minBy * cellSize;
+
+    // 5. Draw each block of the next piece using the calculated origin
     for (int i = 0; i < 4; i++) {
       int bx, by;
       p.GetBlock(0, i, bx, by); // Use rotation 0 for preview
 
-      int drawX = centerX + (bx * cellSize);
-      int drawY = centerY + (by * cellSize);
+      int drawX = drawOriginX + (bx * cellSize);
+      int drawY = drawOriginY + (by * cellSize);
 
       DrawRectangle(drawX + 1, drawY + 1, cellSize - 2, cellSize - 2, GOLD);
     }
