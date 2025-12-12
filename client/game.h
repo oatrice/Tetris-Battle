@@ -2,9 +2,9 @@
 #include "logic.h"
 #include "raylib.h"
 
+#include <map> // For storing player names
 #include <string>
 #include <vector> // Required for std::vector in max initialization
-#include <map>    // For storing player names
 
 struct Button {
   Rectangle rect;
@@ -43,12 +43,11 @@ private:
 
   // Game State Management
   GameState currentGameState; // Current state of the game
-  GameMode currentMode;       // Current game mode (1-player, 2-player local, etc.)
+  GameMode currentMode; // Current game mode (1-player, 2-player local, etc.)
 
-  std::string playerName; // Stores the player's name (for P1)
-  std::string
-      playerNameInputBuffer; // Buffer for name input in TITLE_SCREEN
-  const int maxNameLength = 10; // Maximum length for player name
+  std::string playerName;            // Stores the player's name (for P1)
+  std::string playerNameInputBuffer; // Buffer for name input in TITLE_SCREEN
+  const int maxNameLength = 10;      // Maximum length for player name
   const char *playerNameFilename =
       "player_name.txt"; // File to save/load player name
 
@@ -75,7 +74,7 @@ private:
   // Player 2 Board: Right side.
   // UI elements: Right of Player 2 board.
   const int screenWidth = 1200; // Increased width for two boards
-  const int screenHeight = 600;
+  const int screenHeight = 750;
 
   // Board positions
   const int BOARD_WIDTH_PX = 10 * cellSize;
@@ -101,9 +100,9 @@ private:
   Button btnTwoPlayerLocal;
 
   // Soft Drop Safety (Reset on Spawn)
-  int lastSpawnCounterP1 = 0;      // Tracks logicPlayer1.spawnCounter
+  int lastSpawnCounterP1 = 0;        // Tracks logicPlayer1.spawnCounter
   bool waitForDownReleaseP1 = false; // For P1
-  int lastSpawnCounterP2 = 0;      // Tracks logicPlayer2.spawnCounter
+  int lastSpawnCounterP2 = 0;        // Tracks logicPlayer2.spawnCounter
   bool waitForDownReleaseP2 = false; // For P2
 
   // Private methods for name persistence
