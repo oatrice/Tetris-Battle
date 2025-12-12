@@ -4,23 +4,36 @@
 #include "raylib.h"
 #include <arpa/inet.h>
 #include <atomic>
+#include <fcntl.h>
 #include <iostream>
 #include <mutex>
 #include <string>
+#include <sys/select.h>
 #include <sys/socket.h>
-#include <thread>
 #include <unistd.h>
 #include <vector>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+// Emscripten doesn't support std::thread well without headers/flags
+// We will use a polling approach in the main loop.
+#else
+#include <thread>
+#endif
 
 class NetworkManager {
 public:
   NetworkManager()
-      : currentSocket(-1), isRunning(false), isConnected(false), isHost(false) {
-  }
+      : currentSocket(-1), isRunning(false), isConnected(false), isHost(false),
+        pendingData("") {}
 
   ~NetworkManager() { Stop(); }
 
   bool StartHost(int port) {
+#ifdef __EMSCRIPTEN__
+    TraceLog(LOG_WARNING, "NETWORK: Hosting not supported on Web/WASM yet.");
+    return false;
+#else
     Stop(); // Ensure clean state
     isHost = true;
 
@@ -49,6 +62,7 @@ public:
     isRunning = true;
     networkThread = std::thread(&NetworkManager::HostLoop, this);
     return true;
+#endif
   }
 
   bool ConnectClient(const std::string &ip, int port) {
@@ -67,7 +81,31 @@ public:
       return false;
     }
 
-    // Blocking connect for simplicity (or can be async)
+#ifdef __EMSCRIPTEN__
+    // Non-blocking connect for Web
+    fcntl(currentSocket, F_SETFL, O_NONBLOCK);
+
+    int res = connect(currentSocket, (struct sockaddr *)&serverAddr,
+                      sizeof(serverAddr));
+    if (res < 0 && errno != EINPROGRESS) {
+      TraceLog(LOG_ERROR, "NETWORK: Connect failed immediately: %d", errno);
+      close(currentSocket);
+      currentSocket = -1;
+      return false;
+    }
+
+    // We are "connecting". IsConnected will be true once we confirm in Update()
+    // but for simplicity, let's mark as connected so game transitions,
+    // and if it fails later, we disconnect.
+    // Actually, emscripten sockets over websocket behave a bit differently.
+    // Let's assume connected for now and handle errors in Update.
+    isConnected = true;
+    isRunning = true;
+    TraceLog(LOG_INFO, "NETWORK: Async connect started...");
+    return true;
+
+#else
+    // Blocking connect for Desktop
     if (connect(currentSocket, (struct sockaddr *)&serverAddr,
                 sizeof(serverAddr)) < 0) {
       close(currentSocket);
@@ -79,33 +117,88 @@ public:
     isRunning = true;
     networkThread = std::thread(&NetworkManager::ClientLoop, this);
     return true;
+#endif
   }
 
   void Stop() {
     isRunning = false;
+    isConnected = false;
+
     if (currentSocket != -1) {
-      // Shutdown both send and receive operations
       shutdown(currentSocket, SHUT_RDWR);
       close(currentSocket);
       currentSocket = -1;
     }
+#ifndef __EMSCRIPTEN__
     if (networkThread.joinable()) {
       networkThread.join();
     }
-    isConnected = false;
-
-    // Clear queue
+#endif
     std::lock_guard<std::mutex> lock(queueMutex);
     messageQueue.clear();
+    pendingData = "";
   }
 
   void SendMessageStr(const std::string &msg) {
     if (!isConnected || currentSocket == -1)
       return;
 
-    // Simple line-based protocol: Append newline if not present
     std::string payload = msg + "\n";
     send(currentSocket, payload.c_str(), payload.length(), 0);
+  }
+
+  // Called every frame to handle network tasks (polling)
+  void Update() {
+#ifdef __EMSCRIPTEN__
+    if (!isRunning || currentSocket == -1)
+      return;
+
+    // Check if we are writable (connected)
+    fd_set wset;
+    FD_ZERO(&wset);
+    FD_SET(currentSocket, &wset);
+    struct timeval t = {0, 0};
+    int rc = select(currentSocket + 1, NULL, &wset, NULL, &t);
+
+    if (rc > 0 && FD_ISSET(currentSocket, &wset)) {
+      // Connected or error
+      int error = 0;
+      socklen_t len = sizeof(error);
+      if (getsockopt(currentSocket, SOL_SOCKET, SO_ERROR, &error, &len) < 0 ||
+          error != 0) {
+        TraceLog(LOG_INFO, "NETWORK: Socket connect failed: %d", error);
+        Stop();
+        return;
+      }
+    } else {
+      // Still connecting or not writable
+      return;
+    }
+
+    // Handshake check (Emscripten specific)
+    // Actually relying on recv to return EAGAIN is standard for non-blocking.
+    // But if we get 0, it's closed.
+
+    char buffer[1024];
+    int bytesRead = recv(currentSocket, buffer, sizeof(buffer) - 1, 0);
+
+    if (bytesRead > 0) {
+      buffer[bytesRead] = '\0';
+      pendingData += buffer;
+      ProcessPendingData();
+    } else if (bytesRead == 0) {
+      // If we just connected, getting 0 immediately is suspicious.
+      // But if it's truly closed, we must stop.
+      TraceLog(LOG_INFO, "NETWORK: Connection closed by remote.");
+      Stop();
+    } else {
+      if (errno != EAGAIN && errno != EWOULDBLOCK) {
+        TraceLog(LOG_INFO, "NETWORK: Socket error: %d",
+                 errno); // Down level to INFO
+        Stop();
+      }
+    }
+#endif
   }
 
   std::vector<std::string> PollMessages() {
@@ -119,21 +212,36 @@ public:
 
 private:
   int currentSocket;
+#ifndef __EMSCRIPTEN__
   std::thread networkThread;
+#endif
   std::atomic<bool> isRunning;
   std::atomic<bool> isConnected;
   bool isHost;
 
   std::mutex queueMutex;
   std::vector<std::string> messageQueue;
+  std::string pendingData; // For partial reads
 
+  void ProcessPendingData() {
+    size_t pos;
+    while ((pos = pendingData.find('\n')) != std::string::npos) {
+      std::string msg = pendingData.substr(0, pos);
+      if (!msg.empty()) {
+        std::lock_guard<std::mutex> lock(queueMutex);
+        messageQueue.push_back(msg);
+      }
+      pendingData.erase(0, pos + 1);
+    }
+  }
+
+#ifndef __EMSCRIPTEN__
   void HostLoop() {
     TraceLog(LOG_INFO,
              "NETWORK: Host thread started, waiting for connection...");
     struct sockaddr_in clientAddr;
     socklen_t clientLen = sizeof(clientAddr);
 
-    // Blocking accept
     int clientSocket =
         accept(currentSocket, (struct sockaddr *)&clientAddr, &clientLen);
     if (clientSocket < 0) {
@@ -145,11 +253,6 @@ private:
     TraceLog(LOG_INFO, "NETWORK: Client connected!");
     isConnected = true;
 
-    // Replace listener socket with client socket for communication
-    // NOTE: In a real server handling multiple clients, we'd keep the listener.
-    // For 1v1, we can close the listener or just stop accepting.
-    // We'll keep using clientSocket for data.
-    // But to keep class simple, let's swap:
     close(currentSocket); // Close listener
     currentSocket = clientSocket;
 
@@ -163,32 +266,19 @@ private:
 
   void ReadLoop() {
     char buffer[1024];
-    std::string pendingData;
-
     while (isRunning && isConnected) {
       int bytesRead = recv(currentSocket, buffer, sizeof(buffer) - 1, 0);
       if (bytesRead <= 0) {
         TraceLog(LOG_INFO, "NETWORK: Connection closed or error.");
-        isConnected = false;
+        Stop();
         break;
       }
-
       buffer[bytesRead] = '\0';
       pendingData += buffer;
-
-      // Process line breaks (simple framing)
-      size_t pos;
-      while ((pos = pendingData.find('\n')) != std::string::npos) {
-        std::string msg = pendingData.substr(0, pos);
-        if (!msg.empty()) {
-          std::lock_guard<std::mutex> lock(queueMutex);
-          messageQueue.push_back(msg);
-        }
-        pendingData.erase(0, pos + 1);
-      }
+      ProcessPendingData();
     }
-    isRunning = false;
   }
+#endif
 };
 
 #endif

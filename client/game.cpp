@@ -84,6 +84,10 @@ void Game::SendGameEvent(const std::string &eventData) {
 
 // Process incoming network events
 void Game::ProcessNetworkEvents() {
+  // Update NetworkManager (Handling polling for non-threaded env like
+  // Emscripten)
+  networkManager.Update();
+
   // Check for successful hosting connection
   if (currentNetworkState == NetworkState::HOSTING_WAITING &&
       networkManager.IsConnected()) {
@@ -757,9 +761,12 @@ void Game::HandleInput() {
       if (CheckCollisionPointRec(mouse, btnJoinGame.rect)) {
         btnJoinGame.active = true;
         if (mouseClicked) {
-          // Client mode, prepare for IP input
-          currentNetworkState = NetworkState::CLIENT_CONNECTING;
-          ipAddressInputBuffer = "127.0.0.1"; // Default for convenience
+          if (!isHost) {
+            // Client mode, prepare for IP input
+            currentNetworkState = NetworkState::CLIENT_CONNECTING;
+            ipAddressInputBuffer =
+                "192.168.10.101"; // Default to host IP for convenience
+          }
         }
       }
     } else if (currentNetworkState == NetworkState::CLIENT_CONNECTING) {
@@ -1046,8 +1053,8 @@ char Game::CheckOSKInput(int startY, bool isIpMode, bool &outEnter,
 }
 
 void Game::Update() {
-  HandleInput(); // Always handle input to check for state transitions, restart,
-                 // and pause
+  HandleInput(); // Always handle input to check for state transitions,
+                 // restart, and pause
 
   // Process network events regardless of game state, as connection can happen
   // in NETWORK_SETUP
@@ -1081,12 +1088,13 @@ void Game::Update() {
         }
       }
     }
-    // In network modes (TWO_PLAYER_NETWORK_HOST or TWO_PLAYER_NETWORK_CLIENT),
-    // logicPlayer2 represents the remote player. Its state should be updated
-    // solely by received network events (e.g., MOVE_LR, ROTATE, MOVE_DOWN) from
-    // the remote player's client, not by local gravity ticks.
-    // Therefore, the block that previously ran logicPlayer2.Tick() for network
-    // modes has been removed to prevent desynchronization.
+    // In network modes (TWO_PLAYER_NETWORK_HOST or
+    // TWO_PLAYER_NETWORK_CLIENT), logicPlayer2 represents the remote player.
+    // Its state should be updated solely by received network events (e.g.,
+    // MOVE_LR, ROTATE, MOVE_DOWN) from the remote player's client, not by
+    // local gravity ticks. Therefore, the block that previously ran
+    // logicPlayer2.Tick() for network modes has been removed to prevent
+    // desynchronization.
 
     // --- Game Over Check ---
     if (currentMode == GameMode::SINGLE_PLAYER) {
@@ -1113,7 +1121,8 @@ void Game::Update() {
         }
       }
 
-      // If both players are dead, transition to GAME_OVER and determine winner
+      // If both players are dead, transition to GAME_OVER and determine
+      // winner
       if (player1IsDead && player2IsDead) {
         currentGameState = GameState::GAME_OVER;
         if (logicPlayer1.score > logicPlayer2.score) {
@@ -1233,12 +1242,13 @@ void Game::DrawPlayerNextPiece(const Logic &logic, int previewX, int previewY) {
     int targetPieceStartY = previewY + (previewSize - piecePixelHeight) / 2;
 
     // 4. Calculate the effective "origin" (drawOriginX, drawOriginY) for the
-    // piece's internal block coordinates (bx, by) The piece's blocks are drawn
-    // at (drawOriginX + bx * cellSize, drawOriginY + by * cellSize). To align
-    // the piece's minimum block (minBx, minBy) with targetPieceStartX,
-    // targetPieceStartY: drawOriginX + minBx * cellSize = targetPieceStartX  =>
-    // drawOriginX = targetPieceStartX - minBx * cellSize drawOriginY + minBy *
-    // cellSize = targetPieceStartY  =>  drawOriginY = targetPieceStartY - minBy
+    // piece's internal block coordinates (bx, by) The piece's blocks are
+    // drawn at (drawOriginX + bx * cellSize, drawOriginY + by * cellSize). To
+    // align the piece's minimum block (minBx, minBy) with targetPieceStartX,
+    // targetPieceStartY: drawOriginX + minBx * cellSize = targetPieceStartX
+    // => drawOriginX = targetPieceStartX - minBx * cellSize drawOriginY +
+    // minBy * cellSize = targetPieceStartY  =>  drawOriginY =
+    // targetPieceStartY - minBy
     // * cellSize
     int drawOriginX = targetPieceStartX - minBx * cellSize;
     int drawOriginY = targetPieceStartY - minBy * cellSize;
@@ -1628,7 +1638,8 @@ void Game::Draw() {
                textFontSize, RED);
     }
 
-    // --- Draw Player 2's board and UI if in local multiplayer or network mode
+    // --- Draw Player 2's board and UI if in local multiplayer or network
+    // mode
     // ---
     if (currentMode == GameMode::TWO_PLAYER_LOCAL ||
         currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
@@ -1671,8 +1682,8 @@ void Game::Draw() {
       DrawText(pausedText, textX, textY, textFontSizePaused, WHITE);
     } else if (currentGameState == GameState::GAME_OVER) {
       // This is the *overall* GAME OVER, meaning both players are dead in
-      // 2-player, or P1 in 1-player. Draw a full-screen overlay for final game
-      // over message
+      // 2-player, or P1 in 1-player. Draw a full-screen overlay for final
+      // game over message
       DrawRectangle(0, 0, screenWidth, screenHeight,
                     Fade(BLACK, 0.9f)); // Darker overlay over everything
 

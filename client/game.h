@@ -93,7 +93,11 @@ private:
       15; // Maximum length for IP address (e.g., 255.255.255.255)
   std::string
       currentIpAddress; // Stores the IP address being hosted on or connected to
-  const int networkPort = 12345;   // Default port for network communication
+#if defined(__EMSCRIPTEN__)
+  const int networkPort = 12346; // Port for Web/WebSocket Proxy
+#else
+  const int networkPort = 12345; // Default port for Desktop (Raw TCP)
+#endif
   std::string networkErrorMessage; // To display error reason
 
   // Cursor for name/IP input
