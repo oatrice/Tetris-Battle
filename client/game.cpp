@@ -3,10 +3,110 @@
 #include <algorithm> // Required for std::max
 #include <vector>    // Required for std::vector in max initialization
 
+// Placeholder for getting local IP address (implementation depends on OS/platform)
+std::string Game::GetLocalIPAddress() {
+  // In a real application, you'd use platform-specific network APIs
+  // For example, on Linux: `hostname -I | awk '{print $1}'`
+  // On Windows: `ipconfig`
+  // For now, return a placeholder or loopback address
+  return "127.0.0.1";
+}
+
+// Placeholder for starting network host
+void Game::StartHosting() {
+  // In a real application, this would initialize a server socket
+  // and start listening for incoming connections.
+  isHost = true;
+  currentNetworkState = NetworkState::HOSTING_WAITING;
+  currentIpAddress = GetLocalIPAddress(); // Display local IP for client to connect
+  TraceLog(LOG_INFO, "NETWORK: Started hosting on IP: %s, Port: %d",
+           currentIpAddress.c_str(), networkPort);
+  // Example: networkManager->InitServer(networkPort);
+}
+
+// Placeholder for stopping network host
+void Game::StopHosting() {
+  // In a real application, this would close the server socket.
+  if (isHost) {
+    TraceLog(LOG_INFO, "NETWORK: Stopped hosting.");
+    // Example: networkManager->ShutdownServer();
+  }
+  isHost = false;
+  currentNetworkState = NetworkState::DISCONNECTED;
+  currentIpAddress = "";
+}
+
+// Placeholder for connecting to a host
+void Game::ConnectToHost(const std::string &ip) {
+  // In a real application, this would initialize a client socket
+  // and attempt to connect to the specified IP and port.
+  isHost = false;
+  currentIpAddress = ip;
+  currentNetworkState = NetworkState::CLIENT_CONNECTING;
+  TraceLog(LOG_INFO, "NETWORK: Attempting to connect to %s:%d",
+           ip.c_str(), networkPort);
+  // Example: networkManager->ConnectClient(ip, networkPort);
+
+  // Simulate immediate connection for demo purposes
+  // In a real scenario, this would be asynchronous and update state on success/failure
+  currentNetworkState = NetworkState::CONNECTED;
+  remotePlayerName = "HostPlayer"; // Placeholder, would be received from host
+  TraceLog(LOG_INFO, "NETWORK: Successfully connected to host.");
+}
+
+// Placeholder for disconnecting from network
+void Game::Disconnect() {
+  if (currentNetworkState != NetworkState::DISCONNECTED) {
+    TraceLog(LOG_INFO, "NETWORK: Disconnecting.");
+    // Example: networkManager->Shutdown();
+  }
+  StopHosting(); // Ensure host is stopped if it was hosting
+  currentNetworkState = NetworkState::DISCONNECTED;
+  currentIpAddress = "";
+  remotePlayerName = "RemotePlayer"; // Reset to default
+}
+
+// Placeholder for sending game events over the network
+void Game::SendGameEvent(const std::string &eventData) {
+  if (currentNetworkState == NetworkState::CONNECTED ||
+      currentNetworkState == NetworkState::IN_GAME) {
+    TraceLog(LOG_INFO, "NETWORK: Sending event: %s", eventData.c_str());
+    // Example: networkManager->Send(eventData);
+  }
+}
+
+// Placeholder for processing incoming network events
+void Game::ProcessNetworkEvents() {
+  // In a real application, this would poll the network for incoming messages
+  // and process them, updating game state for the remote player.
+  // For this demo, we can simulate some events or simply acknowledge the
+  // network connection state.
+
+  // Example: std::vector<std::string> events = networkManager->Receive();
+  // for (const std::string& event : events) {
+  //   if (event == "remote_player_move_left") logicPlayer2.Move(-1, 0);
+  //   else if (event == "remote_player_rotate") logicPlayer2.Rotate();
+  //   // ... handle other events like piece spawn, line clear, game over
+  // }
+
+  // Simulate remote player name exchange if connected
+  if (currentNetworkState == NetworkState::CONNECTED && !isHost) {
+    // Client would receive host's name
+    // remotePlayerName = received_host_name;
+  } else if (currentNetworkState == NetworkState::CONNECTED && isHost) {
+    // Host would receive client's name
+    // remotePlayerName = received_client_name;
+  }
+}
+
 Game::Game() {
   // Initialize game state to TITLE_SCREEN to prompt for player name
   currentGameState = GameState::TITLE_SCREEN;
   currentMode = GameMode::SINGLE_PLAYER; // Default to single player
+  currentNetworkState = NetworkState::DISCONNECTED; // Default network state
+  isHost = false;
+  remotePlayerName = "Player2"; // Default for local or placeholder for network
+  ipAddressInputBuffer = "127.0.0.1"; // Default IP for client connection
 
   // Initialize new game over flags
   player1IsDead = false;
@@ -59,12 +159,19 @@ Game::Game() {
   int singlePlayerTextWidth = MeasureText("1 Player", btnTextFontSize);
   int twoPlayerLocalTextWidth =
       MeasureText("2 Player (Local)", btnTextFontSize);
+  int twoPlayerNetworkTextWidth =
+      MeasureText("2 Player (Online)", btnTextFontSize);
+  int hostGameTextWidth = MeasureText("Host Game", btnTextFontSize);
+  int joinGameTextWidth = MeasureText("Join Game", btnTextFontSize);
+  int connectTextWidth = MeasureText("Connect", btnTextFontSize);
+  int startOnlineGameTextWidth = MeasureText("Start Online", btnTextFontSize);
 
   // Choose the maximum width and add padding (e.g., 40px total padding)
-  int btnWidth =
-      std::max({restartTextWidth, pauseTextWidth, changeNameTextWidth,
-                singlePlayerTextWidth, twoPlayerLocalTextWidth}) +
-      40;
+  int btnWidth = std::max(
+      {restartTextWidth, pauseTextWidth, changeNameTextWidth,
+       singlePlayerTextWidth, twoPlayerLocalTextWidth, twoPlayerNetworkTextWidth,
+       hostGameTextWidth, joinGameTextWidth, connectTextWidth,
+       startOnlineGameTextWidth}) + 40;
 
   int btnHeight = 40;
   int btnVerticalGap = 10;
@@ -96,7 +203,7 @@ Game::Game() {
 
   // Initialize Mode Selection Buttons (centered on screen initially)
   int modeBtnX = (screenWidth - btnWidth) / 2;
-  int modeBtnY = screenHeight / 2 - btnHeight - btnVerticalGap;
+  int modeBtnY = screenHeight / 2 - btnHeight * 2 - btnVerticalGap * 2;
 
   btnSinglePlayer = {
       {(float)modeBtnX, (float)modeBtnY, (float)btnWidth, (float)btnHeight},
@@ -111,9 +218,42 @@ Game::Game() {
       LIME,
       "2 Player (Local)",
       false};
+
+  modeBtnY += btnHeight + btnVerticalGap;
+
+  btnTwoPlayerNetwork = {
+      {(float)modeBtnX, (float)modeBtnY, (float)btnWidth, (float)btnHeight},
+      ORANGE, // Distinct color for network mode
+      "2 Player (Online)",
+      false};
+
+  // Initialize Network Setup Buttons (will be positioned dynamically in draw)
+  // For now, just allocate them.
+  btnHostGame = {
+      {(float)modeBtnX, (float)modeBtnY, (float)btnWidth, (float)btnHeight},
+      GREEN,
+      "Host Game",
+      false};
+  btnJoinGame = {
+      {(float)modeBtnX, (float)modeBtnY, (float)btnWidth, (float)btnHeight},
+      BLUE,
+      "Join Game",
+      false};
+  btnConnect = {
+      {(float)modeBtnX, (float)modeBtnY, (float)btnWidth, (float)btnHeight},
+      SKYBLUE,
+      "Connect",
+      false};
+  btnStartOnlineGame = {
+      {(float)modeBtnX, (float)modeBtnY, (float)btnWidth, (float)btnHeight},
+      LIME,
+      "Start Online",
+      false};
 }
 
-Game::~Game() {}
+Game::~Game() {
+  Disconnect(); // Ensure network resources are cleaned up on exit
+}
 
 void Game::LoadPlayerName() {
   char *fileText = LoadFileText(playerNameFilename);
@@ -138,7 +278,7 @@ void Game::SavePlayerName() {
 
 void Game::ResetGame() {
   // Generate a shared seed to ensure both players get the same piece sequence
-  // (Fixes Issue #27)
+  // (Fixes Issue #27). Important for network mode for deterministic simulation.
   int seed = GetRandomValue(0, 2147483647);
 
   logicPlayer1.Reset(seed); // Resets board, score, and spawns a new piece
@@ -158,10 +298,32 @@ void Game::ResetGame() {
     lastSpawnCounterP2 = logicPlayer2.spawnCounter;
     waitForDownReleaseP2 = false;
     player2IsDead = false; // Reset dead status for P2
+  } else if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST) {
+    // As host, reset both local and remote (will send initial state to client)
+    logicPlayer2.Reset(seed);
+    gravityTimerP2 = 0.0f; // Reset for remote, but its updates will override
+    dasTimerP2 = 0.0f;
+    lastMoveDirP2 = 0;
+    lastSpawnCounterP2 = logicPlayer2.spawnCounter;
+    waitForDownReleaseP2 = false;
+    player2IsDead = false; // Reset dead status for P2
+    // Placeholder: Send game start message with seed to client
+    SendGameEvent(TextFormat("GAME_START_HOST;SEED:%d;P1_NAME:%s", seed, playerName.c_str()));
+    currentNetworkState = NetworkState::IN_GAME; // Host transitions to IN_GAME
+  } else if (currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+    // As client, only reset P1. P2 will be reset when GAME_START_HOST message is received.
+    // Client also sends its name to host.
+    SendGameEvent(TextFormat("CLIENT_READY;P2_NAME:%s", playerName.c_str())); // Client's name is P2 from host's perspective
+    player2IsDead = false; // Reset dead status for P2 (remote)
+    // Client waits for host to send GAME_START_HOST message, which will trigger logicPlayer2.Reset
+    // currentNetworkState remains CONNECTED until GAME_START_HOST received, then transitions to IN_GAME
   }
 
   winnerName = ""; // Reset winner name
-  currentGameState = GameState::PLAYING; // Ensure game is playing after reset
+  // Only transition to PLAYING if not waiting for network sync
+  if (currentMode != GameMode::TWO_PLAYER_NETWORK_CLIENT || currentNetworkState == NetworkState::IN_GAME) {
+    currentGameState = GameState::PLAYING;
+  }
   btnRestart.active = false; // Ensure button is not active after reset
   btnPause.active = false;   // Ensure pause button is not active
   btnChangeName.active =
@@ -233,6 +395,7 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
   // Check for initial press or change in active DAS direction
   if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir != lastMoveDir) {
     logic.Move(currentKeyboardMoveDir, 0); // Initial move
+    SendGameEvent(TextFormat("MOVE_LR;DIR:%d", currentKeyboardMoveDir)); // Send event
     dasTimer = 0.0f;                       // Reset timer
     lastMoveDir = currentKeyboardMoveDir;
   }
@@ -242,6 +405,7 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
     dasTimer += GetFrameTime();
     while (dasTimer >= dasDelay) {
       logic.Move(lastMoveDir, 0);
+      SendGameEvent(TextFormat("MOVE_LR;DIR:%d", lastMoveDir)); // Send event
       dasTimer -= dasRate;
     }
   }
@@ -257,12 +421,14 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
     // Rotate
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE)) {
       logic.Rotate();
+      SendGameEvent("ROTATE"); // Send event
     }
     // Soft Drop (continuous) - now includes soft drop safety check
     if (IsKeyDown(KEY_DOWN) && !waitForDownRelease) {
       logic.Move(0, 1);
+      SendGameEvent("MOVE_DOWN"); // Send event
     }
-  } else { // Player 2
+  } else { // Player 2 (Local only, not for network)
     // Rotate
     if (IsKeyPressed(KEY_W)) {
       logic.Rotate();
@@ -292,9 +458,17 @@ void Game::HandleInput() {
     btnRestart.active = true;
     if (mouseClicked) {
       if (currentGameState != GameState::TITLE_SCREEN &&
-          currentGameState != GameState::MODE_SELECTION) {
-        ResetGame();
-        return; // Game reset, no further input processing this frame
+          currentGameState != GameState::MODE_SELECTION &&
+          currentGameState != GameState::NETWORK_SETUP) {
+        // If in network mode, disconnect before resetting
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+            currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          Disconnect();
+          currentGameState = GameState::MODE_SELECTION; // Go back to mode select after disconnect
+        } else {
+          ResetGame();
+        }
+        return; // Game reset/state changed, no further input processing this frame
       }
     }
   }
@@ -302,20 +476,33 @@ void Game::HandleInput() {
   // Keyboard input for Restart (e.g., 'R' key)
   if (IsKeyPressed(KEY_R)) {
     if (currentGameState != GameState::TITLE_SCREEN &&
-        currentGameState != GameState::MODE_SELECTION) {
-      ResetGame();
-      return; // Game reset, no further input processing this frame
+        currentGameState != GameState::MODE_SELECTION &&
+        currentGameState != GameState::NETWORK_SETUP) {
+      if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+          currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+        Disconnect();
+        currentGameState = GameState::MODE_SELECTION;
+      } else {
+        ResetGame();
+      }
+      return; // Game reset/state changed, no further input processing this frame
     }
   }
 
   // --- Global Input for Change Name Button ---
   // Only allow changing name if not already on the title screen
   if (currentGameState != GameState::TITLE_SCREEN &&
-      currentGameState != GameState::MODE_SELECTION) {
+      currentGameState != GameState::MODE_SELECTION &&
+      currentGameState != GameState::NETWORK_SETUP) {
     btnChangeName.active = false; // Reset visual state for this frame
     if (CheckCollisionPointRec(mouse, btnChangeName.rect)) {
       btnChangeName.active = true;
       if (mouseClicked) {
+        // Disconnect if in network mode before changing name
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+            currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          Disconnect();
+        }
         // Transition to TITLE_SCREEN to change name
         currentGameState = GameState::TITLE_SCREEN;
         playerNameInputBuffer = playerName; // Pre-fill with current name
@@ -324,6 +511,10 @@ void Game::HandleInput() {
     }
     // Keyboard input for Change Name (e.g., 'N' key)
     if (IsKeyPressed(KEY_N)) {
+      if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+          currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+        Disconnect();
+      }
       currentGameState = GameState::TITLE_SCREEN;
       playerNameInputBuffer = playerName; // Pre-fill with current name
       return; // State changed, no further input processing this frame
@@ -364,6 +555,7 @@ void Game::HandleInput() {
   case GameState::MODE_SELECTION: {
     btnSinglePlayer.active = false;
     btnTwoPlayerLocal.active = false;
+    btnTwoPlayerNetwork.active = false;
 
     if (CheckCollisionPointRec(mouse, btnSinglePlayer.rect)) {
       btnSinglePlayer.active = true;
@@ -382,6 +574,90 @@ void Game::HandleInput() {
         // currentGameState is set to PLAYING inside ResetGame()
         return;
       }
+    }
+    if (CheckCollisionPointRec(mouse, btnTwoPlayerNetwork.rect)) {
+      btnTwoPlayerNetwork.active = true;
+      if (mouseClicked) {
+        currentGameState = GameState::NETWORK_SETUP; // Transition to network setup
+        currentNetworkState = NetworkState::DISCONNECTED; // Ensure clean state
+        return;
+      }
+    }
+    break;
+  }
+
+  case GameState::NETWORK_SETUP: {
+    btnHostGame.active = false;
+    btnJoinGame.active = false;
+    btnConnect.active = false;
+    btnStartOnlineGame.active = false;
+
+    // Handle back to mode selection
+    if (IsKeyPressed(KEY_ESCAPE)) {
+      Disconnect(); // Clean up any partial connections
+      currentGameState = GameState::MODE_SELECTION;
+      return;
+    }
+
+    if (currentNetworkState == NetworkState::DISCONNECTED) {
+      if (CheckCollisionPointRec(mouse, btnHostGame.rect)) {
+        btnHostGame.active = true;
+        if (mouseClicked) {
+          StartHosting(); // Placeholder function
+        }
+      }
+      if (CheckCollisionPointRec(mouse, btnJoinGame.rect)) {
+        btnJoinGame.active = true;
+        if (mouseClicked) {
+          // Client mode, prepare for IP input
+          currentNetworkState = NetworkState::CLIENT_CONNECTING;
+          ipAddressInputBuffer = "127.0.0.1"; // Default for convenience
+        }
+      }
+    } else if (currentNetworkState == NetworkState::CLIENT_CONNECTING) {
+      // Handle IP address input
+      int key = GetCharPressed();
+      while (key > 0) {
+        if (((key >= 48) && (key <= 57)) || (key == 46)) { // Digits and dot
+          if (ipAddressInputBuffer.length() < maxIpLength) {
+            ipAddressInputBuffer += (char)key;
+          }
+        }
+        key = GetCharPressed();
+      }
+      if (IsKeyPressed(KEY_BACKSPACE)) {
+        if (!ipAddressInputBuffer.empty()) {
+          ipAddressInputBuffer.pop_back();
+        }
+      }
+
+      if (CheckCollisionPointRec(mouse, btnConnect.rect)) {
+        btnConnect.active = true;
+        if (mouseClicked) {
+          if (!ipAddressInputBuffer.empty()) {
+            ConnectToHost(ipAddressInputBuffer); // Placeholder function
+            currentMode = GameMode::TWO_PLAYER_NETWORK_CLIENT;
+          }
+        }
+      }
+      if (IsKeyPressed(KEY_ENTER)) { // Also allow enter to connect
+        if (!ipAddressInputBuffer.empty()) {
+          ConnectToHost(ipAddressInputBuffer);
+          currentMode = GameMode::TWO_PLAYER_NETWORK_CLIENT;
+        }
+      }
+    } else if (currentNetworkState == NetworkState::CONNECTED) {
+      // If host, allow starting the game
+      if (isHost) {
+        if (CheckCollisionPointRec(mouse, btnStartOnlineGame.rect)) {
+          btnStartOnlineGame.active = true;
+          if (mouseClicked) {
+            currentMode = GameMode::TWO_PLAYER_NETWORK_HOST;
+            ResetGame(); // Host starts the game, which sends GAME_START to client
+          }
+        }
+      }
+      // Client just waits, no interactive buttons here.
     }
     break;
   }
@@ -426,15 +702,19 @@ void Game::HandleInput() {
 
       if (btnLeft.active && !leftPressed) {
         logicPlayer1.Move(-1, 0);
+        SendGameEvent("MOVE_LR;DIR:-1"); // Send event
       }
       if (btnRight.active && !rightPressed) {
         logicPlayer1.Move(1, 0);
+        SendGameEvent("MOVE_LR;DIR:1"); // Send event
       }
       if (btnRotate.active && !rotatePressed) {
         logicPlayer1.Rotate();
+        SendGameEvent("ROTATE"); // Send event
       }
       if (btnDrop.active) { // Touch soft drop is continuous
         logicPlayer1.Move(0, 1);
+        SendGameEvent("MOVE_DOWN"); // Send event
       }
 
       // Update static states for touch buttons
@@ -444,7 +724,7 @@ void Game::HandleInput() {
     }
     // --- End Touch Controls ---
 
-    // Handle keyboard input for Player 1
+    // Handle keyboard input for Player 1 (local player)
     HandlePlayerInput(logicPlayer1, 1, dasDelay, dasRate, dasTimerP1,
                       lastMoveDirP1, lastSpawnCounterP1, waitForDownReleaseP1);
 
@@ -454,6 +734,7 @@ void Game::HandleInput() {
                         lastMoveDirP2, lastSpawnCounterP2,
                         waitForDownReleaseP2);
     }
+    // In network mode, logicPlayer2's state is updated by network messages, not local input.
     break;
   }
 
@@ -485,6 +766,9 @@ void Game::Update() {
   HandleInput(); // Always handle input to check for state transitions, restart,
                  // and pause
 
+  // Process network events regardless of game state, as connection can happen in NETWORK_SETUP
+  ProcessNetworkEvents();
+
   // Only update game logic if in PLAYING state
   if (currentGameState == GameState::PLAYING) {
     // Only update P1 logic if P1 is not yet game over
@@ -493,6 +777,8 @@ void Game::Update() {
       if (gravityTimerP1 >= gravityInterval) {
         logicPlayer1.Tick();
         gravityTimerP1 = 0.0f;
+        // Placeholder: Send tick event for synchronization (optional for simple demos)
+        // SendGameEvent("TICK_P1");
       }
     }
 
@@ -505,6 +791,23 @@ void Game::Update() {
           gravityTimerP2 = 0.0f;
         }
       }
+    } else if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+               currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+      // In network mode, logicPlayer2 represents the remote player.
+      // Its updates should ideally come from network events.
+      // For a simple demo, we can let it run its own gravity, but actual piece movements
+      // and state changes should be overridden by received network events to stay synchronized.
+      // To keep it simple for now, we'll let it tick but acknowledge network events will
+      // be the primary driver for its state.
+      if (!logicPlayer2.isGameOver) {
+        gravityTimerP2 += GetFrameTime();
+        if (gravityTimerP2 >= gravityInterval) {
+          logicPlayer2.Tick();
+          gravityTimerP2 = 0.0f;
+          // Placeholder: Send tick event for synchronization (optional)
+          // SendGameEvent("TICK_P2");
+        }
+      }
     }
 
     // --- Game Over Check ---
@@ -513,13 +816,21 @@ void Game::Update() {
         currentGameState = GameState::GAME_OVER;
         winnerName = playerName; // In single player, it's always P1
       }
-    } else if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+    } else if (currentMode == GameMode::TWO_PLAYER_LOCAL ||
+               currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+               currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
       // Update individual player dead status
       if (logicPlayer1.isGameOver && !player1IsDead) {
         player1IsDead = true;
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST || currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          SendGameEvent("PLAYER_DEAD;ID:1"); // Notify remote player
+        }
       }
       if (logicPlayer2.isGameOver && !player2IsDead) {
         player2IsDead = true;
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST || currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          SendGameEvent("PLAYER_DEAD;ID:2"); // Notify remote player
+        }
       }
 
       // If both players are dead, transition to GAME_OVER and determine winner
@@ -528,9 +839,13 @@ void Game::Update() {
         if (logicPlayer1.score > logicPlayer2.score) {
           winnerName = playerName;
         } else if (logicPlayer2.score > logicPlayer1.score) {
-          winnerName = "Player2";
+          winnerName = remotePlayerName; // Use remote player's name for P2
         } else {
           winnerName = "It's a Tie!";
+        }
+        // Send final scores for network mode
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST || currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          SendGameEvent(TextFormat("GAME_OVER;P1_SCORE:%d;P2_SCORE:%d", logicPlayer1.score, logicPlayer2.score));
         }
       }
     }
@@ -675,10 +990,10 @@ void Game::Draw() {
   ClearBackground(RAYWHITE); // Clear the entire screen
   DrawRectangle(0, 0, screenWidth, screenHeight, BLACK); // Black background
 
-  // --- Draw global buttons (Restart, Pause, Change Name) ---
   int btnTextFontSize = 30;
 
-  // Draw Restart button
+  // --- Draw global buttons (Restart, Pause, Change Name) ---
+  // Restart button is always drawn, but only active in certain states
   DrawRectangleRec(btnRestart.rect, btnRestart.active
                                         ? Fade(btnRestart.color, 0.5f)
                                         : btnRestart.color);
@@ -705,9 +1020,10 @@ void Game::Draw() {
              btnTextFontSize, WHITE);
   }
 
-  // Draw Change Name button (only if NOT in TITLE_SCREEN or MODE_SELECTION)
+  // Draw Change Name button (only if NOT in TITLE_SCREEN, MODE_SELECTION, NETWORK_SETUP)
   if (currentGameState != GameState::TITLE_SCREEN &&
-      currentGameState != GameState::MODE_SELECTION) {
+      currentGameState != GameState::MODE_SELECTION &&
+      currentGameState != GameState::NETWORK_SETUP) {
     DrawRectangleRec(btnChangeName.rect, btnChangeName.active
                                              ? Fade(btnChangeName.color, 0.5f)
                                              : btnChangeName.color);
@@ -798,6 +1114,148 @@ void Game::Draw() {
              btnTwoPlayerLocal.rect.y +
                  (btnTwoPlayerLocal.rect.height / 2 - (btnTextFontSize / 2)),
              btnTextFontSize, WHITE);
+
+    // Draw Two Player Network button
+    DrawRectangleRec(btnTwoPlayerNetwork.rect,
+                     btnTwoPlayerNetwork.active
+                         ? Fade(btnTwoPlayerNetwork.color, 0.5f)
+                         : btnTwoPlayerNetwork.color);
+    DrawRectangleLinesEx(btnTwoPlayerNetwork.rect, 2, DARKGRAY);
+    btnTextWidth = MeasureText(btnTwoPlayerNetwork.text.c_str(), btnTextFontSize);
+    DrawText(btnTwoPlayerNetwork.text.c_str(),
+             btnTwoPlayerNetwork.rect.x +
+                 (btnTwoPlayerNetwork.rect.width / 2 - btnTextWidth / 2),
+             btnTwoPlayerNetwork.rect.y +
+                 (btnTwoPlayerNetwork.rect.height / 2 - (btnTextFontSize / 2)),
+             btnTextFontSize, WHITE);
+    break;
+  }
+
+  case GameState::NETWORK_SETUP: {
+    DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
+
+    const char *networkPrompt = "NETWORK PLAY:";
+    int networkPromptFontSize = 40;
+    int networkPromptWidth = MeasureText(networkPrompt, networkPromptFontSize);
+    DrawText(networkPrompt, (screenWidth - networkPromptWidth) / 2,
+             screenHeight / 4, networkPromptFontSize, WHITE);
+
+    int currentBtnY = screenHeight / 2 - btnTwoPlayerNetwork.rect.height - btnVerticalGap;
+    int btnX = (screenWidth - btnTwoPlayerNetwork.rect.width) / 2;
+
+    if (currentNetworkState == NetworkState::DISCONNECTED) {
+      // Position and draw Host Game button
+      btnHostGame.rect.x = btnX;
+      btnHostGame.rect.y = currentBtnY;
+      DrawRectangleRec(btnHostGame.rect,
+                       btnHostGame.active ? Fade(btnHostGame.color, 0.5f)
+                                          : btnHostGame.color);
+      DrawRectangleLinesEx(btnHostGame.rect, 2, DARKGRAY);
+      btnTextWidth = MeasureText(btnHostGame.text.c_str(), btnTextFontSize);
+      DrawText(btnHostGame.text.c_str(),
+               btnHostGame.rect.x +
+                   (btnHostGame.rect.width / 2 - btnTextWidth / 2),
+               btnHostGame.rect.y +
+                   (btnHostGame.rect.height / 2 - (btnTextFontSize / 2)),
+               btnTextFontSize, WHITE);
+
+      currentBtnY += btnHostGame.rect.height + btnVerticalGap;
+
+      // Position and draw Join Game button
+      btnJoinGame.rect.x = btnX;
+      btnJoinGame.rect.y = currentBtnY;
+      DrawRectangleRec(btnJoinGame.rect,
+                       btnJoinGame.active ? Fade(btnJoinGame.color, 0.5f)
+                                          : btnJoinGame.color);
+      DrawRectangleLinesEx(btnJoinGame.rect, 2, DARKGRAY);
+      btnTextWidth = MeasureText(btnJoinGame.text.c_str(), btnTextFontSize);
+      DrawText(btnJoinGame.text.c_str(),
+               btnJoinGame.rect.x +
+                   (btnJoinGame.rect.width / 2 - btnTextWidth / 2),
+               btnJoinGame.rect.y +
+                   (btnJoinGame.rect.height / 2 - (btnTextFontSize / 2)),
+               btnTextFontSize, WHITE);
+    } else if (currentNetworkState == NetworkState::HOSTING_WAITING) {
+      std::string statusText = "HOSTING... Waiting for client on IP:";
+      int statusFontSize = 30;
+      int statusWidth = MeasureText(statusText.c_str(), statusFontSize);
+      DrawText(statusText.c_str(), (screenWidth - statusWidth) / 2, currentBtnY - 50, statusFontSize, WHITE);
+
+      std::string ipText = currentIpAddress + ":" + std::to_string(networkPort);
+      int ipFontSize = 40;
+      int ipWidth = MeasureText(ipText.c_str(), ipFontSize);
+      DrawText(ipText.c_str(), (screenWidth - ipWidth) / 2, currentBtnY, ipFontSize, GOLD);
+
+      DrawText("Press ESC to cancel", (screenWidth - MeasureText("Press ESC to cancel", 20)) / 2,
+               screenHeight - 100, 20, LIGHTGRAY);
+
+    } else if (currentNetworkState == NetworkState::CLIENT_CONNECTING) {
+      std::string promptText = "ENTER HOST IP:";
+      int promptFontSize = 30;
+      int promptWidth = MeasureText(promptText.c_str(), promptFontSize);
+      DrawText(promptText.c_str(), (screenWidth - promptWidth) / 2, currentBtnY - 50, promptFontSize, WHITE);
+
+      std::string displayInput = ipAddressInputBuffer;
+      if (showCursor) {
+        displayInput += "_";
+      }
+      int inputFontSize = 30;
+      int inputWidth = MeasureText(displayInput.c_str(), inputFontSize);
+      DrawText(displayInput.c_str(), (screenWidth - inputWidth) / 2, currentBtnY, inputFontSize, WHITE);
+
+      currentBtnY += 50 + btnVerticalGap; // Adjust button position below input
+
+      // Position and draw Connect button
+      btnConnect.rect.x = btnX;
+      btnConnect.rect.y = currentBtnY;
+      DrawRectangleRec(btnConnect.rect,
+                       btnConnect.active ? Fade(btnConnect.color, 0.5f)
+                                         : btnConnect.color);
+      DrawRectangleLinesEx(btnConnect.rect, 2, DARKGRAY);
+      btnTextWidth = MeasureText(btnConnect.text.c_str(), btnTextFontSize);
+      DrawText(btnConnect.text.c_str(),
+               btnConnect.rect.x +
+                   (btnConnect.rect.width / 2 - btnTextWidth / 2),
+               btnConnect.rect.y +
+                   (btnConnect.rect.height / 2 - (btnTextFontSize / 2)),
+               btnTextFontSize, WHITE);
+
+      DrawText("Press ESC to cancel", (screenWidth - MeasureText("Press ESC to cancel", 20)) / 2,
+               screenHeight - 100, 20, LIGHTGRAY);
+
+    } else if (currentNetworkState == NetworkState::CONNECTED) {
+      std::string statusText;
+      if (isHost) {
+        statusText = "CLIENT CONNECTED: " + remotePlayerName;
+        int statusFontSize = 30;
+        int statusWidth = MeasureText(statusText.c_str(), statusFontSize);
+        DrawText(statusText.c_str(), (screenWidth - statusWidth) / 2, currentBtnY - 50, statusFontSize, WHITE);
+
+        // Host can start the game
+        btnStartOnlineGame.rect.x = btnX;
+        btnStartOnlineGame.rect.y = currentBtnY;
+        DrawRectangleRec(btnStartOnlineGame.rect,
+                         btnStartOnlineGame.active ? Fade(btnStartOnlineGame.color, 0.5f)
+                                                   : btnStartOnlineGame.color);
+        DrawRectangleLinesEx(btnStartOnlineGame.rect, 2, DARKGRAY);
+        btnTextWidth = MeasureText(btnStartOnlineGame.text.c_str(), btnTextFontSize);
+        DrawText(btnStartOnlineGame.text.c_str(),
+                 btnStartOnlineGame.rect.x +
+                     (btnStartOnlineGame.rect.width / 2 - btnTextWidth / 2),
+                 btnStartOnlineGame.rect.y +
+                     (btnStartOnlineGame.rect.height / 2 - (btnTextFontSize / 2)),
+                 btnTextFontSize, WHITE);
+      } else {
+        statusText = "CONNECTED TO HOST: " + currentIpAddress;
+        int statusFontSize = 30;
+        int statusWidth = MeasureText(statusText.c_str(), statusFontSize);
+        DrawText(statusText.c_str(), (screenWidth - statusWidth) / 2, currentBtnY - 50, statusFontSize, WHITE);
+        DrawText("Waiting for host to start game...", (screenWidth - MeasureText("Waiting for host to start game...", 25)) / 2,
+                 currentBtnY + 50, 25, LIGHTGRAY);
+      }
+      DrawText("Press ESC to disconnect", (screenWidth - MeasureText("Press ESC to disconnect", 20)) / 2,
+               screenHeight - 100, 20, LIGHTGRAY);
+    }
     break;
   }
 
@@ -830,7 +1288,9 @@ void Game::Draw() {
                logicPlayer1.isGameOver) {
       // For single player, the full GAME OVER screen will handle this
       // No individual board overlay needed here as it will be covered by full screen
-    } else if (currentMode == GameMode::TWO_PLAYER_LOCAL &&
+    } else if ((currentMode == GameMode::TWO_PLAYER_LOCAL ||
+                currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+                currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) &&
                logicPlayer1.isGameOver) {
       DrawRectangle(p1BoardX, BOARD_OFFSET_Y, BOARD_WIDTH_PX, BOARD_HEIGHT_PX,
                     Fade(BLACK, 0.7f));
@@ -842,14 +1302,16 @@ void Game::Draw() {
                textFontSize, RED);
     }
 
-    // --- Draw Player 2's board and UI if in local multiplayer mode ---
-    if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+    // --- Draw Player 2's board and UI if in local multiplayer or network mode ---
+    if (currentMode == GameMode::TWO_PLAYER_LOCAL ||
+        currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+        currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
       DrawPlayerBoard(logicPlayer2, BOARD_OFFSET_X_P2, BOARD_OFFSET_Y);
       int p2_ui_x = BOARD_OFFSET_X_P2 + BOARD_WIDTH_PX + 20;
       int p2_ui_y = BOARD_OFFSET_Y;
       DrawPlayerNextPiece(logicPlayer2, p2_ui_x, p2_ui_y);
       p2_ui_y += (6 * cellSize) + 20; // Below next piece preview
-      DrawPlayerScore(logicPlayer2, p2_ui_x, p2_ui_y, "Player2");
+      DrawPlayerScore(logicPlayer2, p2_ui_x, p2_ui_y, remotePlayerName); // Use remotePlayerName for P2
 
       // Overlay for P2 if dead or paused
       if (currentGameState == GameState::PAUSED) {
@@ -897,7 +1359,7 @@ void Game::Draw() {
         int scoreWidth = MeasureText(finalScoreDisplay.c_str(), scoreFontSize);
         DrawText(finalScoreDisplay.c_str(), (screenWidth - scoreWidth) / 2,
                  screenHeight / 3 + 80, scoreFontSize, GOLD);
-      } else { // Two Player Local
+      } else { // Two Player Local or Network
         std::string winnerDisplay = "WINNER: " + winnerName;
         if (winnerName == "It's a Tie!") {
           winnerDisplay = "It's a Tie!";
@@ -907,11 +1369,11 @@ void Game::Draw() {
         DrawText(winnerDisplay.c_str(), (screenWidth - winnerWidth) / 2,
                  screenHeight / 3 + 80, winnerFontSize, GOLD);
 
-        // Display scores for both players in 2-player mode
+        // Display scores for both players
         std::string p1ScoreDisplay =
             playerName + " Score: " + std::to_string(logicPlayer1.score);
         std::string p2ScoreDisplay =
-            "Player2 Score: " + std::to_string(logicPlayer2.score);
+            remotePlayerName + " Score: " + std::to_string(logicPlayer2.score);
         int individualScoreFontSize = 30;
         int p1ScoreWidth =
             MeasureText(p1ScoreDisplay.c_str(), individualScoreFontSize);
