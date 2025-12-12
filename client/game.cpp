@@ -29,7 +29,7 @@ Game::Game() {
               BLUE,
               ">",
               false};
-  btnRotate = {{(float)startX + 2 * (btnSize + gap), (float)btnSize,
+  btnRotate = {{(float)startX + 2 * (btnSize + gap), (float)btnY,
                 (float)btnSize, (float)btnSize}, // Adjusted Y for touch rotate
                GREEN,
                "^",
@@ -50,12 +50,14 @@ Game::Game() {
   int pauseTextWidth = MeasureText("Pause", btnTextFontSize);
   int changeNameTextWidth = MeasureText("Change Name", btnTextFontSize);
   int singlePlayerTextWidth = MeasureText("1 Player", btnTextFontSize);
-  int twoPlayerLocalTextWidth = MeasureText("2 Player (Local)", btnTextFontSize);
+  int twoPlayerLocalTextWidth =
+      MeasureText("2 Player (Local)", btnTextFontSize);
 
   // Choose the maximum width and add padding (e.g., 40px total padding)
-  int btnWidth = std::max({restartTextWidth, pauseTextWidth,
-                           changeNameTextWidth, singlePlayerTextWidth,
-                           twoPlayerLocalTextWidth}) + 40;
+  int btnWidth =
+      std::max({restartTextWidth, pauseTextWidth, changeNameTextWidth,
+                singlePlayerTextWidth, twoPlayerLocalTextWidth}) +
+      40;
 
   int btnHeight = 40;
   int btnVerticalGap = 10;
@@ -86,19 +88,19 @@ Game::Game() {
   int modeBtnX = (screenWidth - btnWidth) / 2;
   int modeBtnY = screenHeight / 2 - btnHeight - btnVerticalGap;
 
-  btnSinglePlayer = {{(float)modeBtnX, (float)modeBtnY, (float)btnWidth,
-                       (float)btnHeight},
-                     SKYBLUE,
-                     "1 Player",
-                     false};
+  btnSinglePlayer = {
+      {(float)modeBtnX, (float)modeBtnY, (float)btnWidth, (float)btnHeight},
+      SKYBLUE,
+      "1 Player",
+      false};
 
   modeBtnY += btnHeight + btnVerticalGap;
 
-  btnTwoPlayerLocal = {{(float)modeBtnX, (float)modeBtnY, (float)btnWidth,
-                         (float)btnHeight},
-                       LIME,
-                       "2 Player (Local)",
-                       false};
+  btnTwoPlayerLocal = {
+      {(float)modeBtnX, (float)modeBtnY, (float)btnWidth, (float)btnHeight},
+      LIME,
+      "2 Player (Local)",
+      false};
 }
 
 Game::~Game() {}
@@ -271,7 +273,7 @@ void Game::HandleInput() {
         ResetGame();
         currentGameState =
             GameState::PLAYING; // After reset, always go to playing
-        return;                 // Game reset, no further input processing this frame
+        return; // Game reset, no further input processing this frame
       }
     }
   }
@@ -333,7 +335,7 @@ void Game::HandleInput() {
       } else {
         playerName = "Player1"; // Default if no name entered
       }
-      SavePlayerName();          // Save the new/updated player name
+      SavePlayerName(); // Save the new/updated player name
       currentGameState = GameState::MODE_SELECTION; // Transition to mode select
     }
     break;
@@ -409,7 +411,7 @@ void Game::HandleInput() {
     if (btnRotate.active && !rotatePressed) {
       logicPlayer1.Rotate(); // Touch controls currently affect P1
     }
-    if (btnDrop.active) { // Touch soft drop is continuous
+    if (btnDrop.active) {      // Touch soft drop is continuous
       logicPlayer1.Move(0, 1); // Touch controls currently affect P1
     }
 
@@ -554,8 +556,7 @@ void Game::DrawPlayerBoard(const Logic &logic, int boardOffsetX,
                      BOARD_HEIGHT_PX, WHITE);
 }
 
-void Game::DrawPlayerNextPiece(const Logic &logic, int previewX,
-                               int previewY) {
+void Game::DrawPlayerNextPiece(const Logic &logic, int previewX, int previewY) {
   int previewSize = 6 * cellSize; // The preview box is 6 cells by 6 cells
 
   // Draw Box
@@ -723,8 +724,8 @@ void Game::Draw() {
     const char *modePrompt = "SELECT GAME MODE:";
     int modePromptFontSize = 40;
     int modePromptWidth = MeasureText(modePrompt, modePromptFontSize);
-    DrawText(modePrompt, (screenWidth - modePromptWidth) / 2,
-             screenHeight / 4, modePromptFontSize, WHITE);
+    DrawText(modePrompt, (screenWidth - modePromptWidth) / 2, screenHeight / 4,
+             modePromptFontSize, WHITE);
 
     // Draw Single Player button
     DrawRectangleRec(btnSinglePlayer.rect,
@@ -741,11 +742,11 @@ void Game::Draw() {
 
     // Draw Two Player Local button
     DrawRectangleRec(btnTwoPlayerLocal.rect,
-                     btnTwoPlayerLocal.active ? Fade(btnTwoPlayerLocal.color, 0.5f)
-                                              : btnTwoPlayerLocal.color);
+                     btnTwoPlayerLocal.active
+                         ? Fade(btnTwoPlayerLocal.color, 0.5f)
+                         : btnTwoPlayerLocal.color);
     DrawRectangleLinesEx(btnTwoPlayerLocal.rect, 2, DARKGRAY);
-    btnTextWidth =
-        MeasureText(btnTwoPlayerLocal.text.c_str(), btnTextFontSize);
+    btnTextWidth = MeasureText(btnTwoPlayerLocal.text.c_str(), btnTextFontSize);
     DrawText(btnTwoPlayerLocal.text.c_str(),
              btnTwoPlayerLocal.rect.x +
                  (btnTwoPlayerLocal.rect.width / 2 - btnTextWidth / 2),
