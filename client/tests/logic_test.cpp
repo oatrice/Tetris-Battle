@@ -1,7 +1,50 @@
 #include "../board.h"
 #include "../logic.h"
+#include "../network_protocol.h"
 #include "../piece.h"
 #include "gtest/gtest.h"
+
+// ... (existing code)
+
+TEST(LogicSyncTest, DirtyStateCheck) {
+  Logic p1;
+  Logic p2;
+
+  // Make p1 very dirty - consume random amount of numbers
+  p1.Reset();
+  for (int i = 0; i < 13; i++) {
+    p1.SpawnPiece(); // Consumes RNG
+  }
+
+  // p2 is fresh or used differently
+  p2.Reset();
+  p2.SpawnPiece();
+
+  // Now Sync
+  int seed = 8888;
+  p1.Reset(seed);
+  p2.Reset(seed);
+
+  EXPECT_EQ(p1.currentPiece.type, p2.currentPiece.type)
+      << "Current piece mismatch after dirty state";
+  EXPECT_EQ(p1.nextPiece.type, p2.nextPiece.type)
+      << "Next piece mismatch after dirty state";
+}
+
+TEST(NetworkProtocolTest, Parsing) {
+  // 1. Test GAME_START
+  std::string startMsg =
+      NetworkProtocol::SerializeGameStart(12345, "PlayerOne");
+  NetworkMessage parsedStart = NetworkProtocol::Parse(startMsg);
+  EXPECT_EQ(parsedStart.type, NetworkMsgType::GAME_START);
+  EXPECT_EQ(parsedStart.intParam1, 12345);
+
+  // 2. Test MOVE_LR
+  std::string moveMsg = NetworkProtocol::SerializeMoveLR(-1);
+  NetworkMessage parsedMove = NetworkProtocol::Parse(moveMsg);
+  EXPECT_EQ(parsedMove.type, NetworkMsgType::MOVE_LR);
+  EXPECT_EQ(parsedMove.intParam1, -1);
+}
 
 // Helper fixture for tests that need a specific initial state
 class LogicTest : public ::testing::Test {
@@ -305,45 +348,26 @@ TEST_F(LogicTest, MultiLineClear) {
   EXPECT_EQ(logic.board.GetCell(BOARD_HEIGHT - 3, 0), 0); // Row 17 moved down
 }
 TEST(LogicSyncTest, TwoPlayersSameSeedProduceSamePieces) {
-    Logic p1;
-    Logic p2;
-    int seed = 12345;
+  Logic p1;
+  Logic p2;
+  int seed = 12345;
 
-    p1.Reset(seed);
-    p2.Reset(seed);
-    
-    // Check initial pieces
-    EXPECT_EQ(p1.currentPiece.type, p2.currentPiece.type);
-    EXPECT_EQ(p1.nextPiece.type, p2.nextPiece.type);
-    
-    // Check 50 random spawns
-    for(int i=0; i<50; i++) {
-        p1.SpawnPiece();
-        p2.SpawnPiece();
-        EXPECT_EQ(p1.currentPiece.type, p2.currentPiece.type) << "Mismatch at spawn " << i;
-        EXPECT_EQ(p1.nextPiece.type, p2.nextPiece.type) << "Mismatch next at spawn " << i;
-    }
-}
+  p1.Reset(seed);
+  p2.Reset(seed);
 
-TEST(LogicSyncTest, DirtyStateCheck) {
-    Logic p1;
-    Logic p2;
+  // Check initial pieces
+  EXPECT_EQ(p1.currentPiece.type, p2.currentPiece.type);
+  EXPECT_EQ(p1.nextPiece.type, p2.nextPiece.type);
 
-    // Make p1 very dirty - consume random amount of numbers
-    p1.Reset();
-    for(int i=0; i<13; i++) {
-         p1.SpawnPiece(); // Consumes RNG
-    }
-
-    // p2 is fresh or used differently
-    p2.Reset();
+  // Check 50 random spawns
+  for (int i = 0; i < 50; i++) {
+    p1.SpawnPiece();
     p2.SpawnPiece();
-
-    // Now Sync
-    int seed = 8888;
-    p1.Reset(seed);
-    p2.Reset(seed);
-
-    EXPECT_EQ(p1.currentPiece.type, p2.currentPiece.type) << "Current piece mismatch after dirty state";
-    EXPECT_EQ(p1.nextPiece.type, p2.nextPiece.type) << "Next piece mismatch after dirty state";
+    EXPECT_EQ(p1.currentPiece.type, p2.currentPiece.type)
+        << "Mismatch at spawn " << i;
+    EXPECT_EQ(p1.nextPiece.type, p2.nextPiece.type)
+        << "Mismatch next at spawn " << i;
+  }
 }
+
+// Duplicate test removed.

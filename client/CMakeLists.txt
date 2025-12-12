@@ -51,12 +51,13 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Test Executable (Links only Logic files, NOT Raylib main)
-add_executable(test_tetris 
-    tests/board_test.cpp 
+add_executable(test_tetris
+    tests/board_test.cpp
     tests/logic_test.cpp
     board.cpp
     logic.cpp
 )
+
 target_link_libraries(test_tetris GTest::gtest_main)
 
 include(GoogleTest)

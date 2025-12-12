@@ -1,6 +1,18 @@
 #pragma once
 #include "logic.h"
+#include "network_manager.h" // Include NetworkManager
 #include "raylib.h"
+
+// ... (existing code)
+
+// Private network-related methods (placeholders for actual network calls)
+void StartHosting();
+void StopHosting();
+void ConnectToHost(const std::string &ip);
+void Disconnect();
+void SendGameEvent(const std::string &eventData); // e.g., "move_left", "rotate"
+void ProcessNetworkEvents();     // Called in Update() to read incoming messages
+std::string GetLocalIPAddress(); // Placeholder to get local IP
 
 #include <map> // For storing player names
 #include <string>
@@ -16,14 +28,30 @@ struct Button {
 // Define game states for managing different screens/flows
 enum class GameState {
   TITLE_SCREEN,
-  MODE_SELECTION, // New: Choose 1-player or 2-player local
+  MODE_SELECTION, // New: Choose 1-player, 2-player local, or 2-player network
+  NETWORK_SETUP,  // New: For host/join selection, IP input, connection status
   PLAYING,
   PAUSED,
   GAME_OVER
 };
 
 // New: Define game modes for different player counts
-enum class GameMode { SINGLE_PLAYER, TWO_PLAYER_LOCAL, TWO_PLAYER_NETWORK };
+enum class GameMode {
+  SINGLE_PLAYER,
+  TWO_PLAYER_LOCAL,
+  TWO_PLAYER_NETWORK_HOST,  // New: Player is hosting an online game
+  TWO_PLAYER_NETWORK_CLIENT // New: Player is joining an online game
+};
+
+// New: Define network states for managing connection flow within NETWORK_SETUP
+enum class NetworkState {
+  DISCONNECTED,      // Not attempting any network connection
+  HOSTING_WAITING,   // Host is waiting for a client to connect
+  CLIENT_CONNECTING, // Client is attempting to connect to a host
+  CONNECTED,         // Connection established, waiting for game to start
+  IN_GAME,           // Network game is actively playing
+  CONNECTION_FAILED  // New: Connection attempt failed or lost
+};
 
 class Game {
 public:
@@ -33,19 +61,20 @@ public:
   void Draw();
   void HandleInput();
   void DrawControls();
-  // Renamed and made private, now called by DrawPlayerUI
-  // void DrawNextPiece(const Logic& logic, int previewX, int previewY);
   void ResetGame(); // Resets the entire game state
 
 private:
-  Logic logicPlayer1; // Player 1's game logic
-  Logic logicPlayer2; // Player 2's game logic (for local multiplayer)
+  Logic logicPlayer1; // Player 1's game logic (local player)
+  Logic logicPlayer2; // Player 2's game logic (local or remote player)
 
   // Game State Management
   GameState currentGameState; // Current state of the game
   GameMode currentMode; // Current game mode (1-player, 2-player local, etc.)
 
-  // New: Game Over specific states for 2-player local mode
+  // New: Network State Management
+  NetworkState currentNetworkState; // Current state of the network connection
+
+  // New: Game Over specific states for 2-player local/network mode
   bool player1IsDead;
   bool player2IsDead;
   std::string winnerName; // Stores the name of the winner or "It's a Tie!"
@@ -56,7 +85,18 @@ private:
   const char *playerNameFilename =
       "player_name.txt"; // File to save/load player name
 
-  // Cursor for name input
+  // Network-specific variables
+  bool isHost;                      // True if this instance is hosting the game
+  std::string remotePlayerName;     // Name of the opponent in network mode
+  std::string ipAddressInputBuffer; // Buffer for IP address input (client)
+  const int maxIpLength =
+      15; // Maximum length for IP address (e.g., 255.255.255.255)
+  std::string
+      currentIpAddress; // Stores the IP address being hosted on or connected to
+  const int networkPort = 12345;   // Default port for network communication
+  std::string networkErrorMessage; // To display error reason
+
+  // Cursor for name/IP input
   float cursorBlinkTimer = 0.0f;
   bool showCursor = true;
 
@@ -103,6 +143,13 @@ private:
   // New buttons for mode selection
   Button btnSinglePlayer;
   Button btnTwoPlayerLocal;
+  Button btnTwoPlayerNetwork; // New: Button to select network mode
+
+  // New buttons for network setup
+  Button btnHostGame;
+  Button btnJoinGame;
+  Button btnConnect;         // To initiate client connection
+  Button btnStartOnlineGame; // Host-only: to start game once client connected
 
   // Soft Drop Safety (Reset on Spawn)
   int lastSpawnCounterP1 = 0;        // Tracks logicPlayer1.spawnCounter
@@ -122,4 +169,16 @@ private:
   void HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
                          float dasRate, float &dasTimer, int &lastMoveDir,
                          int &lastSpawnCounter, bool &waitForDownRelease);
+
+  // Private network-related methods (placeholders for actual network calls)
+  void StartHosting();
+  void StopHosting();
+  void ConnectToHost(const std::string &ip);
+  void Disconnect();
+  void
+  SendGameEvent(const std::string &eventData); // e.g., "move_left", "rotate"
+  void ProcessNetworkEvents(); // Called in Update() to read incoming messages
+  std::string GetLocalIPAddress(); // Placeholder to get local IP
+
+  NetworkManager networkManager; // The actual network handler
 };
