@@ -53,7 +53,8 @@ void Game::ConnectToHost(const std::string &ip) {
     TraceLog(LOG_INFO, "NETWORK: Successfully connected to host.");
   } else {
     TraceLog(LOG_ERROR, "NETWORK: Failed to connect to host.");
-    currentNetworkState = NetworkState::DISCONNECTED;
+    currentNetworkState = NetworkState::CONNECTION_FAILED;
+    networkErrorMessage = "Connection Failed: Check IP/Host";
   }
 }
 
@@ -95,8 +96,12 @@ void Game::ProcessNetworkEvents() {
       !networkManager.IsConnected()) {
 
     TraceLog(LOG_INFO, "NETWORK: Lost connection.");
-    Disconnect();
-    currentGameState = GameState::MODE_SELECTION; // Kick back to menu
+    Disconnect(); // Clean up socket
+    currentNetworkState = NetworkState::CONNECTION_FAILED;
+    networkErrorMessage = "Connection Lost.";
+    if (currentGameState == GameState::PLAYING) {
+      currentGameState = GameState::NETWORK_SETUP;
+    }
     return;
   }
 
@@ -758,6 +763,12 @@ void Game::HandleInput() {
         }
       }
       // Client just waits, no interactive buttons here.
+    } else if (currentNetworkState == NetworkState::CONNECTION_FAILED) {
+      // Allow user to acknowledge error and go back
+      if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        Disconnect(); // Ensure clean slate
+        currentNetworkState = NetworkState::DISCONNECTED;
+      }
     }
     break;
   }
@@ -1381,6 +1392,21 @@ void Game::Draw() {
       DrawText("Press ESC to disconnect",
                (screenWidth - MeasureText("Press ESC to disconnect", 20)) / 2,
                screenHeight - 100, 20, LIGHTGRAY);
+    } else if (currentNetworkState == NetworkState::CONNECTION_FAILED) {
+      // Draw Error Message
+      const char *errorTitle = "CONNECTION ERROR";
+      int titleWidth = MeasureText(errorTitle, 40);
+      DrawText(errorTitle, (screenWidth - titleWidth) / 2,
+               screenHeight / 2 - 80, 40, RED);
+
+      int errWidth = MeasureText(networkErrorMessage.c_str(), 30);
+      DrawText(networkErrorMessage.c_str(), (screenWidth - errWidth) / 2,
+               screenHeight / 2 - 20, 30, ORANGE);
+
+      const char *retryText = "Press ENTER or CLICK to Retry/Back";
+      int retryWidth = MeasureText(retryText, 20);
+      DrawText(retryText, (screenWidth - retryWidth) / 2, screenHeight / 2 + 50,
+               20, LIGHTGRAY);
     }
     break;
   }

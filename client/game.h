@@ -49,7 +49,8 @@ enum class NetworkState {
   HOSTING_WAITING,   // Host is waiting for a client to connect
   CLIENT_CONNECTING, // Client is attempting to connect to a host
   CONNECTED,         // Connection established, waiting for game to start
-  IN_GAME            // Network game is actively playing
+  IN_GAME,           // Network game is actively playing
+  CONNECTION_FAILED  // New: Connection attempt failed or lost
 };
 
 class Game {
@@ -92,7 +93,8 @@ private:
       15; // Maximum length for IP address (e.g., 255.255.255.255)
   std::string
       currentIpAddress; // Stores the IP address being hosted on or connected to
-  const int networkPort = 12345; // Default port for network communication
+  const int networkPort = 12345;   // Default port for network communication
+  std::string networkErrorMessage; // To display error reason
 
   // Cursor for name/IP input
   float cursorBlinkTimer = 0.0f;
