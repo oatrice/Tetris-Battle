@@ -29,7 +29,7 @@ void UpdateDrawFrame() {
 }
 
 int main() {
-  const int screenWidth = 1200;
+  const int screenWidth = 1400;
   const int screenHeight = 750; // Increased for touch controls
 
   InitWindow(screenWidth, screenHeight, "Tetris Battle");

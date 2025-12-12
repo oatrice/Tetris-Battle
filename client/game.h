@@ -73,18 +73,18 @@ private:
   // Player 1 Board: Left side.
   // Player 2 Board: Right side.
   // UI elements: Right of Player 2 board.
-  const int screenWidth = 1200; // Increased width for two boards
+  const int screenWidth = 1400; // Increased width for two boards
   const int screenHeight = 750;
 
   // Board positions
   const int BOARD_WIDTH_PX = 10 * cellSize;
   const int BOARD_HEIGHT_PX = 20 * cellSize;
-  const int BOARD_OFFSET_Y = 0; // Full height
+  const int BOARD_OFFSET_Y = 40; // Full height
 
-  // Player 1 board starts at X = 100
-  const int BOARD_OFFSET_X_P1 = 100;
-  // Player 2 board starts at X = BOARD_OFFSET_X_P1 + BOARD_WIDTH_PX + 100 (gap)
-  const int BOARD_OFFSET_X_P2 = BOARD_OFFSET_X_P1 + BOARD_WIDTH_PX + 100;
+  // Player 1 board starts at X = 65 (Moved right by 50px)
+  const int BOARD_OFFSET_X_P1 = 65;
+  // Player 2: 15 + 300 + 270 = 585 (Moved right by 35px from previous 550)
+  const int BOARD_OFFSET_X_P2 = BOARD_OFFSET_X_P1 + BOARD_WIDTH_PX + 270;
 
   // UI Area X position (right of P2 board)
   const int UI_AREA_X = BOARD_OFFSET_X_P2 + BOARD_WIDTH_PX + 20;
