@@ -206,6 +206,9 @@ void Logic::Reset(int seed) {
     rng.seed(rd());
   }
 
+  // Ensure distribution state is also reset for deterministic behavior
+  dist.reset();
+
   // Spawn a new piece to start the game
   // Re-initialize nextPiece and then spawn it.
   nextPiece = Piece(static_cast<PieceType>(dist(rng)));
