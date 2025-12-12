@@ -304,3 +304,46 @@ TEST_F(LogicTest, MultiLineClear) {
             0); // Row 18 was cleared, nothing above to fill it
   EXPECT_EQ(logic.board.GetCell(BOARD_HEIGHT - 3, 0), 0); // Row 17 moved down
 }
+TEST(LogicSyncTest, TwoPlayersSameSeedProduceSamePieces) {
+    Logic p1;
+    Logic p2;
+    int seed = 12345;
+
+    p1.Reset(seed);
+    p2.Reset(seed);
+    
+    // Check initial pieces
+    EXPECT_EQ(p1.currentPiece.type, p2.currentPiece.type);
+    EXPECT_EQ(p1.nextPiece.type, p2.nextPiece.type);
+    
+    // Check 50 random spawns
+    for(int i=0; i<50; i++) {
+        p1.SpawnPiece();
+        p2.SpawnPiece();
+        EXPECT_EQ(p1.currentPiece.type, p2.currentPiece.type) << "Mismatch at spawn " << i;
+        EXPECT_EQ(p1.nextPiece.type, p2.nextPiece.type) << "Mismatch next at spawn " << i;
+    }
+}
+
+TEST(LogicSyncTest, DirtyStateCheck) {
+    Logic p1;
+    Logic p2;
+
+    // Make p1 very dirty - consume random amount of numbers
+    p1.Reset();
+    for(int i=0; i<13; i++) {
+         p1.SpawnPiece(); // Consumes RNG
+    }
+
+    // p2 is fresh or used differently
+    p2.Reset();
+    p2.SpawnPiece();
+
+    // Now Sync
+    int seed = 8888;
+    p1.Reset(seed);
+    p2.Reset(seed);
+
+    EXPECT_EQ(p1.currentPiece.type, p2.currentPiece.type) << "Current piece mismatch after dirty state";
+    EXPECT_EQ(p1.nextPiece.type, p2.nextPiece.type) << "Next piece mismatch after dirty state";
+}

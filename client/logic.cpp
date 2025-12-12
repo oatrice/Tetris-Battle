@@ -1,17 +1,18 @@
 #include "logic.h"
-#include <iostream>
-#include <random>
 #include <cstring> // For memset
+#include <random>
 
-// Static random setup
-static std::random_device rd;
-static std::mt19937 gen(rd());
-static std::uniform_int_distribution<> distrib(1, 7); // PieceTypes 1-7 (I, O, T, S, Z, J, L)
+// Static random setup removed. Now using instance-based RNG.
+// #include <iostream> // Removed if not needed, or keep
 
-Logic::Logic() {
+Logic::Logic() : dist(1, 7) {
+  // Initialize RNG with a random seed by default
+  std::random_device rd;
+  rng.seed(rd());
+
   // Initialize nextPiece first with a random piece.
   // Its position doesn't matter until it becomes currentPiece.
-  nextPiece = Piece(static_cast<PieceType>(distrib(gen)));
+  nextPiece = Piece(static_cast<PieceType>(dist(rng)));
   nextPiece.x = 0;
   nextPiece.y = 0;
   nextPiece.rotation = 0;
@@ -32,7 +33,7 @@ void Logic::SpawnPiece() {
   currentPiece.rotation = 0;
 
   // 2. Generate a NEW random piece for 'nextPiece'.
-  nextPiece = Piece(static_cast<PieceType>(distrib(gen)));
+  nextPiece = Piece(static_cast<PieceType>(dist(rng)));
   nextPiece.x = 0; // Reset position for the new nextPiece
   nextPiece.y = 0;
   nextPiece.rotation = 0;
@@ -48,7 +49,8 @@ void Logic::SpawnPiece() {
 }
 
 void Logic::Tick() {
-  if (isGameOver) return; // Do nothing if game is over
+  if (isGameOver)
+    return; // Do nothing if game is over
 
   Move(0, 1); // Gravity: Move Down 1
 
@@ -60,12 +62,14 @@ void Logic::Tick() {
     currentPiece = next;
   } else {
     LockPiece();
-    SpawnPiece(); // This will now correctly use nextPiece and generate a new one.
+    SpawnPiece(); // This will now correctly use nextPiece and generate a new
+                  // one.
   }
 }
 
 void Logic::Move(int dx, int dy) {
-  if (isGameOver) return; // Cannot move if game is over
+  if (isGameOver)
+    return; // Cannot move if game is over
 
   Piece next = currentPiece;
   next.x += dx;
@@ -76,7 +80,8 @@ void Logic::Move(int dx, int dy) {
 }
 
 void Logic::Rotate() {
-  if (isGameOver) return; // Cannot rotate if game is over
+  if (isGameOver)
+    return; // Cannot rotate if game is over
 
   Piece next = currentPiece;
   next.rotation = (next.rotation + 1) % 4;
@@ -101,8 +106,8 @@ bool Logic::IsValidPosition(const Piece &p) const {
       return false;
 
     // Check for collision with existing locked blocks on the board
-    // This check is only performed if boardX and boardY are within valid bounds,
-    // as guaranteed by the previous 'if' statement.
+    // This check is only performed if boardX and boardY are within valid
+    // bounds, as guaranteed by the previous 'if' statement.
     if (board.GetCell(boardY, boardX) != 0)
       return false;
   }
@@ -110,7 +115,8 @@ bool Logic::IsValidPosition(const Piece &p) const {
 }
 
 void Logic::LockPiece() {
-  if (isGameOver) return; // Cannot lock if game is over
+  if (isGameOver)
+    return; // Cannot lock if game is over
 
   for (int i = 0; i < 4; i++) {
     int bx, by;
@@ -129,7 +135,8 @@ void Logic::LockPiece() {
 }
 
 void Logic::CheckLines() {
-  if (isGameOver) return; // Cannot check lines if game is over
+  if (isGameOver)
+    return; // Cannot check lines if game is over
 
   int linesClearedThisTurn = 0;
 
@@ -154,7 +161,8 @@ void Logic::CheckLines() {
       for (int c = 0; c < BOARD_WIDTH; c++)
         board.SetCell(0, c, 0);
 
-      y++; // Re-check the current row, as it now contains the row that was above it
+      y++; // Re-check the current row, as it now contains the row that was
+           // above it
     }
   }
 
@@ -181,7 +189,7 @@ void Logic::CheckLines() {
   }
 }
 
-void Logic::Reset() {
+void Logic::Reset(int seed) {
   // Clear the board
   board.Reset();
 
@@ -190,9 +198,20 @@ void Logic::Reset() {
   score = 0; // Reset score
   isGameOver = false;
 
+  // Re-seed RNG if a specific seed is provided, or generate a new random one
+  if (seed != -1) {
+    rng.seed(seed);
+  } else {
+    std::random_device rd;
+    rng.seed(rd());
+  }
+
+  // Ensure distribution state is also reset for deterministic behavior
+  dist.reset();
+
   // Spawn a new piece to start the game
   // Re-initialize nextPiece and then spawn it.
-  nextPiece = Piece(static_cast<PieceType>(distrib(gen)));
+  nextPiece = Piece(static_cast<PieceType>(dist(rng)));
   nextPiece.x = 0;
   nextPiece.y = 0;
   nextPiece.rotation = 0;
