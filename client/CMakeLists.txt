@@ -54,6 +54,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(test_tetris
     tests/board_test.cpp
     tests/logic_test.cpp
+    tests/network_test.cpp
     board.cpp
     logic.cpp
 )

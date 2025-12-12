@@ -131,7 +131,15 @@ public:
     }
 #ifndef __EMSCRIPTEN__
     if (networkThread.joinable()) {
-      networkThread.join();
+      // Check if we are trying to join ourselves (which causes a crash)
+      if (std::this_thread::get_id() != networkThread.get_id()) {
+        networkThread.join();
+      } else {
+        // If we are stopping from within the thread, detaching is safer
+        // (though we should avoid calling Stop from within thread)
+        // But since we fixed ReadLoop, this is just a safety guard.
+        networkThread.detach();
+      }
     }
 #endif
     std::lock_guard<std::mutex> lock(queueMutex);
@@ -269,14 +277,16 @@ private:
     while (isRunning && isConnected) {
       int bytesRead = recv(currentSocket, buffer, sizeof(buffer) - 1, 0);
       if (bytesRead <= 0) {
-        TraceLog(LOG_INFO, "NETWORK: Connection closed or error.");
-        Stop();
-        break;
+        TraceLog(LOG_INFO,
+                 "NETWORK: Connection closed or error. Stopping ReadLoop.");
+        break; // Exit loop, thread finishes naturally. Don't call Stop() here!
       }
       buffer[bytesRead] = '\0';
       pendingData += buffer;
       ProcessPendingData();
     }
+    // Ensure flags are cleared when loop exits
+    isConnected = false;
   }
 #endif
 };
