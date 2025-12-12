@@ -459,7 +459,7 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
   if (!(((playerIndex == 1 && IsKeyDown(KEY_DOWN)) ||
          (playerIndex == 2 && IsKeyDown(KEY_S))) &&
         currentMode == GameMode::TWO_PLAYER_LOCAL) && // Only check for local P2
-      !(playerIndex == 1 && IsKeyDown(KEY_DOWN))) {    // And P1
+      !(playerIndex == 1 && IsKeyDown(KEY_DOWN))) {   // And P1
     waitForDownRelease = false;
   }
   // --- End Soft Drop Safety Logic ---
@@ -503,11 +503,13 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
   // Check for initial press or change in active DAS direction
   if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir != lastMoveDir) {
     logic.Move(currentKeyboardMoveDir, 0); // Initial move
-    if (playerIndex == 1 && (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
-                             currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT)) {
-      SendGameEvent(TextFormat("MOVE_LR;DIR:%d", currentKeyboardMoveDir)); // Send event for P1
+    if (playerIndex == 1 &&
+        (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+         currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT)) {
+      SendGameEvent(TextFormat("MOVE_LR;DIR:%d",
+                               currentKeyboardMoveDir)); // Send event for P1
     }
-    dasTimer = 0.0f;                                           // Reset timer
+    dasTimer = 0.0f; // Reset timer
     lastMoveDir = currentKeyboardMoveDir;
   }
   // If the same key is held down (DAS repeat)
@@ -516,9 +518,11 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
     dasTimer += GetFrameTime();
     while (dasTimer >= dasDelay) {
       logic.Move(lastMoveDir, 0);
-      if (playerIndex == 1 && (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
-                               currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT)) {
-        SendGameEvent(TextFormat("MOVE_LR;DIR:%d", lastMoveDir)); // Send event for P1
+      if (playerIndex == 1 &&
+          (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+           currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT)) {
+        SendGameEvent(
+            TextFormat("MOVE_LR;DIR:%d", lastMoveDir)); // Send event for P1
       }
       dasTimer -= dasRate;
     }
@@ -633,7 +637,19 @@ void Game::HandleInput() {
         return; // State changed, no further input processing this frame
       }
     }
-    // Keyboard input for Change Name (e.g., 'N' key)
+  }
+
+  // Helper variables for OSK
+  bool oskEnter = false;
+  bool oskBackspace = false;
+  char oskChar = 0;
+
+  // --- State-specific input handling ---
+  // Only allow changing name via keyboard if not in these states
+  if (currentGameState != GameState::TITLE_SCREEN &&
+      currentGameState != GameState::MODE_SELECTION &&
+      currentGameState != GameState::NETWORK_SETUP) {
+
     if (IsKeyPressed(KEY_N)) {
       if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
           currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
@@ -658,13 +674,20 @@ void Game::HandleInput() {
       key = GetCharPressed();
     }
 
-    if (IsKeyPressed(KEY_BACKSPACE)) {
+    // OSK Input
+    oskChar =
+        CheckOSKInput(screenHeight / 2 + 100, false, oskEnter, oskBackspace);
+    if (oskChar && (playerNameInputBuffer.length() < maxNameLength)) {
+      playerNameInputBuffer += oskChar;
+    }
+
+    if (IsKeyPressed(KEY_BACKSPACE) || oskBackspace) {
       if (!playerNameInputBuffer.empty()) {
         playerNameInputBuffer.pop_back();
       }
     }
 
-    if (IsKeyPressed(KEY_ENTER)) {
+    if (IsKeyPressed(KEY_ENTER) || oskEnter) {
       if (!playerNameInputBuffer.empty()) {
         playerName = playerNameInputBuffer;
       } else {
@@ -750,10 +773,17 @@ void Game::HandleInput() {
         }
         key = GetCharPressed();
       }
-      if (IsKeyPressed(KEY_BACKSPACE)) {
+      if (IsKeyPressed(KEY_BACKSPACE) || oskBackspace) {
         if (!ipAddressInputBuffer.empty()) {
           ipAddressInputBuffer.pop_back();
         }
+      }
+
+      // OSK Input for IP
+      // Position OSK at bottom
+      oskChar = CheckOSKInput(screenHeight - 250, true, oskEnter, oskBackspace);
+      if (oskChar && (ipAddressInputBuffer.length() < maxIpLength)) {
+        ipAddressInputBuffer += oskChar;
       }
 
       if (CheckCollisionPointRec(mouse, btnConnect.rect)) {
@@ -765,7 +795,7 @@ void Game::HandleInput() {
           }
         }
       }
-      if (IsKeyPressed(KEY_ENTER)) { // Also allow enter to connect
+      if (IsKeyPressed(KEY_ENTER) || oskEnter) { // Also allow enter to connect
         if (!ipAddressInputBuffer.empty()) {
           ConnectToHost(ipAddressInputBuffer);
           currentMode = GameMode::TWO_PLAYER_NETWORK_CLIENT;
@@ -907,6 +937,114 @@ void Game::HandleInput() {
   } // End switch (currentGameState)
 }
 
+// Draw the On-Screen Keyboard
+void Game::DrawOSK(int startY, bool isIpMode) {
+  const char *keys =
+      isIpMode ? "1234567890." : "ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890";
+  int btnSize = 40;
+  int gap = 5;
+  int keysPerRow = 10;
+  int currentX = (screenWidth - (keysPerRow * (btnSize + gap))) / 2;
+  int currentY = startY;
+
+  // Draw Character Keys
+  for (int i = 0; keys[i] != '\0'; i++) {
+    Rectangle btnRect = {(float)currentX, (float)currentY, (float)btnSize,
+                         (float)btnSize};
+    DrawRectangleRec(btnRect, LIGHTGRAY);
+    DrawRectangleLinesEx(btnRect, 2, DARKGRAY);
+
+    char text[2] = {keys[i], '\0'};
+    DrawText(text, btnRect.x + 10, btnRect.y + 5, 30, BLACK);
+
+    currentX += btnSize + gap;
+    if ((i + 1) % keysPerRow == 0) {
+      currentX = (screenWidth - (keysPerRow * (btnSize + gap))) / 2;
+      currentY += btnSize + gap;
+    }
+  }
+
+  // New Row for Special Keys
+  currentY += btnSize + gap;
+  int specialBtnWidth = 100;
+  currentX = (screenWidth - (2 * specialBtnWidth + gap)) / 2;
+
+  // Backspace
+  Rectangle bsRect = {(float)currentX, (float)currentY, (float)specialBtnWidth,
+                      (float)btnSize};
+  DrawRectangleRec(bsRect, ORANGE);
+  DrawRectangleLinesEx(bsRect, 2, DARKGRAY);
+  DrawText("DEL", bsRect.x + 20, bsRect.y + 10, 20, WHITE);
+
+  currentX += specialBtnWidth + gap;
+
+  // Enter
+  Rectangle enterRect = {(float)currentX, (float)currentY,
+                         (float)specialBtnWidth, (float)btnSize};
+  DrawRectangleRec(enterRect, GREEN);
+  DrawRectangleLinesEx(enterRect, 2, DARKGRAY);
+  DrawText("ENTER", enterRect.x + 15, enterRect.y + 10, 20, WHITE);
+}
+
+// Check Input for On-Screen Keyboard
+char Game::CheckOSKInput(int startY, bool isIpMode, bool &outEnter,
+                         bool &outBackspace) {
+  outEnter = false;
+  outBackspace = false;
+
+  if (!IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+    return 0;
+  Vector2 mouse = GetMousePosition();
+
+  const char *keys =
+      isIpMode ? "1234567890." : "ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890";
+  int btnSize = 40;
+  int gap = 5;
+  int keysPerRow = 10;
+  int currentX = (screenWidth - (keysPerRow * (btnSize + gap))) / 2;
+  int currentY = startY;
+
+  // Check Character Keys
+  for (int i = 0; keys[i] != '\0'; i++) {
+    Rectangle btnRect = {(float)currentX, (float)currentY, (float)btnSize,
+                         (float)btnSize};
+    if (CheckCollisionPointRec(mouse, btnRect)) {
+      return keys[i];
+    }
+
+    currentX += btnSize + gap;
+    if ((i + 1) % keysPerRow == 0) {
+      currentX = (screenWidth - (keysPerRow * (btnSize + gap))) / 2;
+      currentY += btnSize + gap;
+    }
+  }
+
+  // Check Special Keys
+  currentY += btnSize + gap;
+  int specialBtnWidth = 100;
+  currentX = (screenWidth - (2 * specialBtnWidth + gap)) / 2;
+
+  // Backspace
+  Rectangle bsRect = {(float)currentX, (float)currentY, (float)specialBtnWidth,
+                      (float)btnSize};
+  if (CheckCollisionPointRec(mouse, bsRect)) {
+    outBackspace = true;
+    return 0;
+  }
+
+  currentX += specialBtnWidth + gap;
+
+  // Enter
+  Rectangle enterRect = {(float)currentX, (float)currentY,
+                         (float)specialBtnWidth, (float)btnSize};
+  if (CheckCollisionPointRec(mouse, enterRect)) {
+    outEnter = true;
+    return 0;
+  }
+
+  return 0;
+}
+
 void Game::Update() {
   HandleInput(); // Always handle input to check for state transitions, restart,
                  // and pause
@@ -926,12 +1064,14 @@ void Game::Update() {
         // In network mode, P1 (local player) sends its gravity-induced moves
         if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
             currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
-          SendGameEvent("MOVE_DOWN"); // Send automatic gravity tick as MOVE_DOWN
+          SendGameEvent(
+              "MOVE_DOWN"); // Send automatic gravity tick as MOVE_DOWN
         }
       }
     }
 
-    // Only update P2 logic if in 2-player LOCAL mode and P2 is not yet game over
+    // Only update P2 logic if in 2-player LOCAL mode and P2 is not yet game
+    // over
     if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
       if (!logicPlayer2.isGameOver) {
         gravityTimerP2 += GetFrameTime();
@@ -1215,11 +1355,15 @@ void Game::Draw() {
              screenHeight / 2, inputFontSize, WHITE);
 
     // Instructions
-    const char *enterPrompt = "PRESS ENTER TO CONTINUE";
+    const char *enterPrompt = "PRESS ENTER OR USE KEYBOARD BELOW";
     int enterPromptFontSize = 20;
     int enterPromptWidth = MeasureText(enterPrompt, enterPromptFontSize);
     DrawText(enterPrompt, (screenWidth - enterPromptWidth) / 2,
              screenHeight / 2 + 60, enterPromptFontSize, LIGHTGRAY);
+
+    // Draw On-Screen Keyboard
+    DrawOSK(screenHeight / 2 + 100, false);
+
     break;
   }
 
@@ -1355,6 +1499,11 @@ void Game::Draw() {
                currentBtnY, inputFontSize, WHITE);
 
       currentBtnY += 50 + btnVerticalGap; // Adjust button position below input
+
+      // Draw OSK for IP
+      DrawOSK(screenHeight - 250, true);
+      // Adjust Connect button to separate from OSK
+      currentBtnY = screenHeight - 250 - 60;
 
       // Position and draw Connect button
       btnConnect.rect.x = btnX;

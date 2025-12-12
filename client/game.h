@@ -180,5 +180,10 @@ private:
   void ProcessNetworkEvents(); // Called in Update() to read incoming messages
   std::string GetLocalIPAddress(); // Placeholder to get local IP
 
+  // On-Screen Keyboard Helpers
+  void DrawOSK(int startY, bool isIpMode);
+  char CheckOSKInput(int startY, bool isIpMode, bool &outEnter,
+                     bool &outBackspace);
+
   NetworkManager networkManager; // The actual network handler
 };
