@@ -10,8 +10,11 @@ std::string Game::GetLocalIPAddress() {
   // In a real application, you'd use platform-specific network APIs
   // For example, on Linux: `hostname -I | awk '{print $1}'`
   // On Windows: `ipconfig`
-  // For now, return a placeholder or loopback address
-  // TODO: Implement real IP detection
+  // For mobile browsers (WebAssembly), direct local IP access might not be
+  // possible due to browser security models. A signaling server or STUN/TURN
+  // server would typically be used to discover external IPs or facilitate
+  // WebRTC connections. For now, this returns a loopback address, which is
+  // suitable only for testing on the same machine.
   return "127.0.0.1";
 }
 
@@ -20,7 +23,7 @@ void Game::StartHosting() {
   if (networkManager.StartHost(networkPort)) {
     isHost = true;
     currentNetworkState = NetworkState::HOSTING_WAITING;
-    currentIpAddress = GetLocalIPAddress();
+    currentIpAddress = GetLocalIPAddress(); // This will show 127.0.0.1 for now
     TraceLog(LOG_INFO, "NETWORK: Started hosting on Port: %d", networkPort);
   } else {
     TraceLog(LOG_ERROR, "NETWORK: Failed to start host on Port: %d",
@@ -44,12 +47,12 @@ void Game::ConnectToHost(const std::string &ip) {
   TraceLog(LOG_INFO, "NETWORK: Attempting to connect to %s:%d", ip.c_str(),
            networkPort);
 
-  // This is currently a blocking call in NetworkManager for simplicity
+  // NOTE: The current `networkManager.ConnectClient` is assumed to be a
+  // blocking call for simplicity. In a production application, especially
+  // for a UI-driven game, this should ideally be an asynchronous operation
+  // to prevent the UI from freezing during connection attempts.
   if (networkManager.ConnectClient(ip, networkPort)) {
     currentNetworkState = NetworkState::CONNECTED;
-    // Send handshake (Client Name) immediately
-    // Actually, let's wait for game logic to handle "CLIENT_READY" handshake
-    // during ResetGame or here. For now, just mark connected.
     TraceLog(LOG_INFO, "NETWORK: Successfully connected to host.");
   } else {
     TraceLog(LOG_ERROR, "NETWORK: Failed to connect to host.");
@@ -132,7 +135,7 @@ void Game::ProcessNetworkEvents() {
         lastMoveDirP1 = 0;
         waitForDownReleaseP1 = false;
 
-        gravityTimerP2 = 0.0f;
+        gravityTimerP2 = 0.0f; // P2 is remote, its gravity is driven by events
         dasTimerP2 = 0.0f;
         lastMoveDirP2 = 0; // P2 is remote
 
@@ -442,14 +445,21 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
   if (logic.spawnCounter != lastSpawnCounter) {
     lastSpawnCounter = logic.spawnCounter;
     // If KEY_DOWN is currently held, activate the safety flag
-    if ((playerIndex == 1 && IsKeyDown(KEY_DOWN)) ||
-        (playerIndex == 2 && IsKeyDown(KEY_S))) {
+    if (((playerIndex == 1 && IsKeyDown(KEY_DOWN)) ||
+         (playerIndex == 2 && IsKeyDown(KEY_S))) &&
+        currentMode == GameMode::TWO_PLAYER_LOCAL) { // Only check for local P2
+      waitForDownRelease = true;
+    }
+    // For network P1, also check KEY_DOWN
+    if (playerIndex == 1 && IsKeyDown(KEY_DOWN)) {
       waitForDownRelease = true;
     }
   }
   // 2. If the safety flag is active, check if KEY_DOWN has been released
-  if (!((playerIndex == 1 && IsKeyDown(KEY_DOWN)) ||
-        (playerIndex == 2 && IsKeyDown(KEY_S)))) {
+  if (!(((playerIndex == 1 && IsKeyDown(KEY_DOWN)) ||
+         (playerIndex == 2 && IsKeyDown(KEY_S))) &&
+        currentMode == GameMode::TWO_PLAYER_LOCAL) && // Only check for local P2
+      !(playerIndex == 1 && IsKeyDown(KEY_DOWN))) {    // And P1
     waitForDownRelease = false;
   }
   // --- End Soft Drop Safety Logic ---
@@ -472,7 +482,7 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
     if (IsKeyDown(KEY_RIGHT)) {
       currentKeyboardMoveDir = 1;
     }
-  } else { // Player 2 uses WASD
+  } else { // Player 2 uses WASD (Only for local multiplayer)
     if (IsKeyReleased(KEY_A) && lastMoveDir == -1) {
       dasTimer = 0.0f;
       lastMoveDir = 0;
@@ -493,8 +503,10 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
   // Check for initial press or change in active DAS direction
   if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir != lastMoveDir) {
     logic.Move(currentKeyboardMoveDir, 0); // Initial move
-    SendGameEvent(
-        TextFormat("MOVE_LR;DIR:%d", currentKeyboardMoveDir)); // Send event
+    if (playerIndex == 1 && (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+                             currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT)) {
+      SendGameEvent(TextFormat("MOVE_LR;DIR:%d", currentKeyboardMoveDir)); // Send event for P1
+    }
     dasTimer = 0.0f;                                           // Reset timer
     lastMoveDir = currentKeyboardMoveDir;
   }
@@ -504,7 +516,10 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
     dasTimer += GetFrameTime();
     while (dasTimer >= dasDelay) {
       logic.Move(lastMoveDir, 0);
-      SendGameEvent(TextFormat("MOVE_LR;DIR:%d", lastMoveDir)); // Send event
+      if (playerIndex == 1 && (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+                               currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT)) {
+        SendGameEvent(TextFormat("MOVE_LR;DIR:%d", lastMoveDir)); // Send event for P1
+      }
       dasTimer -= dasRate;
     }
   }
@@ -520,12 +535,18 @@ void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
     // Rotate
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE)) {
       logic.Rotate();
-      SendGameEvent("ROTATE"); // Send event
+      if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+          currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+        SendGameEvent("ROTATE"); // Send event for P1
+      }
     }
     // Soft Drop (continuous) - now includes soft drop safety check
     if (IsKeyDown(KEY_DOWN) && !waitForDownRelease) {
       logic.Move(0, 1);
-      SendGameEvent("MOVE_DOWN"); // Send event
+      if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+          currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+        SendGameEvent("MOVE_DOWN"); // Send event for P1
+      }
     }
   } else { // Player 2 (Local only, not for network)
     // Rotate
@@ -813,19 +834,31 @@ void Game::HandleInput() {
 
       if (btnLeft.active && !leftPressed) {
         logicPlayer1.Move(-1, 0);
-        SendGameEvent("MOVE_LR;DIR:-1"); // Send event
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+            currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          SendGameEvent("MOVE_LR;DIR:-1"); // Send event for P1
+        }
       }
       if (btnRight.active && !rightPressed) {
         logicPlayer1.Move(1, 0);
-        SendGameEvent("MOVE_LR;DIR:1"); // Send event
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+            currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          SendGameEvent("MOVE_LR;DIR:1"); // Send event for P1
+        }
       }
       if (btnRotate.active && !rotatePressed) {
         logicPlayer1.Rotate();
-        SendGameEvent("ROTATE"); // Send event
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+            currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          SendGameEvent("ROTATE"); // Send event for P1
+        }
       }
       if (btnDrop.active) { // Touch soft drop is continuous
         logicPlayer1.Move(0, 1);
-        SendGameEvent("MOVE_DOWN"); // Send event
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+            currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          SendGameEvent("MOVE_DOWN"); // Send event for P1
+        }
       }
 
       // Update static states for touch buttons
@@ -890,12 +923,15 @@ void Game::Update() {
       if (gravityTimerP1 >= gravityInterval) {
         logicPlayer1.Tick();
         gravityTimerP1 = 0.0f;
-        // Placeholder: Send tick event for synchronization (optional for simple
-        // demos) SendGameEvent("TICK_P1");
+        // In network mode, P1 (local player) sends its gravity-induced moves
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+            currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          SendGameEvent("MOVE_DOWN"); // Send automatic gravity tick as MOVE_DOWN
+        }
       }
     }
 
-    // Only update P2 logic if in 2-player mode and P2 is not yet game over
+    // Only update P2 logic if in 2-player LOCAL mode and P2 is not yet game over
     if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
       if (!logicPlayer2.isGameOver) {
         gravityTimerP2 += GetFrameTime();
@@ -904,25 +940,13 @@ void Game::Update() {
           gravityTimerP2 = 0.0f;
         }
       }
-    } else if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
-               currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
-      // In network mode, logicPlayer2 represents the remote player.
-      // Its updates should ideally come from network events.
-      // For a simple demo, we can let it run its own gravity, but actual piece
-      // movements and state changes should be overridden by received network
-      // events to stay synchronized. To keep it simple for now, we'll let it
-      // tick but acknowledge network events will be the primary driver for its
-      // state.
-      if (!logicPlayer2.isGameOver) {
-        gravityTimerP2 += GetFrameTime();
-        if (gravityTimerP2 >= gravityInterval) {
-          logicPlayer2.Tick();
-          gravityTimerP2 = 0.0f;
-          // Placeholder: Send tick event for synchronization (optional)
-          // SendGameEvent("TICK_P2");
-        }
-      }
     }
+    // In network modes (TWO_PLAYER_NETWORK_HOST or TWO_PLAYER_NETWORK_CLIENT),
+    // logicPlayer2 represents the remote player. Its state should be updated
+    // solely by received network events (e.g., MOVE_LR, ROTATE, MOVE_DOWN) from
+    // the remote player's client, not by local gravity ticks.
+    // Therefore, the block that previously ran logicPlayer2.Tick() for network
+    // modes has been removed to prevent desynchronization.
 
     // --- Game Over Check ---
     if (currentMode == GameMode::SINGLE_PLAYER) {
