@@ -45,6 +45,11 @@ private:
   GameState currentGameState; // Current state of the game
   GameMode currentMode; // Current game mode (1-player, 2-player local, etc.)
 
+  // New: Game Over specific states for 2-player local mode
+  bool player1IsDead;
+  bool player2IsDead;
+  std::string winnerName; // Stores the name of the winner or "It's a Tie!"
+
   std::string playerName;            // Stores the player's name (for P1)
   std::string playerNameInputBuffer; // Buffer for name input in TITLE_SCREEN
   const int maxNameLength = 10;      // Maximum length for player name

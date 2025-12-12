@@ -8,6 +8,11 @@ Game::Game() {
   currentGameState = GameState::TITLE_SCREEN;
   currentMode = GameMode::SINGLE_PLAYER; // Default to single player
 
+  // Initialize new game over flags
+  player1IsDead = false;
+  player2IsDead = false;
+  winnerName = "";
+
   // Load player name at startup
   LoadPlayerName();
   // Initialize input buffer with the loaded name (or default "Player")
@@ -143,6 +148,7 @@ void Game::ResetGame() {
   lastSpawnCounterP1 =
       logicPlayer1.spawnCounter; // Sync after logic.Reset() spawns a new piece
   waitForDownReleaseP1 = false;
+  player1IsDead = false; // Reset dead status for P1
 
   if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
     logicPlayer2.Reset(seed); // Use the same seed for Player 2
@@ -151,8 +157,11 @@ void Game::ResetGame() {
     lastMoveDirP2 = 0;
     lastSpawnCounterP2 = logicPlayer2.spawnCounter;
     waitForDownReleaseP2 = false;
+    player2IsDead = false; // Reset dead status for P2
   }
 
+  winnerName = ""; // Reset winner name
+  currentGameState = GameState::PLAYING; // Ensure game is playing after reset
   btnRestart.active = false; // Ensure button is not active after reset
   btnPause.active = false;   // Ensure pause button is not active
   btnChangeName.active =
@@ -163,6 +172,11 @@ void Game::ResetGame() {
 void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
                              float dasRate, float &dasTimer, int &lastMoveDir,
                              int &lastSpawnCounter, bool &waitForDownRelease) {
+  // IMPORTANT: Do not process input if the player's game is over
+  if (logic.isGameOver) {
+    return;
+  }
+
   // --- Soft Drop Safety Logic ---
   // 1. Detect if a new piece has spawned since the last frame
   if (logic.spawnCounter != lastSpawnCounter) {
@@ -280,8 +294,6 @@ void Game::HandleInput() {
       if (currentGameState != GameState::TITLE_SCREEN &&
           currentGameState != GameState::MODE_SELECTION) {
         ResetGame();
-        currentGameState =
-            GameState::PLAYING; // After reset, always go to playing
         return; // Game reset, no further input processing this frame
       }
     }
@@ -292,7 +304,6 @@ void Game::HandleInput() {
     if (currentGameState != GameState::TITLE_SCREEN &&
         currentGameState != GameState::MODE_SELECTION) {
       ResetGame();
-      currentGameState = GameState::PLAYING;
       return; // Game reset, no further input processing this frame
     }
   }
@@ -359,7 +370,7 @@ void Game::HandleInput() {
       if (mouseClicked) {
         currentMode = GameMode::SINGLE_PLAYER;
         ResetGame(); // Setup game for single player
-        currentGameState = GameState::PLAYING;
+        // currentGameState is set to PLAYING inside ResetGame()
         return;
       }
     }
@@ -368,7 +379,7 @@ void Game::HandleInput() {
       if (mouseClicked) {
         currentMode = GameMode::TWO_PLAYER_LOCAL;
         ResetGame(); // Setup game for two players
-        currentGameState = GameState::PLAYING;
+        // currentGameState is set to PLAYING inside ResetGame()
         return;
       }
     }
@@ -391,43 +402,46 @@ void Game::HandleInput() {
 
     // --- Touch Controls (Shared for now, can be adapted for separate controls)
     // ---
-    static bool leftPressed = false;
-    static bool rightPressed = false;
-    static bool rotatePressed = false;
+    // Touch controls currently only affect P1, and only if P1 is not dead
+    if (!logicPlayer1.isGameOver) {
+      static bool leftPressed = false;
+      static bool rightPressed = false;
+      static bool rotatePressed = false;
 
-    btnLeft.active = false;
-    btnRight.active = false;
-    btnRotate.active = false;
-    btnDrop.active = false;
+      btnLeft.active = false;
+      btnRight.active = false;
+      btnRotate.active = false;
+      btnDrop.active = false;
 
-    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-      if (CheckCollisionPointRec(mouse, btnLeft.rect))
-        btnLeft.active = true;
-      if (CheckCollisionPointRec(mouse, btnRight.rect))
-        btnRight.active = true;
-      if (CheckCollisionPointRec(mouse, btnRotate.rect))
-        btnRotate.active = true;
-      if (CheckCollisionPointRec(mouse, btnDrop.rect))
-        btnDrop.active = true;
-    }
+      if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        if (CheckCollisionPointRec(mouse, btnLeft.rect))
+          btnLeft.active = true;
+        if (CheckCollisionPointRec(mouse, btnRight.rect))
+          btnRight.active = true;
+        if (CheckCollisionPointRec(mouse, btnRotate.rect))
+          btnRotate.active = true;
+        if (CheckCollisionPointRec(mouse, btnDrop.rect))
+          btnDrop.active = true;
+      }
 
-    if (btnLeft.active && !leftPressed) {
-      logicPlayer1.Move(-1, 0); // Touch controls currently affect P1
-    }
-    if (btnRight.active && !rightPressed) {
-      logicPlayer1.Move(1, 0); // Touch controls currently affect P1
-    }
-    if (btnRotate.active && !rotatePressed) {
-      logicPlayer1.Rotate(); // Touch controls currently affect P1
-    }
-    if (btnDrop.active) {      // Touch soft drop is continuous
-      logicPlayer1.Move(0, 1); // Touch controls currently affect P1
-    }
+      if (btnLeft.active && !leftPressed) {
+        logicPlayer1.Move(-1, 0);
+      }
+      if (btnRight.active && !rightPressed) {
+        logicPlayer1.Move(1, 0);
+      }
+      if (btnRotate.active && !rotatePressed) {
+        logicPlayer1.Rotate();
+      }
+      if (btnDrop.active) { // Touch soft drop is continuous
+        logicPlayer1.Move(0, 1);
+      }
 
-    // Update static states for touch buttons
-    leftPressed = btnLeft.active;
-    rightPressed = btnRight.active;
-    rotatePressed = btnRotate.active;
+      // Update static states for touch buttons
+      leftPressed = btnLeft.active;
+      rightPressed = btnRight.active;
+      rotatePressed = btnRotate.active;
+    }
     // --- End Touch Controls ---
 
     // Handle keyboard input for Player 1
@@ -473,29 +487,51 @@ void Game::Update() {
 
   // Only update game logic if in PLAYING state
   if (currentGameState == GameState::PLAYING) {
-    // Gravity System for Player 1
-    gravityTimerP1 += GetFrameTime();
-    if (gravityTimerP1 >= gravityInterval) {
-      logicPlayer1.Tick();
-      gravityTimerP1 = 0.0f;
-    }
-
-    // Check for game over for Player 1
-    if (logicPlayer1.isGameOver) {
-      currentGameState = GameState::GAME_OVER;
-    }
-
-    // Gravity System for Player 2 if in local multiplayer mode
-    if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
-      gravityTimerP2 += GetFrameTime();
-      if (gravityTimerP2 >= gravityInterval) {
-        logicPlayer2.Tick();
-        gravityTimerP2 = 0.0f;
+    // Only update P1 logic if P1 is not yet game over
+    if (!logicPlayer1.isGameOver) {
+      gravityTimerP1 += GetFrameTime();
+      if (gravityTimerP1 >= gravityInterval) {
+        logicPlayer1.Tick();
+        gravityTimerP1 = 0.0f;
       }
-      // Check for game over for Player 2
-      if (logicPlayer2.isGameOver) {
-        currentGameState = GameState::GAME_OVER; // Consider more complex game
-                                                 // over logic for 2 players
+    }
+
+    // Only update P2 logic if in 2-player mode and P2 is not yet game over
+    if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+      if (!logicPlayer2.isGameOver) {
+        gravityTimerP2 += GetFrameTime();
+        if (gravityTimerP2 >= gravityInterval) {
+          logicPlayer2.Tick();
+          gravityTimerP2 = 0.0f;
+        }
+      }
+    }
+
+    // --- Game Over Check ---
+    if (currentMode == GameMode::SINGLE_PLAYER) {
+      if (logicPlayer1.isGameOver) {
+        currentGameState = GameState::GAME_OVER;
+        winnerName = playerName; // In single player, it's always P1
+      }
+    } else if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+      // Update individual player dead status
+      if (logicPlayer1.isGameOver && !player1IsDead) {
+        player1IsDead = true;
+      }
+      if (logicPlayer2.isGameOver && !player2IsDead) {
+        player2IsDead = true;
+      }
+
+      // If both players are dead, transition to GAME_OVER and determine winner
+      if (player1IsDead && player2IsDead) {
+        currentGameState = GameState::GAME_OVER;
+        if (logicPlayer1.score > logicPlayer2.score) {
+          winnerName = playerName;
+        } else if (logicPlayer2.score > logicPlayer1.score) {
+          winnerName = "Player2";
+        } else {
+          winnerName = "It's a Tie!";
+        }
       }
     }
   }
@@ -778,7 +814,7 @@ void Game::Draw() {
       p1BoardX = (screenWidth - BOARD_WIDTH_PX) / 2;
     }
 
-    // Draw Player 1's board and UI
+    // --- Draw Player 1's board and UI ---
     DrawPlayerBoard(logicPlayer1, p1BoardX, BOARD_OFFSET_Y);
     int p1_ui_x = p1BoardX + BOARD_WIDTH_PX + 20;
     int p1_ui_y = BOARD_OFFSET_Y;
@@ -786,26 +822,54 @@ void Game::Draw() {
     p1_ui_y += (6 * cellSize) + 20; // Below next piece preview
     DrawPlayerScore(logicPlayer1, p1_ui_x, p1_ui_y, playerName);
 
+    // Overlay for P1 if dead or paused
+    if (currentGameState == GameState::PAUSED) {
+      DrawRectangle(p1BoardX, BOARD_OFFSET_Y, BOARD_WIDTH_PX, BOARD_HEIGHT_PX,
+                    Fade(BLACK, 0.7f));
+    } else if (currentMode == GameMode::SINGLE_PLAYER &&
+               logicPlayer1.isGameOver) {
+      // For single player, the full GAME OVER screen will handle this
+      // No individual board overlay needed here as it will be covered by full screen
+    } else if (currentMode == GameMode::TWO_PLAYER_LOCAL &&
+               logicPlayer1.isGameOver) {
+      DrawRectangle(p1BoardX, BOARD_OFFSET_Y, BOARD_WIDTH_PX, BOARD_HEIGHT_PX,
+                    Fade(BLACK, 0.7f));
+      const char *p1GameOverText = "GAME OVER";
+      int textFontSize = 40; // Smaller for individual board
+      int textWidth = MeasureText(p1GameOverText, textFontSize);
+      DrawText(p1GameOverText, p1BoardX + (BOARD_WIDTH_PX - textWidth) / 2,
+               BOARD_OFFSET_Y + (BOARD_HEIGHT_PX / 2) - textFontSize / 2,
+               textFontSize, RED);
+    }
+
+    // --- Draw Player 2's board and UI if in local multiplayer mode ---
     if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
-      // Draw Player 2's board and UI (Always fixed to the right for now)
       DrawPlayerBoard(logicPlayer2, BOARD_OFFSET_X_P2, BOARD_OFFSET_Y);
       int p2_ui_x = BOARD_OFFSET_X_P2 + BOARD_WIDTH_PX + 20;
       int p2_ui_y = BOARD_OFFSET_Y;
       DrawPlayerNextPiece(logicPlayer2, p2_ui_x, p2_ui_y);
       p2_ui_y += (6 * cellSize) + 20; // Below next piece preview
       DrawPlayerScore(logicPlayer2, p2_ui_x, p2_ui_y, "Player2");
-    }
 
-    // --- Overlays for PAUSED and GAME_OVER ---
-    if (currentGameState == GameState::PAUSED) {
-      // Draw semi-transparent black overlay over the board areas
-      DrawRectangle(p1BoardX, BOARD_OFFSET_Y, BOARD_WIDTH_PX, BOARD_HEIGHT_PX,
-                    Fade(BLACK, 0.7f));
-      if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+      // Overlay for P2 if dead or paused
+      if (currentGameState == GameState::PAUSED) {
         DrawRectangle(BOARD_OFFSET_X_P2, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
                       BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
+      } else if (logicPlayer2.isGameOver) { // In 2-player mode, P2's own game over
+        DrawRectangle(BOARD_OFFSET_X_P2, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
+                      BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
+        const char *p2GameOverText = "GAME OVER";
+        int textFontSize = 40;
+        int textWidth = MeasureText(p2GameOverText, textFontSize);
+        DrawText(p2GameOverText,
+                 BOARD_OFFSET_X_P2 + (BOARD_WIDTH_PX - textWidth) / 2,
+                 BOARD_OFFSET_Y + (BOARD_HEIGHT_PX / 2) - textFontSize / 2,
+                 textFontSize, RED);
       }
+    }
 
+    // --- Central Overlays for PAUSED and overall GAME_OVER ---
+    if (currentGameState == GameState::PAUSED) {
       // Draw "PAUSED" text centered over P1 board
       const char *pausedText = "PAUSED";
       int textFontSizePaused = 50;
@@ -815,23 +879,58 @@ void Game::Draw() {
 
       DrawText(pausedText, textX, textY, textFontSizePaused, WHITE);
     } else if (currentGameState == GameState::GAME_OVER) {
-      // Draw semi-transparent black overlay over the board areas
-      DrawRectangle(p1BoardX, BOARD_OFFSET_Y, BOARD_WIDTH_PX, BOARD_HEIGHT_PX,
-                    Fade(BLACK, 0.7f));
-      if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
-        DrawRectangle(BOARD_OFFSET_X_P2, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
-                      BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
+      // This is the *overall* GAME OVER, meaning both players are dead in 2-player, or P1 in 1-player.
+      // Draw a full-screen overlay for final game over message
+      DrawRectangle(0, 0, screenWidth, screenHeight,
+                    Fade(BLACK, 0.9f)); // Darker overlay over everything
+
+      const char *gameOverText = "GAME OVER";
+      int textFontSize = 60;
+      int textWidth = MeasureText(gameOverText, textFontSize);
+      DrawText(gameOverText, (screenWidth - textWidth) / 2, screenHeight / 3,
+               textFontSize, RED);
+
+      if (currentMode == GameMode::SINGLE_PLAYER) {
+        std::string finalScoreDisplay =
+            "FINAL SCORE: " + std::to_string(logicPlayer1.score);
+        int scoreFontSize = 40;
+        int scoreWidth = MeasureText(finalScoreDisplay.c_str(), scoreFontSize);
+        DrawText(finalScoreDisplay.c_str(), (screenWidth - scoreWidth) / 2,
+                 screenHeight / 3 + 80, scoreFontSize, GOLD);
+      } else { // Two Player Local
+        std::string winnerDisplay = "WINNER: " + winnerName;
+        if (winnerName == "It's a Tie!") {
+          winnerDisplay = "It's a Tie!";
+        }
+        int winnerFontSize = 40;
+        int winnerWidth = MeasureText(winnerDisplay.c_str(), winnerFontSize);
+        DrawText(winnerDisplay.c_str(), (screenWidth - winnerWidth) / 2,
+                 screenHeight / 3 + 80, winnerFontSize, GOLD);
+
+        // Display scores for both players in 2-player mode
+        std::string p1ScoreDisplay =
+            playerName + " Score: " + std::to_string(logicPlayer1.score);
+        std::string p2ScoreDisplay =
+            "Player2 Score: " + std::to_string(logicPlayer2.score);
+        int individualScoreFontSize = 30;
+        int p1ScoreWidth =
+            MeasureText(p1ScoreDisplay.c_str(), individualScoreFontSize);
+        int p2ScoreWidth =
+            MeasureText(p2ScoreDisplay.c_str(), individualScoreFontSize);
+
+        DrawText(p1ScoreDisplay.c_str(), (screenWidth - p1ScoreWidth) / 2,
+                 screenHeight / 3 + 150, individualScoreFontSize, WHITE);
+        DrawText(p2ScoreDisplay.c_str(), (screenWidth - p2ScoreWidth) / 2,
+                 screenHeight / 3 + 190, individualScoreFontSize, WHITE);
       }
 
-      // Draw "GAME OVER" text centered over P1 board
-      const char *gameOverText = "GAME OVER";
-      int textFontSizeGameOver = 50;
-      int textWidthGameOver = MeasureText(gameOverText, textFontSizeGameOver);
-      int textX = p1BoardX + (BOARD_WIDTH_PX - textWidthGameOver) / 2;
-      int textY = BOARD_OFFSET_Y + (BOARD_HEIGHT_PX / 2) -
-                  textFontSizeGameOver; // Slightly above center
-
-      DrawText(gameOverText, textX, textY, textFontSizeGameOver, RED);
+      // Prompt to restart
+      const char *restartPrompt = "Press R or click RESTART to play again";
+      int restartPromptFontSize = 25;
+      int restartPromptWidth =
+          MeasureText(restartPrompt, restartPromptFontSize);
+      DrawText(restartPrompt, (screenWidth - restartPromptWidth) / 2,
+               screenHeight - 100, restartPromptFontSize, LIGHTGRAY);
     }
     break;
   }
