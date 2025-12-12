@@ -1,6 +1,22 @@
 #pragma once
 #include "logic.h"
+#include "network_manager.h" // Include NetworkManager
 #include "raylib.h"
+
+// ... (existing code)
+
+// Private network-related methods (placeholders for actual network calls)
+void StartHosting();
+void StopHosting();
+void ConnectToHost(const std::string &ip);
+void Disconnect();
+void SendGameEvent(const std::string &eventData); // e.g., "move_left", "rotate"
+void ProcessNetworkEvents();     // Called in Update() to read incoming messages
+std::string GetLocalIPAddress(); // Placeholder to get local IP
+
+NetworkManager networkManager; // The actual network handler
+}
+;
 
 #include <map> // For storing player names
 #include <string>
@@ -27,8 +43,8 @@ enum class GameState {
 enum class GameMode {
   SINGLE_PLAYER,
   TWO_PLAYER_LOCAL,
-  TWO_PLAYER_NETWORK_HOST,   // New: Player is hosting an online game
-  TWO_PLAYER_NETWORK_CLIENT  // New: Player is joining an online game
+  TWO_PLAYER_NETWORK_HOST,  // New: Player is hosting an online game
+  TWO_PLAYER_NETWORK_CLIENT // New: Player is joining an online game
 };
 
 // New: Define network states for managing connection flow within NETWORK_SETUP
@@ -56,7 +72,7 @@ private:
 
   // Game State Management
   GameState currentGameState; // Current state of the game
-  GameMode currentMode;       // Current game mode (1-player, 2-player local, etc.)
+  GameMode currentMode; // Current game mode (1-player, 2-player local, etc.)
 
   // New: Network State Management
   NetworkState currentNetworkState; // Current state of the network connection
@@ -73,12 +89,14 @@ private:
       "player_name.txt"; // File to save/load player name
 
   // Network-specific variables
-  bool isHost;                         // True if this instance is hosting the game
-  std::string remotePlayerName;        // Name of the opponent in network mode
-  std::string ipAddressInputBuffer;    // Buffer for IP address input (client)
-  const int maxIpLength = 15;          // Maximum length for IP address (e.g., 255.255.255.255)
-  std::string currentIpAddress;        // Stores the IP address being hosted on or connected to
-  const int networkPort = 12345;       // Default port for network communication
+  bool isHost;                      // True if this instance is hosting the game
+  std::string remotePlayerName;     // Name of the opponent in network mode
+  std::string ipAddressInputBuffer; // Buffer for IP address input (client)
+  const int maxIpLength =
+      15; // Maximum length for IP address (e.g., 255.255.255.255)
+  std::string
+      currentIpAddress; // Stores the IP address being hosted on or connected to
+  const int networkPort = 12345; // Default port for network communication
 
   // Cursor for name/IP input
   float cursorBlinkTimer = 0.0f;
@@ -132,7 +150,7 @@ private:
   // New buttons for network setup
   Button btnHostGame;
   Button btnJoinGame;
-  Button btnConnect; // To initiate client connection
+  Button btnConnect;         // To initiate client connection
   Button btnStartOnlineGame; // Host-only: to start game once client connected
 
   // Soft Drop Safety (Reset on Spawn)
@@ -159,7 +177,8 @@ private:
   void StopHosting();
   void ConnectToHost(const std::string &ip);
   void Disconnect();
-  void SendGameEvent(const std::string &eventData); // e.g., "move_left", "rotate"
+  void
+  SendGameEvent(const std::string &eventData); // e.g., "move_left", "rotate"
   void ProcessNetworkEvents(); // Called in Update() to read incoming messages
   std::string GetLocalIPAddress(); // Placeholder to get local IP
 };

@@ -1,7 +1,8 @@
 #include "game.h"
-#include "raylib.h"  // For LoadFileText, SaveFileText
-#include <algorithm> // Required for std::max
-#include <vector>    // Required for std::vector in max initialization
+#include "network_protocol.h" // Include Protocol
+#include "raylib.h"           // For LoadFileText, SaveFileText
+#include <algorithm>          // Required for std::max
+#include <vector>             // Required for std::vector in max initialization
 
 // Placeholder for getting local IP address (implementation depends on
 // OS/platform)
@@ -10,95 +11,182 @@ std::string Game::GetLocalIPAddress() {
   // For example, on Linux: `hostname -I | awk '{print $1}'`
   // On Windows: `ipconfig`
   // For now, return a placeholder or loopback address
+  // TODO: Implement real IP detection
   return "127.0.0.1";
 }
 
-// Placeholder for starting network host
+// Start network host
 void Game::StartHosting() {
-  // In a real application, this would initialize a server socket
-  // and start listening for incoming connections.
-  isHost = true;
-  currentNetworkState = NetworkState::HOSTING_WAITING;
-  currentIpAddress =
-      GetLocalIPAddress(); // Display local IP for client to connect
-  TraceLog(LOG_INFO, "NETWORK: Started hosting on IP: %s, Port: %d",
-           currentIpAddress.c_str(), networkPort);
-  // Example: networkManager->InitServer(networkPort);
+  if (networkManager.StartHost(networkPort)) {
+    isHost = true;
+    currentNetworkState = NetworkState::HOSTING_WAITING;
+    currentIpAddress = GetLocalIPAddress();
+    TraceLog(LOG_INFO, "NETWORK: Started hosting on Port: %d", networkPort);
+  } else {
+    TraceLog(LOG_ERROR, "NETWORK: Failed to start host on Port: %d",
+             networkPort);
+  }
 }
 
-// Placeholder for stopping network host
+// Stop network host
 void Game::StopHosting() {
-  // In a real application, this would close the server socket.
-  if (isHost) {
-    TraceLog(LOG_INFO, "NETWORK: Stopped hosting.");
-    // Example: networkManager->ShutdownServer();
-  }
+  networkManager.Stop();
   isHost = false;
   currentNetworkState = NetworkState::DISCONNECTED;
   currentIpAddress = "";
 }
 
-// Placeholder for connecting to a host
+// Connect to a host
 void Game::ConnectToHost(const std::string &ip) {
-  // In a real application, this would initialize a client socket
-  // and attempt to connect to the specified IP and port.
   isHost = false;
   currentIpAddress = ip;
   currentNetworkState = NetworkState::CLIENT_CONNECTING;
   TraceLog(LOG_INFO, "NETWORK: Attempting to connect to %s:%d", ip.c_str(),
            networkPort);
-  // Example: networkManager->ConnectClient(ip, networkPort);
 
-  // Simulate immediate connection for demo purposes
-  // In a real scenario, this would be asynchronous and update state on
-  // success/failure
-  currentNetworkState = NetworkState::CONNECTED;
-  remotePlayerName = "HostPlayer"; // Placeholder, would be received from host
-  TraceLog(LOG_INFO, "NETWORK: Successfully connected to host.");
+  // This is currently a blocking call in NetworkManager for simplicity
+  if (networkManager.ConnectClient(ip, networkPort)) {
+    currentNetworkState = NetworkState::CONNECTED;
+    // Send handshake (Client Name) immediately
+    // Actually, let's wait for game logic to handle "CLIENT_READY" handshake
+    // during ResetGame or here. For now, just mark connected.
+    TraceLog(LOG_INFO, "NETWORK: Successfully connected to host.");
+  } else {
+    TraceLog(LOG_ERROR, "NETWORK: Failed to connect to host.");
+    currentNetworkState = NetworkState::DISCONNECTED;
+  }
 }
 
-// Placeholder for disconnecting from network
+// Disconnect from network
 void Game::Disconnect() {
   if (currentNetworkState != NetworkState::DISCONNECTED) {
     TraceLog(LOG_INFO, "NETWORK: Disconnecting.");
-    // Example: networkManager->Shutdown();
+    networkManager.Stop();
   }
-  StopHosting(); // Ensure host is stopped if it was hosting
+  isHost = false; // Reset host flag
   currentNetworkState = NetworkState::DISCONNECTED;
   currentIpAddress = "";
   remotePlayerName = "RemotePlayer"; // Reset to default
 }
 
-// Placeholder for sending game events over the network
+// Send game events over the network
 void Game::SendGameEvent(const std::string &eventData) {
   if (currentNetworkState == NetworkState::CONNECTED ||
       currentNetworkState == NetworkState::IN_GAME) {
-    TraceLog(LOG_INFO, "NETWORK: Sending event: %s", eventData.c_str());
-    // Example: networkManager->Send(eventData);
+    // TraceLog(LOG_INFO, "NETWORK: Sending event: %s", eventData.c_str());
+    networkManager.SendMessageStr(eventData);
   }
 }
 
-// Placeholder for processing incoming network events
+// Process incoming network events
 void Game::ProcessNetworkEvents() {
-  // In a real application, this would poll the network for incoming messages
-  // and process them, updating game state for the remote player.
-  // For this demo, we can simulate some events or simply acknowledge the
-  // network connection state.
+  // Check connection status first
+  if ((currentNetworkState == NetworkState::HOSTING_WAITING ||
+       currentNetworkState == NetworkState::CONNECTED ||
+       currentNetworkState == NetworkState::IN_GAME) &&
+      !networkManager.IsConnected()) {
 
-  // Example: std::vector<std::string> events = networkManager->Receive();
-  // for (const std::string& event : events) {
-  //   if (event == "remote_player_move_left") logicPlayer2.Move(-1, 0);
-  //   else if (event == "remote_player_rotate") logicPlayer2.Rotate();
-  //   // ... handle other events like piece spawn, line clear, game over
-  // }
+    // If we were supposed to be connected but manager says no, we lost
+    // connection. But for HOSTING_WAITING, it might just mean no client yet
+    // (which is IsConnected=false). If we are HOSTING_WAITING, IsConnected
+    // becomes true when client joins.
+    if (currentNetworkState == NetworkState::HOSTING_WAITING &&
+        networkManager.IsConnected()) {
+      // Client just joined!
+      currentNetworkState = NetworkState::CONNECTED;
+      TraceLog(LOG_INFO, "NETWORK: Client joined!");
+    } else if (currentNetworkState != NetworkState::HOSTING_WAITING &&
+               !networkManager.IsConnected()) {
+      TraceLog(LOG_INFO, "NETWORK: Lost connection.");
+      Disconnect();
+      currentGameState = GameState::MODE_SELECTION; // Kick back to menu
+      return;
+    }
+  }
 
-  // Simulate remote player name exchange if connected
-  if (currentNetworkState == NetworkState::CONNECTED && !isHost) {
-    // Client would receive host's name
-    // remotePlayerName = received_host_name;
-  } else if (currentNetworkState == NetworkState::CONNECTED && isHost) {
-    // Host would receive client's name
-    // remotePlayerName = received_client_name;
+  // Poll messages
+  std::vector<std::string> messages = networkManager.PollMessages();
+  for (const std::string &msg : messages) {
+    NetworkMessage netMsg = NetworkProtocol::Parse(msg);
+
+    switch (netMsg.type) {
+    case NetworkMsgType::GAME_START:
+      // Both seed and name might be in payload, assumed parsed into struct
+      // partially or we parse manually logic here For simplicity, let's assume
+      // Parse extracts seed to intParam1. We need to parse name manually from
+      // payload if needed, or update Parse. Let's rely on Parse for now
+      // roughly.
+      if (currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+        int seed = netMsg.intParam1;
+        // Reset P1 (Self) and P2 (Remote/Host) with same seed
+        TraceLog(LOG_INFO, "NETWORK: Received GAME_START with seed %d", seed);
+
+        // Reset Logic
+        logicPlayer1.Reset(seed);
+        logicPlayer2.Reset(seed);
+
+        // Reset Timers
+        gravityTimerP1 = 0.0f;
+        dasTimerP1 = 0.0f;
+        lastMoveDirP1 = 0;
+        waitForDownReleaseP1 = false;
+
+        gravityTimerP2 = 0.0f;
+        dasTimerP2 = 0.0f;
+        lastMoveDirP2 = 0; // P2 is remote
+
+        // Extract Host Name if possible (Simple parsing from string for now if
+        // struct inadequate) "GAME_START_HOST;SEED:123;P1_NAME:Bob"
+        std::string prefix = "P1_NAME:";
+        size_t pos = msg.find(prefix);
+        if (pos != std::string::npos) {
+          remotePlayerName = msg.substr(pos + prefix.length());
+        }
+
+        currentNetworkState = NetworkState::IN_GAME;
+        currentGameState = GameState::PLAYING;
+      }
+      break;
+
+    case NetworkMsgType::MOVE_LR:
+      if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+          currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+        logicPlayer2.Move(netMsg.intParam1, 0);
+      }
+      break;
+
+    case NetworkMsgType::ROTATE:
+      if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+          currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+        logicPlayer2.Rotate();
+      }
+      break;
+
+    case NetworkMsgType::MOVE_DOWN:
+      if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+          currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+        logicPlayer2.Move(0, 1);
+      }
+      break;
+
+    // Handle other messages...
+    default:
+      // Check for CLIENT_READY manually if not in enum
+      if (msg.find("CLIENT_READY") == 0) {
+        if (isHost) {
+          TraceLog(LOG_INFO, "NETWORK: Client is ready.");
+          // Parse Client Name
+          std::string prefix = "P2_NAME:";
+          size_t pos = msg.find(prefix);
+          if (pos != std::string::npos) {
+            remotePlayerName = msg.substr(pos + prefix.length());
+          }
+          // Host allows starting game now (Button active check is in
+          // Draw/Update)
+        }
+      }
+      break;
+    }
   }
 }
 
