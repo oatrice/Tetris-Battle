@@ -762,16 +762,23 @@ void Game::Draw() {
     // Always draw touch controls in these states
     DrawControls();
 
+    // Determine P1 Board Position
+    int p1BoardX = BOARD_OFFSET_X_P1;
+    if (currentMode == GameMode::SINGLE_PLAYER) {
+      // Center the board
+      p1BoardX = (screenWidth - BOARD_WIDTH_PX) / 2;
+    }
+
     // Draw Player 1's board and UI
-    DrawPlayerBoard(logicPlayer1, BOARD_OFFSET_X_P1, BOARD_OFFSET_Y);
-    int p1_ui_x = BOARD_OFFSET_X_P1 + BOARD_WIDTH_PX + 20;
+    DrawPlayerBoard(logicPlayer1, p1BoardX, BOARD_OFFSET_Y);
+    int p1_ui_x = p1BoardX + BOARD_WIDTH_PX + 20;
     int p1_ui_y = BOARD_OFFSET_Y;
     DrawPlayerNextPiece(logicPlayer1, p1_ui_x, p1_ui_y);
     p1_ui_y += (6 * cellSize) + 20; // Below next piece preview
     DrawPlayerScore(logicPlayer1, p1_ui_x, p1_ui_y, playerName);
 
     if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
-      // Draw Player 2's board and UI
+      // Draw Player 2's board and UI (Always fixed to the right for now)
       DrawPlayerBoard(logicPlayer2, BOARD_OFFSET_X_P2, BOARD_OFFSET_Y);
       int p2_ui_x = BOARD_OFFSET_X_P2 + BOARD_WIDTH_PX + 20;
       int p2_ui_y = BOARD_OFFSET_Y;
@@ -783,8 +790,8 @@ void Game::Draw() {
     // --- Overlays for PAUSED and GAME_OVER ---
     if (currentGameState == GameState::PAUSED) {
       // Draw semi-transparent black overlay over the board areas
-      DrawRectangle(BOARD_OFFSET_X_P1, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
-                    BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
+      DrawRectangle(p1BoardX, BOARD_OFFSET_Y, BOARD_WIDTH_PX, BOARD_HEIGHT_PX,
+                    Fade(BLACK, 0.7f));
       if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
         DrawRectangle(BOARD_OFFSET_X_P2, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
                       BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
@@ -794,14 +801,14 @@ void Game::Draw() {
       const char *pausedText = "PAUSED";
       int textFontSizePaused = 50;
       int textWidthPaused = MeasureText(pausedText, textFontSizePaused);
-      int textX = BOARD_OFFSET_X_P1 + (BOARD_WIDTH_PX - textWidthPaused) / 2;
+      int textX = p1BoardX + (BOARD_WIDTH_PX - textWidthPaused) / 2;
       int textY = BOARD_OFFSET_Y + (BOARD_HEIGHT_PX / 2) - textFontSizePaused;
 
       DrawText(pausedText, textX, textY, textFontSizePaused, WHITE);
     } else if (currentGameState == GameState::GAME_OVER) {
       // Draw semi-transparent black overlay over the board areas
-      DrawRectangle(BOARD_OFFSET_X_P1, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
-                    BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
+      DrawRectangle(p1BoardX, BOARD_OFFSET_Y, BOARD_WIDTH_PX, BOARD_HEIGHT_PX,
+                    Fade(BLACK, 0.7f));
       if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
         DrawRectangle(BOARD_OFFSET_X_P2, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
                       BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
@@ -811,7 +818,7 @@ void Game::Draw() {
       const char *gameOverText = "GAME OVER";
       int textFontSizeGameOver = 50;
       int textWidthGameOver = MeasureText(gameOverText, textFontSizeGameOver);
-      int textX = BOARD_OFFSET_X_P1 + (BOARD_WIDTH_PX - textWidthGameOver) / 2;
+      int textX = p1BoardX + (BOARD_WIDTH_PX - textWidthGameOver) / 2;
       int textY = BOARD_OFFSET_Y + (BOARD_HEIGHT_PX / 2) -
                   textFontSizeGameOver; // Slightly above center
 
