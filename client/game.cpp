@@ -132,7 +132,11 @@ void Game::SavePlayerName() {
 }
 
 void Game::ResetGame() {
-  logicPlayer1.Reset(); // Resets board, score, and spawns a new piece
+  // Generate a shared seed to ensure both players get the same piece sequence
+  // (Fixes Issue #27)
+  int seed = GetRandomValue(0, 2147483647);
+
+  logicPlayer1.Reset(seed); // Resets board, score, and spawns a new piece
   gravityTimerP1 = 0.0f;
   dasTimerP1 = 0.0f;
   lastMoveDirP1 = 0;
@@ -141,7 +145,7 @@ void Game::ResetGame() {
   waitForDownReleaseP1 = false;
 
   if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
-    logicPlayer2.Reset();
+    logicPlayer2.Reset(seed); // Use the same seed for Player 2
     gravityTimerP2 = 0.0f;
     dasTimerP2 = 0.0f;
     lastMoveDirP2 = 0;
