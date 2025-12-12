@@ -1,11 +1,16 @@
 #include "game.h"
 #include <algorithm> // Required for std::max
+#include <vector>    // Required for std::vector in max initialization
+#include "raylib.h"  // For LoadFileText, SaveFileText
 
 Game::Game() {
   // Initialize game state to TITLE_SCREEN to prompt for player name
   currentGameState = GameState::TITLE_SCREEN;
-  playerNameInputBuffer = "";
-  playerName = "Player"; // Default name in case user just presses enter
+  
+  // Load player name at startup
+  LoadPlayerName();
+  // Initialize input buffer with the loaded name (or default "Player")
+  playerNameInputBuffer = playerName; 
 
   // Init Controls (Mobile UI)
   int btnY = 620;
@@ -33,7 +38,7 @@ Game::Game() {
              "v",
              false};
 
-  // Initialize Restart and Pause Buttons (UI Area, right of board)
+  // Initialize Restart, Pause, and Change Name Buttons (UI Area, right of board)
   int uiAreaX = offsetX + (10 * cellSize) + 20; // X position for UI elements
   int previewBoxHeight = 6 * cellSize;
   int currentY = offsetY + previewBoxHeight + 20; // Below Next Piece preview
@@ -42,9 +47,10 @@ Game::Game() {
   int btnTextFontSize = 30; // Matches the font size used in Draw()
   int restartTextWidth = MeasureText("Restart", btnTextFontSize);
   int pauseTextWidth = MeasureText("Pause", btnTextFontSize);
+  int changeNameTextWidth = MeasureText("Change Name", btnTextFontSize);
   
   // Choose the maximum width and add padding (e.g., 20px on each side)
-  int btnWidth = std::max(restartTextWidth, pauseTextWidth) + 40; 
+  int btnWidth = std::max({restartTextWidth, pauseTextWidth, changeNameTextWidth}) + 40; 
   
   int btnHeight = 40;
   int btnVerticalGap = 10;
@@ -62,9 +68,37 @@ Game::Game() {
               GOLD, // Color: GOLD as requested
               "Pause",
               false};
+  
+  currentY += btnHeight + btnVerticalGap; // Move Y down for next button
+
+  btnChangeName = {{(float)uiAreaX, (float)currentY, (float)btnWidth,
+                    (float)btnHeight},
+                   PURPLE, // A distinct color for Change Name
+                   "Change Name",
+                   false};
 }
 
 Game::~Game() {}
+
+void Game::LoadPlayerName() {
+    char* fileText = LoadFileText(playerNameFilename);
+    if (fileText != nullptr) {
+        playerName = std::string(fileText);
+        UnloadFileText(fileText);
+        // Trim whitespace/newlines if any
+        playerName.erase(playerName.find_last_not_of(" \n\r\t") + 1);
+        if (playerName.empty()) {
+            playerName = "Player"; // Default if file was empty or only contained whitespace
+        }
+    } else {
+        // File not found or couldn't be loaded, set default
+        playerName = "Player";
+    }
+}
+
+void Game::SavePlayerName() {
+    SaveFileText(playerNameFilename, playerName.c_str());
+}
 
 void Game::ResetGame() {
   logic.Reset(); // Resets board, score, and spawns a new piece
@@ -76,6 +110,7 @@ void Game::ResetGame() {
   waitForDownRelease = false;
   btnRestart.active = false; // Ensure button is not active after reset
   btnPause.active = false;   // Ensure pause button is not active
+  btnChangeName.active = false; // Ensure change name button is not active after reset
 }
 
 void Game::HandleInput() {
@@ -112,6 +147,28 @@ void Game::HandleInput() {
       return; // Game reset, no further input processing this frame
     }
   }
+  
+  // --- Global Input for Change Name Button ---
+  // Only allow changing name if not already on the title screen
+  if (currentGameState != GameState::TITLE_SCREEN) {
+    btnChangeName.active = false; // Reset visual state for this frame
+    if (CheckCollisionPointRec(mouse, btnChangeName.rect)) {
+        btnChangeName.active = true;
+        if (mouseClicked) {
+            // Transition to TITLE_SCREEN to change name
+            currentGameState = GameState::TITLE_SCREEN;
+            playerNameInputBuffer = playerName; // Pre-fill with current name
+            return; // State changed, no further input processing this frame
+        }
+    }
+    // Keyboard input for Change Name (e.g., 'N' key)
+    if (IsKeyPressed(KEY_N)) {
+        currentGameState = GameState::TITLE_SCREEN;
+        playerNameInputBuffer = playerName; // Pre-fill with current name
+        return; // State changed, no further input processing this frame
+    }
+  }
+
 
   // --- State-specific input handling ---
   switch (currentGameState) {
@@ -138,6 +195,7 @@ void Game::HandleInput() {
       } else {
         playerName = "Player"; // Default if no name entered
       }
+      SavePlayerName(); // Save the new/updated player name
       ResetGame();                  // Initialize game for playing state
       currentGameState = GameState::PLAYING; // Transition to playing
     }
@@ -455,9 +513,10 @@ void Game::Draw() {
     }
   }
 
-  // --- Draw Restart button always (global interaction) ---
+  // --- Draw global buttons (Restart, Pause, Change Name) ---
   int btnTextFontSize = 30;
 
+  // Draw Restart button
   DrawRectangleRec(btnRestart.rect, btnRestart.active
                                         ? Fade(btnRestart.color, 0.5f)
                                         : btnRestart.color);
@@ -469,7 +528,7 @@ void Game::Draw() {
                (btnRestart.rect.height / 2 - (btnTextFontSize / 2)),
            btnTextFontSize, WHITE);
 
-  // --- Draw Pause button (only if game is playing or paused) ---
+  // Draw Pause button (only if game is playing or paused)
   if (currentGameState == GameState::PLAYING ||
       currentGameState == GameState::PAUSED) {
     DrawRectangleRec(btnPause.rect, btnPause.active
@@ -484,6 +543,20 @@ void Game::Draw() {
                  (btnPause.rect.height / 2 - (btnTextFontSize / 2)),
              btnTextFontSize, WHITE);
   }
+
+  // Draw Change Name button (only if NOT in TITLE_SCREEN)
+  if (currentGameState != GameState::TITLE_SCREEN) {
+      DrawRectangleRec(btnChangeName.rect, btnChangeName.active
+                                          ? Fade(btnChangeName.color, 0.5f)
+                                          : btnChangeName.color);
+      DrawRectangleLinesEx(btnChangeName.rect, 2, DARKGRAY);
+      btnTextWidth = MeasureText(btnChangeName.text.c_str(), btnTextFontSize);
+      DrawText(btnChangeName.text.c_str(),
+               btnChangeName.rect.x + (btnChangeName.rect.width / 2 - btnTextWidth / 2),
+               btnChangeName.rect.y + (btnChangeName.rect.height / 2 - (btnTextFontSize / 2)),
+               btnTextFontSize, WHITE);
+  }
+
 
   // --- Draw State-specific overlays ---
   switch (currentGameState) {
@@ -502,7 +575,7 @@ void Game::Draw() {
              titleFontSize, GOLD);
 
     // Prompt for name
-    const char *promptText = "ENTER YOUR NAME:";
+    const char *promptText = (playerNameInputBuffer.empty() && playerName == "Player") ? "ENTER YOUR NAME:" : "EDIT YOUR NAME:";
     int promptFontSize = 30;
     int promptWidth = MeasureText(promptText, promptFontSize);
     DrawText(promptText, (screenWidth - promptWidth) / 2,
