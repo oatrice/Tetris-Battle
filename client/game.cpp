@@ -1,11 +1,16 @@
 #include "game.h"
+#include "raylib.h"  // For LoadFileText, SaveFileText
 #include <algorithm> // Required for std::max
+#include <vector>    // Required for std::vector in max initialization
 
 Game::Game() {
   // Initialize game state to TITLE_SCREEN to prompt for player name
   currentGameState = GameState::TITLE_SCREEN;
-  playerNameInputBuffer = "";
-  playerName = "Player"; // Default name in case user just presses enter
+
+  // Load player name at startup
+  LoadPlayerName();
+  // Initialize input buffer with the loaded name (or default "Player")
+  playerNameInputBuffer = playerName;
 
   // Init Controls (Mobile UI)
   int btnY = 620;
@@ -33,7 +38,8 @@ Game::Game() {
              "v",
              false};
 
-  // Initialize Restart and Pause Buttons (UI Area, right of board)
+  // Initialize Restart, Pause, and Change Name Buttons (UI Area, right of
+  // board)
   int uiAreaX = offsetX + (10 * cellSize) + 20; // X position for UI elements
   int previewBoxHeight = 6 * cellSize;
   int currentY = offsetY + previewBoxHeight + 20; // Below Next Piece preview
@@ -42,29 +48,60 @@ Game::Game() {
   int btnTextFontSize = 30; // Matches the font size used in Draw()
   int restartTextWidth = MeasureText("Restart", btnTextFontSize);
   int pauseTextWidth = MeasureText("Pause", btnTextFontSize);
-  
+  int changeNameTextWidth = MeasureText("Change Name", btnTextFontSize);
+
   // Choose the maximum width and add padding (e.g., 20px on each side)
-  int btnWidth = std::max(restartTextWidth, pauseTextWidth) + 40; 
-  
+  int btnWidth =
+      std::max({restartTextWidth, pauseTextWidth, changeNameTextWidth}) + 40;
+
   int btnHeight = 40;
   int btnVerticalGap = 10;
 
-  btnRestart = {{(float)uiAreaX, (float)currentY, (float)btnWidth,
-                 (float)btnHeight},
-                DARKBLUE,
-                "Restart",
-                false};
+  btnRestart = {
+      {(float)uiAreaX, (float)currentY, (float)btnWidth, (float)btnHeight},
+      DARKBLUE,
+      "Restart",
+      false};
 
   currentY += btnHeight + btnVerticalGap; // Move Y down for next button
 
-  btnPause = {{(float)uiAreaX, (float)currentY, (float)btnWidth,
-               (float)btnHeight},
-              GOLD, // Color: GOLD as requested
-              "Pause",
-              false};
+  btnPause = {
+      {(float)uiAreaX, (float)currentY, (float)btnWidth, (float)btnHeight},
+      GOLD, // Color: GOLD as requested
+      "Pause",
+      false};
+
+  currentY += btnHeight + btnVerticalGap; // Move Y down for next button
+
+  btnChangeName = {
+      {(float)uiAreaX, (float)currentY, (float)btnWidth, (float)btnHeight},
+      PURPLE, // A distinct color for Change Name
+      "Change Name",
+      false};
 }
 
 Game::~Game() {}
+
+void Game::LoadPlayerName() {
+  char *fileText = LoadFileText(playerNameFilename);
+  if (fileText != nullptr) {
+    playerName = std::string(fileText);
+    UnloadFileText(fileText);
+    // Trim whitespace/newlines if any
+    playerName.erase(playerName.find_last_not_of(" \n\r\t") + 1);
+    if (playerName.empty()) {
+      playerName =
+          "Player"; // Default if file was empty or only contained whitespace
+    }
+  } else {
+    // File not found or couldn't be loaded, set default
+    playerName = "Player";
+  }
+}
+
+void Game::SavePlayerName() {
+  SaveFileText(playerNameFilename, const_cast<char *>(playerName.c_str()));
+}
 
 void Game::ResetGame() {
   logic.Reset(); // Resets board, score, and spawns a new piece
@@ -76,6 +113,8 @@ void Game::ResetGame() {
   waitForDownRelease = false;
   btnRestart.active = false; // Ensure button is not active after reset
   btnPause.active = false;   // Ensure pause button is not active
+  btnChangeName.active =
+      false; // Ensure change name button is not active after reset
 }
 
 void Game::HandleInput() {
@@ -98,7 +137,8 @@ void Game::HandleInput() {
     if (mouseClicked) {
       if (currentGameState != GameState::TITLE_SCREEN) {
         ResetGame();
-        currentGameState = GameState::PLAYING; // After reset, always go to playing
+        currentGameState =
+            GameState::PLAYING; // After reset, always go to playing
         return; // Game reset, no further input processing this frame
       }
     }
@@ -110,6 +150,27 @@ void Game::HandleInput() {
       ResetGame();
       currentGameState = GameState::PLAYING;
       return; // Game reset, no further input processing this frame
+    }
+  }
+
+  // --- Global Input for Change Name Button ---
+  // Only allow changing name if not already on the title screen
+  if (currentGameState != GameState::TITLE_SCREEN) {
+    btnChangeName.active = false; // Reset visual state for this frame
+    if (CheckCollisionPointRec(mouse, btnChangeName.rect)) {
+      btnChangeName.active = true;
+      if (mouseClicked) {
+        // Transition to TITLE_SCREEN to change name
+        currentGameState = GameState::TITLE_SCREEN;
+        playerNameInputBuffer = playerName; // Pre-fill with current name
+        return; // State changed, no further input processing this frame
+      }
+    }
+    // Keyboard input for Change Name (e.g., 'N' key)
+    if (IsKeyPressed(KEY_N)) {
+      currentGameState = GameState::TITLE_SCREEN;
+      playerNameInputBuffer = playerName; // Pre-fill with current name
+      return; // State changed, no further input processing this frame
     }
   }
 
@@ -138,7 +199,8 @@ void Game::HandleInput() {
       } else {
         playerName = "Player"; // Default if no name entered
       }
-      ResetGame();                  // Initialize game for playing state
+      SavePlayerName(); // Save the new/updated player name
+      ResetGame();      // Initialize game for playing state
       currentGameState = GameState::PLAYING; // Transition to playing
     }
     break;
@@ -372,16 +434,20 @@ void Game::DrawNextPiece() {
     int piecePixelWidth = pieceWidthBlocks * cellSize;
     int piecePixelHeight = pieceHeightBlocks * cellSize;
 
-    // 3. Calculate the top-left corner of the piece's bounding box within the preview frame
-    // This positions the entire piece's visual bounding box centered within the preview box.
+    // 3. Calculate the top-left corner of the piece's bounding box within the
+    // preview frame This positions the entire piece's visual bounding box
+    // centered within the preview box.
     int targetPieceStartX = previewX + (previewSize - piecePixelWidth) / 2;
     int targetPieceStartY = previewY + (previewSize - piecePixelHeight) / 2;
 
-    // 4. Calculate the effective "origin" (drawOriginX, drawOriginY) for the piece's internal block coordinates (bx, by)
-    // The piece's blocks are drawn at (drawOriginX + bx * cellSize, drawOriginY + by * cellSize).
-    // To align the piece's minimum block (minBx, minBy) with targetPieceStartX, targetPieceStartY:
-    // drawOriginX + minBx * cellSize = targetPieceStartX  =>  drawOriginX = targetPieceStartX - minBx * cellSize
-    // drawOriginY + minBy * cellSize = targetPieceStartY  =>  drawOriginY = targetPieceStartY - minBy * cellSize
+    // 4. Calculate the effective "origin" (drawOriginX, drawOriginY) for the
+    // piece's internal block coordinates (bx, by) The piece's blocks are drawn
+    // at (drawOriginX + bx * cellSize, drawOriginY + by * cellSize). To align
+    // the piece's minimum block (minBx, minBy) with targetPieceStartX,
+    // targetPieceStartY: drawOriginX + minBx * cellSize = targetPieceStartX  =>
+    // drawOriginX = targetPieceStartX - minBx * cellSize drawOriginY + minBy *
+    // cellSize = targetPieceStartY  =>  drawOriginY = targetPieceStartY - minBy
+    // * cellSize
     int drawOriginX = targetPieceStartX - minBx * cellSize;
     int drawOriginY = targetPieceStartY - minBy * cellSize;
 
@@ -450,14 +516,14 @@ void Game::Draw() {
     DrawText(TextFormat("SCORE: %d", logic.score), 50, 50, 20, WHITE);
     // Display player name
     if (!playerName.empty()) {
-      DrawText(TextFormat("PLAYER: %s", playerName.c_str()), 50, 80, 20,
-               WHITE);
+      DrawText(TextFormat("PLAYER: %s", playerName.c_str()), 50, 80, 20, WHITE);
     }
   }
 
-  // --- Draw Restart button always (global interaction) ---
+  // --- Draw global buttons (Restart, Pause, Change Name) ---
   int btnTextFontSize = 30;
 
+  // Draw Restart button
   DrawRectangleRec(btnRestart.rect, btnRestart.active
                                         ? Fade(btnRestart.color, 0.5f)
                                         : btnRestart.color);
@@ -469,12 +535,11 @@ void Game::Draw() {
                (btnRestart.rect.height / 2 - (btnTextFontSize / 2)),
            btnTextFontSize, WHITE);
 
-  // --- Draw Pause button (only if game is playing or paused) ---
+  // Draw Pause button (only if game is playing or paused)
   if (currentGameState == GameState::PLAYING ||
       currentGameState == GameState::PAUSED) {
-    DrawRectangleRec(btnPause.rect, btnPause.active
-                                        ? Fade(btnPause.color, 0.5f)
-                                        : btnPause.color);
+    DrawRectangleRec(btnPause.rect, btnPause.active ? Fade(btnPause.color, 0.5f)
+                                                    : btnPause.color);
     DrawRectangleLinesEx(btnPause.rect, 2, DARKGRAY);
     btnTextWidth =
         MeasureText(btnPause.text.c_str(), btnTextFontSize); // Recalculate
@@ -482,6 +547,21 @@ void Game::Draw() {
              btnPause.rect.x + (btnPause.rect.width / 2 - btnTextWidth / 2),
              btnPause.rect.y +
                  (btnPause.rect.height / 2 - (btnTextFontSize / 2)),
+             btnTextFontSize, WHITE);
+  }
+
+  // Draw Change Name button (only if NOT in TITLE_SCREEN)
+  if (currentGameState != GameState::TITLE_SCREEN) {
+    DrawRectangleRec(btnChangeName.rect, btnChangeName.active
+                                             ? Fade(btnChangeName.color, 0.5f)
+                                             : btnChangeName.color);
+    DrawRectangleLinesEx(btnChangeName.rect, 2, DARKGRAY);
+    btnTextWidth = MeasureText(btnChangeName.text.c_str(), btnTextFontSize);
+    DrawText(btnChangeName.text.c_str(),
+             btnChangeName.rect.x +
+                 (btnChangeName.rect.width / 2 - btnTextWidth / 2),
+             btnChangeName.rect.y +
+                 (btnChangeName.rect.height / 2 - (btnTextFontSize / 2)),
              btnTextFontSize, WHITE);
   }
 
@@ -502,11 +582,14 @@ void Game::Draw() {
              titleFontSize, GOLD);
 
     // Prompt for name
-    const char *promptText = "ENTER YOUR NAME:";
+    const char *promptText =
+        (playerNameInputBuffer.empty() && playerName == "Player")
+            ? "ENTER YOUR NAME:"
+            : "EDIT YOUR NAME:";
     int promptFontSize = 30;
     int promptWidth = MeasureText(promptText, promptFontSize);
-    DrawText(promptText, (screenWidth - promptWidth) / 2,
-             screenHeight / 2 - 40, promptFontSize, WHITE);
+    DrawText(promptText, (screenWidth - promptWidth) / 2, screenHeight / 2 - 40,
+             promptFontSize, WHITE);
 
     // Draw input buffer and blinking cursor
     int inputFontSize = 30;
@@ -556,8 +639,8 @@ void Game::Draw() {
     int textFontSizeGameOver = 50;
     int textWidthGameOver = MeasureText(gameOverText, textFontSizeGameOver);
     int textX = offsetX + (boardWidth - textWidthGameOver) / 2;
-    int textY =
-        offsetY + (boardHeight / 2) - textFontSizeGameOver; // Slightly above center
+    int textY = offsetY + (boardHeight / 2) -
+                textFontSizeGameOver; // Slightly above center
 
     DrawText(gameOverText, textX, textY, textFontSizeGameOver, RED);
     break;

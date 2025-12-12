@@ -3,6 +3,7 @@
 #include "raylib.h"
 
 #include <string>
+#include <vector> // Required for std::vector in max initialization
 
 struct Button {
   Rectangle rect;
@@ -34,6 +35,7 @@ private:
   std::string
       playerNameInputBuffer; // Buffer for name input in TITLE_SCREEN
   const int maxNameLength = 10; // Maximum length for player name
+  const char* playerNameFilename = "player_name.txt"; // File to save/load player name
 
   // Cursor for name input
   float cursorBlinkTimer = 0.0f;
@@ -59,8 +61,13 @@ private:
   Button btnLeft, btnRight, btnRotate, btnDrop;
   Button btnRestart; // New: Restart button
   Button btnPause;   // Added: Pause button
+  Button btnChangeName; // New: Change Name button
 
   // Soft Drop Safety (Reset on Spawn)
   int lastSpawnCounter = 0;      // New: Tracks logic.spawnCounter to detect new piece spawns
   bool waitForDownRelease = false; // New: True if KEY_DOWN was held during spawn, requiring release
+
+  // Private methods for name persistence
+  void LoadPlayerName();
+  void SavePlayerName();
 };
