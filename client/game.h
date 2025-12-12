@@ -14,10 +14,6 @@ void SendGameEvent(const std::string &eventData); // e.g., "move_left", "rotate"
 void ProcessNetworkEvents();     // Called in Update() to read incoming messages
 std::string GetLocalIPAddress(); // Placeholder to get local IP
 
-NetworkManager networkManager; // The actual network handler
-}
-;
-
 #include <map> // For storing player names
 #include <string>
 #include <vector> // Required for std::vector in max initialization
@@ -181,4 +177,6 @@ private:
   SendGameEvent(const std::string &eventData); // e.g., "move_left", "rotate"
   void ProcessNetworkEvents(); // Called in Update() to read incoming messages
   std::string GetLocalIPAddress(); // Placeholder to get local IP
+
+  NetworkManager networkManager; // The actual network handler
 };

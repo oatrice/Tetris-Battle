@@ -80,28 +80,24 @@ void Game::SendGameEvent(const std::string &eventData) {
 
 // Process incoming network events
 void Game::ProcessNetworkEvents() {
-  // Check connection status first
-  if ((currentNetworkState == NetworkState::HOSTING_WAITING ||
-       currentNetworkState == NetworkState::CONNECTED ||
+  // Check for successful hosting connection
+  if (currentNetworkState == NetworkState::HOSTING_WAITING &&
+      networkManager.IsConnected()) {
+    currentNetworkState = NetworkState::CONNECTED;
+    TraceLog(LOG_INFO, "NETWORK: Client joined!");
+  }
+
+  // Check for unexpected disconnection (but ignore if we are just waiting for a
+  // host/client) If we THINK we are connected (CONNECTED or IN_GAME) but
+  // manager says NO, then we lost connection.
+  if ((currentNetworkState == NetworkState::CONNECTED ||
        currentNetworkState == NetworkState::IN_GAME) &&
       !networkManager.IsConnected()) {
 
-    // If we were supposed to be connected but manager says no, we lost
-    // connection. But for HOSTING_WAITING, it might just mean no client yet
-    // (which is IsConnected=false). If we are HOSTING_WAITING, IsConnected
-    // becomes true when client joins.
-    if (currentNetworkState == NetworkState::HOSTING_WAITING &&
-        networkManager.IsConnected()) {
-      // Client just joined!
-      currentNetworkState = NetworkState::CONNECTED;
-      TraceLog(LOG_INFO, "NETWORK: Client joined!");
-    } else if (currentNetworkState != NetworkState::HOSTING_WAITING &&
-               !networkManager.IsConnected()) {
-      TraceLog(LOG_INFO, "NETWORK: Lost connection.");
-      Disconnect();
-      currentGameState = GameState::MODE_SELECTION; // Kick back to menu
-      return;
-    }
+    TraceLog(LOG_INFO, "NETWORK: Lost connection.");
+    Disconnect();
+    currentGameState = GameState::MODE_SELECTION; // Kick back to menu
+    return;
   }
 
   // Poll messages
