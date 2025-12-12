@@ -42,7 +42,9 @@ Game::Game() {
 
   // Initialize Restart, Pause, and Change Name Buttons (UI Area, right of P2
   // board)
-  int currentY = BOARD_OFFSET_Y + 20; // Start below top of screen
+  // Start lower down to avoid overlapping with Next Piece (approx 180px) and
+  // Score info
+  int currentY = BOARD_OFFSET_Y + 320;
 
   // Calculate required button width based on text to prevent overflow
   int btnTextFontSize = 30; // Matches the font size used in Draw()
@@ -62,8 +64,11 @@ Game::Game() {
   int btnHeight = 40;
   int btnVerticalGap = 10;
 
+  // Calculate X position for right-aligned UI buttons
+  int uiButtonsX = screenWidth - btnWidth - 40;
+
   btnRestart = {
-      {(float)UI_AREA_X, (float)currentY, (float)btnWidth, (float)btnHeight},
+      {(float)uiButtonsX, (float)currentY, (float)btnWidth, (float)btnHeight},
       DARKBLUE,
       "Restart",
       false};
@@ -71,7 +76,7 @@ Game::Game() {
   currentY += btnHeight + btnVerticalGap; // Move Y down for next button
 
   btnPause = {
-      {(float)UI_AREA_X, (float)currentY, (float)btnWidth, (float)btnHeight},
+      {(float)uiButtonsX, (float)currentY, (float)btnWidth, (float)btnHeight},
       GOLD, // Color: GOLD as requested
       "Pause",
       false};
@@ -79,7 +84,7 @@ Game::Game() {
   currentY += btnHeight + btnVerticalGap; // Move Y down for next button
 
   btnChangeName = {
-      {(float)UI_AREA_X, (float)currentY, (float)btnWidth, (float)btnHeight},
+      {(float)uiButtonsX, (float)currentY, (float)btnWidth, (float)btnHeight},
       PURPLE, // A distinct color for Change Name
       "Change Name",
       false};
