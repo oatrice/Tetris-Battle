@@ -780,17 +780,17 @@ void Game::HandleInput() {
         }
         key = GetCharPressed();
       }
-      if (IsKeyPressed(KEY_BACKSPACE) || oskBackspace) {
-        if (!ipAddressInputBuffer.empty()) {
-          ipAddressInputBuffer.pop_back();
-        }
-      }
-
       // OSK Input for IP
       // Position OSK at bottom
       oskChar = CheckOSKInput(screenHeight - 250, true, oskEnter, oskBackspace);
       if (oskChar && (ipAddressInputBuffer.length() < maxIpLength)) {
         ipAddressInputBuffer += oskChar;
+      }
+
+      if (IsKeyPressed(KEY_BACKSPACE) || oskBackspace) {
+        if (!ipAddressInputBuffer.empty()) {
+          ipAddressInputBuffer.pop_back();
+        }
       }
 
       if (CheckCollisionPointRec(mouse, btnConnect.rect)) {
