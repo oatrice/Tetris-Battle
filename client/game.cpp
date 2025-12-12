@@ -6,17 +6,19 @@
 Game::Game() {
   // Initialize game state to TITLE_SCREEN to prompt for player name
   currentGameState = GameState::TITLE_SCREEN;
+  currentMode = GameMode::SINGLE_PLAYER; // Default to single player
 
   // Load player name at startup
   LoadPlayerName();
   // Initialize input buffer with the loaded name (or default "Player")
   playerNameInputBuffer = playerName;
 
-  // Init Controls (Mobile UI)
-  int btnY = 620;
+  // Init Controls (Mobile UI) - Keep them below the boards
+  int btnY = screenHeight - 80; // Place buttons near the bottom
   int btnSize = 80;
   int gap = 30;
-  int startX = (800 - (4 * btnSize + 3 * gap)) / 2;
+  // Center the touch controls relative to the screen width
+  int startX = (screenWidth - (4 * btnSize + 3 * gap)) / 2;
 
   btnLeft = {{(float)startX, (float)btnY, (float)btnSize, (float)btnSize},
              BLUE,
@@ -27,8 +29,8 @@ Game::Game() {
               BLUE,
               ">",
               false};
-  btnRotate = {{(float)startX + 2 * (btnSize + gap), (float)btnY,
-                (float)btnSize, (float)btnSize},
+  btnRotate = {{(float)startX + 2 * (btnSize + gap), (float)btnSize,
+                (float)btnSize, (float)btnSize}, // Adjusted Y for touch rotate
                GREEN,
                "^",
                false};
@@ -38,27 +40,28 @@ Game::Game() {
              "v",
              false};
 
-  // Initialize Restart, Pause, and Change Name Buttons (UI Area, right of
+  // Initialize Restart, Pause, and Change Name Buttons (UI Area, right of P2
   // board)
-  int uiAreaX = offsetX + (10 * cellSize) + 20; // X position for UI elements
-  int previewBoxHeight = 6 * cellSize;
-  int currentY = offsetY + previewBoxHeight + 20; // Below Next Piece preview
+  int currentY = BOARD_OFFSET_Y + 20; // Start below top of screen
 
   // Calculate required button width based on text to prevent overflow
   int btnTextFontSize = 30; // Matches the font size used in Draw()
   int restartTextWidth = MeasureText("Restart", btnTextFontSize);
   int pauseTextWidth = MeasureText("Pause", btnTextFontSize);
   int changeNameTextWidth = MeasureText("Change Name", btnTextFontSize);
+  int singlePlayerTextWidth = MeasureText("1 Player", btnTextFontSize);
+  int twoPlayerLocalTextWidth = MeasureText("2 Player (Local)", btnTextFontSize);
 
-  // Choose the maximum width and add padding (e.g., 20px on each side)
-  int btnWidth =
-      std::max({restartTextWidth, pauseTextWidth, changeNameTextWidth}) + 40;
+  // Choose the maximum width and add padding (e.g., 40px total padding)
+  int btnWidth = std::max({restartTextWidth, pauseTextWidth,
+                           changeNameTextWidth, singlePlayerTextWidth,
+                           twoPlayerLocalTextWidth}) + 40;
 
   int btnHeight = 40;
   int btnVerticalGap = 10;
 
   btnRestart = {
-      {(float)uiAreaX, (float)currentY, (float)btnWidth, (float)btnHeight},
+      {(float)UI_AREA_X, (float)currentY, (float)btnWidth, (float)btnHeight},
       DARKBLUE,
       "Restart",
       false};
@@ -66,7 +69,7 @@ Game::Game() {
   currentY += btnHeight + btnVerticalGap; // Move Y down for next button
 
   btnPause = {
-      {(float)uiAreaX, (float)currentY, (float)btnWidth, (float)btnHeight},
+      {(float)UI_AREA_X, (float)currentY, (float)btnWidth, (float)btnHeight},
       GOLD, // Color: GOLD as requested
       "Pause",
       false};
@@ -74,10 +77,28 @@ Game::Game() {
   currentY += btnHeight + btnVerticalGap; // Move Y down for next button
 
   btnChangeName = {
-      {(float)uiAreaX, (float)currentY, (float)btnWidth, (float)btnHeight},
+      {(float)UI_AREA_X, (float)currentY, (float)btnWidth, (float)btnHeight},
       PURPLE, // A distinct color for Change Name
       "Change Name",
       false};
+
+  // Initialize Mode Selection Buttons (centered on screen initially)
+  int modeBtnX = (screenWidth - btnWidth) / 2;
+  int modeBtnY = screenHeight / 2 - btnHeight - btnVerticalGap;
+
+  btnSinglePlayer = {{(float)modeBtnX, (float)modeBtnY, (float)btnWidth,
+                       (float)btnHeight},
+                     SKYBLUE,
+                     "1 Player",
+                     false};
+
+  modeBtnY += btnHeight + btnVerticalGap;
+
+  btnTwoPlayerLocal = {{(float)modeBtnX, (float)modeBtnY, (float)btnWidth,
+                         (float)btnHeight},
+                       LIME,
+                       "2 Player (Local)",
+                       false};
 }
 
 Game::~Game() {}
@@ -91,11 +112,11 @@ void Game::LoadPlayerName() {
     playerName.erase(playerName.find_last_not_of(" \n\r\t") + 1);
     if (playerName.empty()) {
       playerName =
-          "Player"; // Default if file was empty or only contained whitespace
+          "Player1"; // Default if file was empty or only contained whitespace
     }
   } else {
     // File not found or couldn't be loaded, set default
-    playerName = "Player";
+    playerName = "Player1";
   }
 }
 
@@ -104,17 +125,129 @@ void Game::SavePlayerName() {
 }
 
 void Game::ResetGame() {
-  logic.Reset(); // Resets board, score, and spawns a new piece
-  gravityTimer = 0.0f;
-  dasTimer = 0.0f;
-  lastMoveDir = 0;
-  lastSpawnCounter =
-      logic.spawnCounter; // Sync after logic.Reset() spawns a new piece
-  waitForDownRelease = false;
+  logicPlayer1.Reset(); // Resets board, score, and spawns a new piece
+  gravityTimerP1 = 0.0f;
+  dasTimerP1 = 0.0f;
+  lastMoveDirP1 = 0;
+  lastSpawnCounterP1 =
+      logicPlayer1.spawnCounter; // Sync after logic.Reset() spawns a new piece
+  waitForDownReleaseP1 = false;
+
+  if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+    logicPlayer2.Reset();
+    gravityTimerP2 = 0.0f;
+    dasTimerP2 = 0.0f;
+    lastMoveDirP2 = 0;
+    lastSpawnCounterP2 = logicPlayer2.spawnCounter;
+    waitForDownReleaseP2 = false;
+  }
+
   btnRestart.active = false; // Ensure button is not active after reset
   btnPause.active = false;   // Ensure pause button is not active
   btnChangeName.active =
       false; // Ensure change name button is not active after reset
+}
+
+// Helper function to handle input for a single player
+void Game::HandlePlayerInput(Logic &logic, int playerIndex, float dasDelay,
+                             float dasRate, float &dasTimer, int &lastMoveDir,
+                             int &lastSpawnCounter, bool &waitForDownRelease) {
+  // --- Soft Drop Safety Logic ---
+  // 1. Detect if a new piece has spawned since the last frame
+  if (logic.spawnCounter != lastSpawnCounter) {
+    lastSpawnCounter = logic.spawnCounter;
+    // If KEY_DOWN is currently held, activate the safety flag
+    if ((playerIndex == 1 && IsKeyDown(KEY_DOWN)) ||
+        (playerIndex == 2 && IsKeyDown(KEY_S))) {
+      waitForDownRelease = true;
+    }
+  }
+  // 2. If the safety flag is active, check if KEY_DOWN has been released
+  if (!((playerIndex == 1 && IsKeyDown(KEY_DOWN)) ||
+        (playerIndex == 2 && IsKeyDown(KEY_S)))) {
+    waitForDownRelease = false;
+  }
+  // --- End Soft Drop Safety Logic ---
+
+  // --- Keyboard Delayed Auto Shift (DAS) for LEFT/RIGHT movement ---
+  int currentKeyboardMoveDir = 0;
+  if (playerIndex == 1) { // Player 1 uses Arrow keys
+    if (IsKeyReleased(KEY_LEFT) && lastMoveDir == -1) {
+      dasTimer = 0.0f;
+      lastMoveDir = 0;
+    }
+    if (IsKeyReleased(KEY_RIGHT) && lastMoveDir == 1) {
+      dasTimer = 0.0f;
+      lastMoveDir = 0;
+    }
+
+    if (IsKeyDown(KEY_LEFT)) {
+      currentKeyboardMoveDir = -1;
+    }
+    if (IsKeyDown(KEY_RIGHT)) {
+      currentKeyboardMoveDir = 1;
+    }
+  } else { // Player 2 uses WASD
+    if (IsKeyReleased(KEY_A) && lastMoveDir == -1) {
+      dasTimer = 0.0f;
+      lastMoveDir = 0;
+    }
+    if (IsKeyReleased(KEY_D) && lastMoveDir == 1) {
+      dasTimer = 0.0f;
+      lastMoveDir = 0;
+    }
+
+    if (IsKeyDown(KEY_A)) {
+      currentKeyboardMoveDir = -1;
+    }
+    if (IsKeyDown(KEY_D)) {
+      currentKeyboardMoveDir = 1;
+    }
+  }
+
+  // Check for initial press or change in active DAS direction
+  if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir != lastMoveDir) {
+    logic.Move(currentKeyboardMoveDir, 0); // Initial move
+    dasTimer = 0.0f;                       // Reset timer
+    lastMoveDir = currentKeyboardMoveDir;
+  }
+  // If the same key is held down (DAS repeat)
+  else if (currentKeyboardMoveDir != 0 &&
+           currentKeyboardMoveDir == lastMoveDir) {
+    dasTimer += GetFrameTime();
+    while (dasTimer >= dasDelay) {
+      logic.Move(lastMoveDir, 0);
+      dasTimer -= dasRate;
+    }
+  }
+  // If no relevant keyboard key is down, reset DAS state
+  else if (currentKeyboardMoveDir == 0) {
+    dasTimer = 0.0f;
+    lastMoveDir = 0;
+  }
+  // --- End Keyboard DAS for LEFT/RIGHT ---
+
+  // --- Other Keyboard Controls ---
+  if (playerIndex == 1) { // Player 1
+    // Rotate
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE)) {
+      logic.Rotate();
+    }
+    // Soft Drop (continuous) - now includes soft drop safety check
+    if (IsKeyDown(KEY_DOWN) && !waitForDownRelease) {
+      logic.Move(0, 1);
+    }
+  } else { // Player 2
+    // Rotate
+    if (IsKeyPressed(KEY_W)) {
+      logic.Rotate();
+    }
+    // Soft Drop (continuous) - now includes soft drop safety check
+    if (IsKeyDown(KEY_S) && !waitForDownRelease) {
+      logic.Move(0, 1);
+    }
+  }
+  // --- End Other Keyboard Controls ---
 }
 
 void Game::HandleInput() {
@@ -129,24 +262,24 @@ void Game::HandleInput() {
   }
 
   // --- Global Input for Restart Button ---
-  // This allows restart from any state except TITLE_SCREEN,
-  // where "Restart" doesn't make sense yet.
   btnRestart.active = false; // Reset visual state for this frame
   if (CheckCollisionPointRec(mouse, btnRestart.rect)) {
     btnRestart.active = true;
     if (mouseClicked) {
-      if (currentGameState != GameState::TITLE_SCREEN) {
+      if (currentGameState != GameState::TITLE_SCREEN &&
+          currentGameState != GameState::MODE_SELECTION) {
         ResetGame();
         currentGameState =
             GameState::PLAYING; // After reset, always go to playing
-        return; // Game reset, no further input processing this frame
+        return;                 // Game reset, no further input processing this frame
       }
     }
   }
 
   // Keyboard input for Restart (e.g., 'R' key)
   if (IsKeyPressed(KEY_R)) {
-    if (currentGameState != GameState::TITLE_SCREEN) {
+    if (currentGameState != GameState::TITLE_SCREEN &&
+        currentGameState != GameState::MODE_SELECTION) {
       ResetGame();
       currentGameState = GameState::PLAYING;
       return; // Game reset, no further input processing this frame
@@ -155,7 +288,8 @@ void Game::HandleInput() {
 
   // --- Global Input for Change Name Button ---
   // Only allow changing name if not already on the title screen
-  if (currentGameState != GameState::TITLE_SCREEN) {
+  if (currentGameState != GameState::TITLE_SCREEN &&
+      currentGameState != GameState::MODE_SELECTION) {
     btnChangeName.active = false; // Reset visual state for this frame
     if (CheckCollisionPointRec(mouse, btnChangeName.rect)) {
       btnChangeName.active = true;
@@ -197,11 +331,35 @@ void Game::HandleInput() {
       if (!playerNameInputBuffer.empty()) {
         playerName = playerNameInputBuffer;
       } else {
-        playerName = "Player"; // Default if no name entered
+        playerName = "Player1"; // Default if no name entered
       }
-      SavePlayerName(); // Save the new/updated player name
-      ResetGame();      // Initialize game for playing state
-      currentGameState = GameState::PLAYING; // Transition to playing
+      SavePlayerName();          // Save the new/updated player name
+      currentGameState = GameState::MODE_SELECTION; // Transition to mode select
+    }
+    break;
+  }
+
+  case GameState::MODE_SELECTION: {
+    btnSinglePlayer.active = false;
+    btnTwoPlayerLocal.active = false;
+
+    if (CheckCollisionPointRec(mouse, btnSinglePlayer.rect)) {
+      btnSinglePlayer.active = true;
+      if (mouseClicked) {
+        currentMode = GameMode::SINGLE_PLAYER;
+        ResetGame(); // Setup game for single player
+        currentGameState = GameState::PLAYING;
+        return;
+      }
+    }
+    if (CheckCollisionPointRec(mouse, btnTwoPlayerLocal.rect)) {
+      btnTwoPlayerLocal.active = true;
+      if (mouseClicked) {
+        currentMode = GameMode::TWO_PLAYER_LOCAL;
+        ResetGame(); // Setup game for two players
+        currentGameState = GameState::PLAYING;
+        return;
+      }
     }
     break;
   }
@@ -220,29 +378,17 @@ void Game::HandleInput() {
       currentGameState = GameState::PAUSED; // Toggle to paused
     }
 
-    // --- Soft Drop Safety Logic ---
-    // 1. Detect if a new piece has spawned since the last frame
-    if (logic.spawnCounter != lastSpawnCounter) {
-      lastSpawnCounter = logic.spawnCounter;
-      // If KEY_DOWN is currently held, activate the safety flag
-      if (IsKeyDown(KEY_DOWN)) {
-        waitForDownRelease = true;
-      }
-    }
-    // 2. If the safety flag is active, check if KEY_DOWN has been released
-    if (!IsKeyDown(KEY_DOWN)) {
-      waitForDownRelease = false;
-    }
-    // --- End Soft Drop Safety Logic ---
+    // --- Touch Controls (Shared for now, can be adapted for separate controls)
+    // ---
+    static bool leftPressed = false;
+    static bool rightPressed = false;
+    static bool rotatePressed = false;
 
-    // Reset Active State for non-restart/pause touch buttons
     btnLeft.active = false;
     btnRight.active = false;
     btnRotate.active = false;
     btnDrop.active = false;
 
-    // Mouse / Touch input for game buttons (using IsMouseButtonDown for
-    // continuous feedback)
     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       if (CheckCollisionPointRec(mouse, btnLeft.rect))
         btnLeft.active = true;
@@ -254,76 +400,17 @@ void Game::HandleInput() {
         btnDrop.active = true;
     }
 
-    // --- Keyboard Delayed Auto Shift (DAS) for LEFT/RIGHT movement ---
-    // Handle key releases first to clear `lastMoveDir` if the active key is
-    // let go.
-    if (IsKeyReleased(KEY_LEFT) && lastMoveDir == -1) {
-      dasTimer = 0.0f;
-      lastMoveDir = 0;
-    }
-    if (IsKeyReleased(KEY_RIGHT) && lastMoveDir == 1) {
-      dasTimer = 0.0f;
-      lastMoveDir = 0;
-    }
-
-    // Determine the current desired move direction from keyboard
-    int currentKeyboardMoveDir = 0;
-    if (IsKeyDown(KEY_LEFT)) {
-      currentKeyboardMoveDir = -1;
-    }
-    if (IsKeyDown(KEY_RIGHT)) {
-      currentKeyboardMoveDir = 1;
-    }
-
-    // Check for initial press or change in active DAS direction
-    if (currentKeyboardMoveDir != 0 && currentKeyboardMoveDir != lastMoveDir) {
-      logic.Move(currentKeyboardMoveDir, 0); // Initial move
-      dasTimer = 0.0f;                       // Reset timer
-      lastMoveDir = currentKeyboardMoveDir;
-    }
-    // If the same key is held down (DAS repeat)
-    else if (currentKeyboardMoveDir != 0 &&
-             currentKeyboardMoveDir == lastMoveDir) {
-      dasTimer += GetFrameTime();
-      while (dasTimer >= dasDelay) {
-        logic.Move(lastMoveDir, 0);
-        dasTimer -= dasRate;
-      }
-    }
-    // If no relevant keyboard key is down, reset DAS state
-    else if (currentKeyboardMoveDir == 0) {
-      dasTimer = 0.0f;
-      lastMoveDir = 0;
-    }
-    // --- End Keyboard DAS for LEFT/RIGHT ---
-
-    // --- Other Keyboard Controls ---
-    // Rotate
-    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_SPACE)) {
-      logic.Rotate();
-    }
-    // Soft Drop (continuous) - now includes soft drop safety check
-    if (IsKeyDown(KEY_DOWN) && !waitForDownRelease) {
-      logic.Move(0, 1);
-    }
-    // --- End Other Keyboard Controls ---
-
-    // --- Touch Controls (Single Press except for Soft Drop) ---
-    static bool leftPressed = false;
-    static bool rightPressed = false;
-    static bool rotatePressed = false;
-
     if (btnLeft.active && !leftPressed) {
-      logic.Move(-1, 0);
+      logicPlayer1.Move(-1, 0); // Touch controls currently affect P1
     }
     if (btnRight.active && !rightPressed) {
-      logic.Move(1, 0);
+      logicPlayer1.Move(1, 0); // Touch controls currently affect P1
     }
     if (btnRotate.active && !rotatePressed) {
-      logic.Rotate();
+      logicPlayer1.Rotate(); // Touch controls currently affect P1
     }
     if (btnDrop.active) { // Touch soft drop is continuous
-      logic.Move(0, 1);
+      logicPlayer1.Move(0, 1); // Touch controls currently affect P1
     }
 
     // Update static states for touch buttons
@@ -331,6 +418,17 @@ void Game::HandleInput() {
     rightPressed = btnRight.active;
     rotatePressed = btnRotate.active;
     // --- End Touch Controls ---
+
+    // Handle keyboard input for Player 1
+    HandlePlayerInput(logicPlayer1, 1, dasDelay, dasRate, dasTimerP1,
+                      lastMoveDirP1, lastSpawnCounterP1, waitForDownReleaseP1);
+
+    // Handle keyboard input for Player 2 if in local multiplayer mode
+    if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+      HandlePlayerInput(logicPlayer2, 2, dasDelay, dasRate, dasTimerP2,
+                        lastMoveDirP2, lastSpawnCounterP2,
+                        waitForDownReleaseP2);
+    }
     break;
   }
 
@@ -364,16 +462,30 @@ void Game::Update() {
 
   // Only update game logic if in PLAYING state
   if (currentGameState == GameState::PLAYING) {
-    // Gravity System
-    gravityTimer += GetFrameTime();
-    if (gravityTimer >= gravityInterval) {
-      logic.Tick();
-      gravityTimer = 0.0f;
+    // Gravity System for Player 1
+    gravityTimerP1 += GetFrameTime();
+    if (gravityTimerP1 >= gravityInterval) {
+      logicPlayer1.Tick();
+      gravityTimerP1 = 0.0f;
     }
 
-    // Check for game over after logic tick
-    if (logic.isGameOver) {
+    // Check for game over for Player 1
+    if (logicPlayer1.isGameOver) {
       currentGameState = GameState::GAME_OVER;
+    }
+
+    // Gravity System for Player 2 if in local multiplayer mode
+    if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+      gravityTimerP2 += GetFrameTime();
+      if (gravityTimerP2 >= gravityInterval) {
+        logicPlayer2.Tick();
+        gravityTimerP2 = 0.0f;
+      }
+      // Check for game over for Player 2
+      if (logicPlayer2.isGameOver) {
+        currentGameState = GameState::GAME_OVER; // Consider more complex game
+                                                 // over logic for 2 players
+      }
     }
   }
 }
@@ -404,9 +516,46 @@ void Game::DrawControls() {
   }
 }
 
-void Game::DrawNextPiece() {
-  int previewX = offsetX + (10 * cellSize) + 20; // Right of board
-  int previewY = offsetY;
+void Game::DrawPlayerBoard(const Logic &logic, int boardOffsetX,
+                           int boardOffsetY) {
+  // 1. Board Background
+  DrawRectangle(boardOffsetX, boardOffsetY, BOARD_WIDTH_PX, BOARD_HEIGHT_PX,
+                DARKGRAY);
+
+  // 2. Static Grid (Locked Pieces)
+  for (int i = 0; i < 20; i++) {
+    for (int j = 0; j < 10; j++) {
+      int x = boardOffsetX + j * cellSize;
+      int y = boardOffsetY + i * cellSize;
+
+      if (logic.board.GetCell(i, j) != 0) {
+        DrawRectangle(x + 1, y + 1, cellSize - 2, cellSize - 2, RED);
+      } else {
+        DrawRectangleLines(x, y, cellSize, cellSize, Fade(LIGHTGRAY, 0.1f));
+      }
+    }
+  }
+
+  // 3. Active Piece (Current)
+  Piece p = logic.currentPiece;
+  if (p.type != PieceType::NONE) {
+    for (int i = 0; i < 4; i++) {
+      int bx, by;
+      p.GetBlock(p.rotation, i, bx, by);
+      int worldX = boardOffsetX + (p.x + bx) * cellSize;
+      int worldY = boardOffsetY + (p.y + by) * cellSize;
+
+      DrawRectangle(worldX + 1, worldY + 1, cellSize - 2, cellSize - 2, GREEN);
+    }
+  }
+
+  // 4. Board Border
+  DrawRectangleLines(boardOffsetX, boardOffsetY, BOARD_WIDTH_PX,
+                     BOARD_HEIGHT_PX, WHITE);
+}
+
+void Game::DrawPlayerNextPiece(const Logic &logic, int previewX,
+                               int previewY) {
   int previewSize = 6 * cellSize; // The preview box is 6 cells by 6 cells
 
   // Draw Box
@@ -464,61 +613,21 @@ void Game::DrawNextPiece() {
   }
 }
 
+void Game::DrawPlayerScore(const Logic &logic, int uiAreaX, int &currentY,
+                           const std::string &name) {
+  // Display player name
+  DrawText(TextFormat("PLAYER: %s", name.c_str()), uiAreaX, currentY, 20,
+           WHITE);
+  currentY += 30; // Move down for score
+
+  // Display the score
+  DrawText(TextFormat("SCORE: %d", logic.score), uiAreaX, currentY, 20, WHITE);
+  currentY += 30; // Move down for next element
+}
+
 void Game::Draw() {
-  // 1. Board Background
-  DrawRectangle(offsetX, offsetY, 10 * cellSize, 20 * cellSize, DARKGRAY);
-
-  // 2. Static Grid (Locked Pieces) - Always draw if not in TITLE_SCREEN
-  if (currentGameState != GameState::TITLE_SCREEN) {
-    for (int i = 0; i < 20; i++) {
-      for (int j = 0; j < 10; j++) {
-        int x = offsetX + j * cellSize;
-        int y = offsetY + i * cellSize;
-
-        if (logic.board.GetCell(i, j) != 0) {
-          DrawRectangle(x + 1, y + 1, cellSize - 2, cellSize - 2, RED);
-        } else {
-          DrawRectangleLines(x, y, cellSize, cellSize, Fade(LIGHTGRAY, 0.1f));
-        }
-      }
-    }
-  }
-
-  // 3. Active Piece (Current) - Only draw if game is in progress or paused/over
-  if (currentGameState == GameState::PLAYING ||
-      currentGameState == GameState::PAUSED ||
-      currentGameState == GameState::GAME_OVER) {
-    Piece p = logic.currentPiece;
-    if (p.type != PieceType::NONE) {
-      for (int i = 0; i < 4; i++) {
-        int bx, by;
-        p.GetBlock(p.rotation, i, bx, by);
-        int worldX = offsetX + (p.x + bx) * cellSize;
-        int worldY = offsetY + (p.y + by) * cellSize;
-
-        DrawRectangle(worldX + 1, worldY + 1, cellSize - 2, cellSize - 2,
-                      GREEN);
-      }
-    }
-  }
-
-  // 4. Board Border - Always draw if not in TITLE_SCREEN
-  if (currentGameState != GameState::TITLE_SCREEN) {
-    DrawRectangleLines(offsetX, offsetY, 10 * cellSize, 20 * cellSize, WHITE);
-  }
-
-  // 5. UI Elements (Controls, Next Piece, Score, Player Name)
-  if (currentGameState != GameState::TITLE_SCREEN) {
-    DrawControls();
-    DrawNextPiece();
-
-    // Display the score
-    DrawText(TextFormat("SCORE: %d", logic.score), 50, 50, 20, WHITE);
-    // Display player name
-    if (!playerName.empty()) {
-      DrawText(TextFormat("PLAYER: %s", playerName.c_str()), 50, 80, 20, WHITE);
-    }
-  }
+  ClearBackground(RAYWHITE); // Clear the entire screen
+  DrawRectangle(0, 0, screenWidth, screenHeight, BLACK); // Black background
 
   // --- Draw global buttons (Restart, Pause, Change Name) ---
   int btnTextFontSize = 30;
@@ -550,8 +659,9 @@ void Game::Draw() {
              btnTextFontSize, WHITE);
   }
 
-  // Draw Change Name button (only if NOT in TITLE_SCREEN)
-  if (currentGameState != GameState::TITLE_SCREEN) {
+  // Draw Change Name button (only if NOT in TITLE_SCREEN or MODE_SELECTION)
+  if (currentGameState != GameState::TITLE_SCREEN &&
+      currentGameState != GameState::MODE_SELECTION) {
     DrawRectangleRec(btnChangeName.rect, btnChangeName.active
                                              ? Fade(btnChangeName.color, 0.5f)
                                              : btnChangeName.color);
@@ -565,12 +675,9 @@ void Game::Draw() {
              btnTextFontSize, WHITE);
   }
 
-  // --- Draw State-specific overlays ---
+  // --- Draw UI elements based on GameState and GameMode ---
   switch (currentGameState) {
   case GameState::TITLE_SCREEN: {
-    int screenWidth = 800;
-    int screenHeight = 600;
-
     // Dark overlay for the title screen
     DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
 
@@ -583,7 +690,7 @@ void Game::Draw() {
 
     // Prompt for name
     const char *promptText =
-        (playerNameInputBuffer.empty() && playerName == "Player")
+        (playerNameInputBuffer.empty() && playerName == "Player1")
             ? "ENTER YOUR NAME:"
             : "EDIT YOUR NAME:";
     int promptFontSize = 30;
@@ -602,51 +709,113 @@ void Game::Draw() {
              screenHeight / 2, inputFontSize, WHITE);
 
     // Instructions
-    const char *enterPrompt = "PRESS ENTER TO START";
+    const char *enterPrompt = "PRESS ENTER TO CONTINUE";
     int enterPromptFontSize = 20;
     int enterPromptWidth = MeasureText(enterPrompt, enterPromptFontSize);
     DrawText(enterPrompt, (screenWidth - enterPromptWidth) / 2,
              screenHeight / 2 + 60, enterPromptFontSize, LIGHTGRAY);
     break;
   }
-  case GameState::PAUSED: {
-    int boardWidth = BOARD_WIDTH * cellSize;
-    int boardHeight = BOARD_HEIGHT * cellSize;
 
-    // Draw semi-transparent black overlay over the board area
-    DrawRectangle(offsetX, offsetY, boardWidth, boardHeight, Fade(BLACK, 0.7f));
+  case GameState::MODE_SELECTION: {
+    DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
 
-    // Draw "PAUSED" text
-    const char *pausedText = "PAUSED";
-    int textFontSizePaused = 50;
-    int textWidthPaused = MeasureText(pausedText, textFontSizePaused);
-    int textX = offsetX + (boardWidth - textWidthPaused) / 2;
-    int textY =
-        offsetY + (boardHeight / 2) - textFontSizePaused; // Center vertically
+    const char *modePrompt = "SELECT GAME MODE:";
+    int modePromptFontSize = 40;
+    int modePromptWidth = MeasureText(modePrompt, modePromptFontSize);
+    DrawText(modePrompt, (screenWidth - modePromptWidth) / 2,
+             screenHeight / 4, modePromptFontSize, WHITE);
 
-    DrawText(pausedText, textX, textY, textFontSizePaused, WHITE);
+    // Draw Single Player button
+    DrawRectangleRec(btnSinglePlayer.rect,
+                     btnSinglePlayer.active ? Fade(btnSinglePlayer.color, 0.5f)
+                                            : btnSinglePlayer.color);
+    DrawRectangleLinesEx(btnSinglePlayer.rect, 2, DARKGRAY);
+    btnTextWidth = MeasureText(btnSinglePlayer.text.c_str(), btnTextFontSize);
+    DrawText(btnSinglePlayer.text.c_str(),
+             btnSinglePlayer.rect.x +
+                 (btnSinglePlayer.rect.width / 2 - btnTextWidth / 2),
+             btnSinglePlayer.rect.y +
+                 (btnSinglePlayer.rect.height / 2 - (btnTextFontSize / 2)),
+             btnTextFontSize, WHITE);
+
+    // Draw Two Player Local button
+    DrawRectangleRec(btnTwoPlayerLocal.rect,
+                     btnTwoPlayerLocal.active ? Fade(btnTwoPlayerLocal.color, 0.5f)
+                                              : btnTwoPlayerLocal.color);
+    DrawRectangleLinesEx(btnTwoPlayerLocal.rect, 2, DARKGRAY);
+    btnTextWidth =
+        MeasureText(btnTwoPlayerLocal.text.c_str(), btnTextFontSize);
+    DrawText(btnTwoPlayerLocal.text.c_str(),
+             btnTwoPlayerLocal.rect.x +
+                 (btnTwoPlayerLocal.rect.width / 2 - btnTextWidth / 2),
+             btnTwoPlayerLocal.rect.y +
+                 (btnTwoPlayerLocal.rect.height / 2 - (btnTextFontSize / 2)),
+             btnTextFontSize, WHITE);
     break;
   }
+
+  case GameState::PLAYING:
+  case GameState::PAUSED:
   case GameState::GAME_OVER: {
-    int boardWidth = BOARD_WIDTH * cellSize;
-    int boardHeight = BOARD_HEIGHT * cellSize;
+    // Always draw touch controls in these states
+    DrawControls();
 
-    // Draw semi-transparent black overlay over the board area
-    DrawRectangle(offsetX, offsetY, boardWidth, boardHeight, Fade(BLACK, 0.7f));
+    // Draw Player 1's board and UI
+    DrawPlayerBoard(logicPlayer1, BOARD_OFFSET_X_P1, BOARD_OFFSET_Y);
+    int p1_ui_x = BOARD_OFFSET_X_P1 + BOARD_WIDTH_PX + 20;
+    int p1_ui_y = BOARD_OFFSET_Y;
+    DrawPlayerNextPiece(logicPlayer1, p1_ui_x, p1_ui_y);
+    p1_ui_y += (6 * cellSize) + 20; // Below next piece preview
+    DrawPlayerScore(logicPlayer1, p1_ui_x, p1_ui_y, playerName);
 
-    // Draw "GAME OVER" text
-    const char *gameOverText = "GAME OVER";
-    int textFontSizeGameOver = 50;
-    int textWidthGameOver = MeasureText(gameOverText, textFontSizeGameOver);
-    int textX = offsetX + (boardWidth - textWidthGameOver) / 2;
-    int textY = offsetY + (boardHeight / 2) -
-                textFontSizeGameOver; // Slightly above center
+    if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+      // Draw Player 2's board and UI
+      DrawPlayerBoard(logicPlayer2, BOARD_OFFSET_X_P2, BOARD_OFFSET_Y);
+      int p2_ui_x = BOARD_OFFSET_X_P2 + BOARD_WIDTH_PX + 20;
+      int p2_ui_y = BOARD_OFFSET_Y;
+      DrawPlayerNextPiece(logicPlayer2, p2_ui_x, p2_ui_y);
+      p2_ui_y += (6 * cellSize) + 20; // Below next piece preview
+      DrawPlayerScore(logicPlayer2, p2_ui_x, p2_ui_y, "Player2");
+    }
 
-    DrawText(gameOverText, textX, textY, textFontSizeGameOver, RED);
-    break;
-  }
-  case GameState::PLAYING: {
-    // No specific overlay for PLAYING state
+    // --- Overlays for PAUSED and GAME_OVER ---
+    if (currentGameState == GameState::PAUSED) {
+      // Draw semi-transparent black overlay over the board areas
+      DrawRectangle(BOARD_OFFSET_X_P1, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
+                    BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
+      if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+        DrawRectangle(BOARD_OFFSET_X_P2, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
+                      BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
+      }
+
+      // Draw "PAUSED" text centered over P1 board
+      const char *pausedText = "PAUSED";
+      int textFontSizePaused = 50;
+      int textWidthPaused = MeasureText(pausedText, textFontSizePaused);
+      int textX = BOARD_OFFSET_X_P1 + (BOARD_WIDTH_PX - textWidthPaused) / 2;
+      int textY = BOARD_OFFSET_Y + (BOARD_HEIGHT_PX / 2) - textFontSizePaused;
+
+      DrawText(pausedText, textX, textY, textFontSizePaused, WHITE);
+    } else if (currentGameState == GameState::GAME_OVER) {
+      // Draw semi-transparent black overlay over the board areas
+      DrawRectangle(BOARD_OFFSET_X_P1, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
+                    BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
+      if (currentMode == GameMode::TWO_PLAYER_LOCAL) {
+        DrawRectangle(BOARD_OFFSET_X_P2, BOARD_OFFSET_Y, BOARD_WIDTH_PX,
+                      BOARD_HEIGHT_PX, Fade(BLACK, 0.7f));
+      }
+
+      // Draw "GAME OVER" text centered over P1 board
+      const char *gameOverText = "GAME OVER";
+      int textFontSizeGameOver = 50;
+      int textWidthGameOver = MeasureText(gameOverText, textFontSizeGameOver);
+      int textX = BOARD_OFFSET_X_P1 + (BOARD_WIDTH_PX - textWidthGameOver) / 2;
+      int textY = BOARD_OFFSET_Y + (BOARD_HEIGHT_PX / 2) -
+                  textFontSizeGameOver; // Slightly above center
+
+      DrawText(gameOverText, textX, textY, textFontSizeGameOver, RED);
+    }
     break;
   }
   } // End switch (currentGameState)
