@@ -31,6 +31,14 @@ add_compile_definitions(DEFAULT_HOST_IP="${HOST_IP}")
 
 include(FetchContent)
 
+if (EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    set(PLATFORM "Web")
+    add_compile_definitions(PLATFORM_WEB)
+else()
+    set(PLATFORM "Desktop")
+endif()
+
 FetchContent_Declare(
   raylib
   GIT_REPOSITORY https://github.com/raysan5/raylib.git
@@ -38,17 +46,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(raylib)
-
-
-if (EMSCRIPTEN)
-    set(CMAKE_EXECUTABLE_SUFFIX ".html")
-    # Define the build type for Raylib
-    set(PLATFORM "Web")
-    # Add compile definitions for Raylib Web
-    add_compile_definitions(PLATFORM_WEB)
-else()
-    set(PLATFORM "Desktop")
-endif()
 
 add_executable(TetrisClient main.cpp game.cpp board.cpp logic.cpp)
 target_link_libraries(TetrisClient PRIVATE raylib)
