@@ -26,6 +26,9 @@ endif()
 # Pass string as a C string literal
 add_compile_definitions(GIT_VERSION="${VERSION_STRING}")
 
+set(HOST_IP "127.0.0.1" CACHE STRING "Default Host IP for Web Client")
+add_compile_definitions(DEFAULT_HOST_IP="${HOST_IP}")
+
 include(FetchContent)
 
 FetchContent_Declare(
