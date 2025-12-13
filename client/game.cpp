@@ -1750,4 +1750,10 @@ void Game::Draw() {
     break;
   }
   } // End switch (currentGameState)
+
+  // --- Debug: Visual Cursor for Touch Alignment ---
+  Vector2 mousePos = GetMousePosition();
+  DrawCircleV(mousePos, 10, Fade(RED, 0.5f));
+  DrawText(TextFormat("Input: %0.0f,%0.0f", mousePos.x, mousePos.y),
+           mousePos.x + 15, mousePos.y, 20, RED);
 }
