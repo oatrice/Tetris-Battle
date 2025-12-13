@@ -4,6 +4,28 @@ project(TetrisClient LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(Git)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} log -1 --format=%Y-%m-%d
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_DATE
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set(VERSION_STRING "${GIT_HASH} (${GIT_DATE})")
+else()
+    set(VERSION_STRING "Dev Build")
+endif()
+
+# Pass string as a C string literal
+add_compile_definitions(GIT_VERSION="${VERSION_STRING}")
+
 include(FetchContent)
 
 FetchContent_Declare(

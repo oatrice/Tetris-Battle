@@ -5,7 +5,11 @@
 
 // ... (existing code)
 
-const std::string BUILD_VERSION = "0.2.1";
+#ifdef GIT_VERSION
+const std::string BUILD_VERSION = GIT_VERSION;
+#else
+const std::string BUILD_VERSION = "Unknown Build";
+#endif
 
 // Private network-related methods (placeholders for actual network calls)
 void StartHosting();
