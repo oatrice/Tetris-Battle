@@ -772,25 +772,34 @@ void Game::HandleInput() {
     } else if (currentNetworkState == NetworkState::CLIENT_CONNECTING) {
       // Handle IP address input
       int key = GetCharPressed();
+      bool ipChanged = false;
       while (key > 0) {
         if (((key >= 48) && (key <= 57)) || (key == 46)) { // Digits and dot
           if (ipAddressInputBuffer.length() < maxIpLength) {
             ipAddressInputBuffer += (char)key;
+            ipChanged = true;
           }
         }
         key = GetCharPressed();
       }
+
       // OSK Input for IP
       // Position OSK at bottom
       oskChar = CheckOSKInput(screenHeight - 250, true, oskEnter, oskBackspace);
       if (oskChar && (ipAddressInputBuffer.length() < maxIpLength)) {
         ipAddressInputBuffer += oskChar;
+        ipChanged = true;
       }
 
       if (IsKeyPressed(KEY_BACKSPACE) || oskBackspace) {
         if (!ipAddressInputBuffer.empty()) {
           ipAddressInputBuffer.pop_back();
+          ipChanged = true;
         }
+      }
+
+      if (ipChanged) {
+        TraceLog(LOG_INFO, "IP Input: %s", ipAddressInputBuffer.c_str());
       }
 
       if (CheckCollisionPointRec(mouse, btnConnect.rect)) {
