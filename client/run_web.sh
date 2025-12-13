@@ -6,6 +6,12 @@ WEBSOCKIFY_PORT="12346"
 GAME_PORT="12345"
 HTTP_PORT="8000"
 
+# --- Check for Clean Build ---
+if [[ "$1" == "clean" || "$1" == "--clean" ]]; then
+    echo "🧹 Cleaning up old build files..."
+    rm -rf "$BUILD_DIR"
+fi
+
 # --- 1. Detect Local IP ---
 echo "🔍 Detecting Local IP..."
 # Try getting IP from en0 (WiFi usually)

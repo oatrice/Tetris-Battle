@@ -9,6 +9,17 @@ if [ ! -d "$BUILD_DIR" ]; then
 fi
 
 cd "$BUILD_DIR"
+
+# Ensure Makefile is up to date
+if ! cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5 > /dev/null 2>&1; then
+    echo "⚠️  CMake configuration failed. Retrying with clean build..."
+    rm -rf CMakeCache.txt CMakeFiles
+    if ! cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5; then
+        echo "❌ CMake configuration failed again!"
+        exit 1
+    fi
+fi
+
 echo "🔨 Building tests..."
 make test_tetris > /dev/null
 if [ $? -ne 0 ]; then
