@@ -13,12 +13,12 @@ if(GIT_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
     execute_process(
-        COMMAND ${GIT_EXECUTABLE} log -1 --format=%Y-%m-%d
+        COMMAND ${GIT_EXECUTABLE} log -1 "--date=format:%y%m%d:%H%M%S" --format=%ad
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_DATE
+        OUTPUT_VARIABLE GIT_TIMESTAMP
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    set(VERSION_STRING "${GIT_HASH} (${GIT_DATE})")
+    set(VERSION_STRING "${GIT_HASH}, ${GIT_TIMESTAMP}")
 else()
     set(VERSION_STRING "Dev Build")
 endif()
