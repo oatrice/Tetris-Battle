@@ -5,6 +5,12 @@
 
 // ... (existing code)
 
+#ifdef GIT_VERSION
+const std::string BUILD_VERSION = GIT_VERSION;
+#else
+const std::string BUILD_VERSION = "Unknown Build";
+#endif
+
 // Private network-related methods (placeholders for actual network calls)
 void StartHosting();
 void StopHosting();
@@ -93,7 +99,11 @@ private:
       15; // Maximum length for IP address (e.g., 255.255.255.255)
   std::string
       currentIpAddress; // Stores the IP address being hosted on or connected to
-  const int networkPort = 12345;   // Default port for network communication
+#if defined(__EMSCRIPTEN__)
+  const int networkPort = 12346; // Port for Web/WebSocket Proxy
+#else
+  const int networkPort = 12345; // Default port for Desktop (Raw TCP)
+#endif
   std::string networkErrorMessage; // To display error reason
 
   // Cursor for name/IP input
@@ -179,6 +189,11 @@ private:
   SendGameEvent(const std::string &eventData); // e.g., "move_left", "rotate"
   void ProcessNetworkEvents(); // Called in Update() to read incoming messages
   std::string GetLocalIPAddress(); // Placeholder to get local IP
+
+  // On-Screen Keyboard Helpers
+  void DrawOSK(int startY, bool isIpMode);
+  char CheckOSKInput(int startY, bool isIpMode, bool &outEnter,
+                     bool &outBackspace);
 
   NetworkManager networkManager; // The actual network handler
 };
