@@ -52,8 +52,6 @@ void Logic::Tick() {
   if (isGameOver)
     return; // Do nothing if game is over
 
-  Move(0, 1); // Gravity: Move Down 1
-
   // Check if the piece could move down. If not, it means it collided,
   // so lock it and spawn a new one.
   Piece next = currentPiece;

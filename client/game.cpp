@@ -173,7 +173,7 @@ void Game::ProcessNetworkEvents() {
     case NetworkMsgType::MOVE_DOWN:
       if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
           currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
-        logicPlayer2.Move(0, 1);
+        logicPlayer2.Tick();
       }
       break;
 

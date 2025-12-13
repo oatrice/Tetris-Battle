@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <mutex>
+#include <netinet/tcp.h> // For TCP_NODELAY
 #include <string>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -41,6 +42,11 @@ public:
     if (currentSocket < 0)
       return false;
 
+    // Enable TCP_NODELAY
+    int flag = 1;
+    setsockopt(currentSocket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
+               sizeof(int));
+
     // Allow reuse address
     int opt = 1;
     setsockopt(currentSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -72,6 +78,11 @@ public:
     currentSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (currentSocket < 0)
       return false;
+
+    // Enable TCP_NODELAY
+    int flag = 1;
+    setsockopt(currentSocket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
+               sizeof(int));
 
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
@@ -257,6 +268,11 @@ private:
       isRunning = false;
       return;
     }
+
+    // Enable TCP_NODELAY for accepted client socket
+    int flag = 1;
+    setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
+               sizeof(int));
 
     TraceLog(LOG_INFO, "NETWORK: Client connected!");
     isConnected = true;
