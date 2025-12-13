@@ -1346,6 +1346,9 @@ void Game::Draw() {
     // Dark overlay for the title screen
     DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
 
+    // Draw Build Version
+    DrawText(BUILD_VERSION.c_str(), 10, 10, 20, GRAY);
+
     // Title text
     const char *titleText = "TETRIS BATTLE";
     int titleFontSize = 60;

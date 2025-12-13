@@ -5,6 +5,8 @@
 
 // ... (existing code)
 
+const std::string BUILD_VERSION = "0.2.1";
+
 // Private network-related methods (placeholders for actual network calls)
 void StartHosting();
 void StopHosting();
