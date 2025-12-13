@@ -765,7 +765,7 @@ void Game::HandleInput() {
             // Client mode, prepare for IP input
             currentNetworkState = NetworkState::CLIENT_CONNECTING;
             ipAddressInputBuffer =
-                "192.168.10.101"; // Default to host IP for convenience
+                "192.168.1.74"; // Default to host IP for convenience
           }
         }
       }
