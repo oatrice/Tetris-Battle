@@ -12,6 +12,7 @@ enum class NetworkMsgType {
   MOVE_LR,
   ROTATE,
   MOVE_DOWN,
+  SYNC_STATE,
   // Add more as needed
 };
 
@@ -32,9 +33,16 @@ public:
     return "GAME_START_HOST;SEED:" + std::to_string(seed) + ";P1_NAME:" + name;
   }
 
+  static std::string SerializeSyncState(int score, int nextType,
+                                        const std::string &boardData) {
+    return "SYNC_STATE;SCORE:" + std::to_string(score) +
+           ";NEXT:" + std::to_string(nextType) + ";BOARD:" + boardData;
+  }
+
   static NetworkMessage Parse(const std::string &msg) {
     NetworkMessage out;
     out.type = NetworkMsgType::UNKNOWN;
+    out.payload = msg; // Simplify: always store payload
 
     if (msg.find("MOVE_LR") == 0) {
       out.type = NetworkMsgType::MOVE_LR;
@@ -45,15 +53,15 @@ public:
     } else if (msg.find("GAME_START") == 0) {
       out.type = NetworkMsgType::GAME_START;
       size_t seedPos = msg.find("SEED:");
-      size_t namePos = msg.find("P1_NAME:");
       if (seedPos != std::string::npos) {
-        out.intParam1 =
-            std::stoi(msg.substr(seedPos + 5)); // Just parsing seed roughly
+        out.intParam1 = std::stoi(msg.substr(seedPos + 5));
       }
     } else if (msg.find("ROTATE") == 0) {
       out.type = NetworkMsgType::ROTATE;
     } else if (msg.find("MOVE_DOWN") == 0) {
       out.type = NetworkMsgType::MOVE_DOWN;
+    } else if (msg.find("SYNC_STATE") == 0) {
+      out.type = NetworkMsgType::SYNC_STATE;
     }
 
     return out;

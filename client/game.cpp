@@ -177,8 +177,47 @@ void Game::ProcessNetworkEvents() {
       }
       break;
 
-    // Handle other messages...
-    default:
+    case NetworkMsgType::SYNC_STATE: {
+      if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+          currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+
+        // Parse SCORE
+        size_t scorePos = netMsg.payload.find("SCORE:");
+        if (scorePos != std::string::npos) {
+          try {
+            logicPlayer2.score = std::stoi(netMsg.payload.substr(scorePos + 6));
+          } catch (...) {
+          }
+        }
+
+        // Parse NEXT
+        size_t nextPos = netMsg.payload.find("NEXT:");
+        if (nextPos != std::string::npos) {
+          try {
+            int nextType = std::stoi(netMsg.payload.substr(nextPos + 5));
+            logicPlayer2.nextPiece = Piece(static_cast<PieceType>(nextType));
+          } catch (...) {
+          }
+        }
+
+        // Parse BOARD
+        size_t boardPos = netMsg.payload.find("BOARD:");
+        if (boardPos != std::string::npos) {
+          std::string boardData = netMsg.payload.substr(boardPos + 6);
+          int idx = 0;
+          for (int r = 0; r < BOARD_HEIGHT; r++) {
+            for (int c = 0; c < BOARD_WIDTH; c++) {
+              if (idx < (int)boardData.length()) {
+                int cellVal = boardData[idx] - '0';
+                logicPlayer2.board.SetCell(r, c, cellVal);
+                idx++;
+              }
+            }
+          }
+        }
+      }
+      break;
+    }
       // Check for CLIENT_READY manually if not in enum
       if (msg.find("CLIENT_READY") == 0) {
         if (isHost) {
@@ -1070,6 +1109,8 @@ void Game::Update() {
   if (currentGameState == GameState::PLAYING) {
     // Only update P1 logic if P1 is not yet game over
     if (!logicPlayer1.isGameOver) {
+      int prevSpawnCounter = logicPlayer1.spawnCounter;
+
       gravityTimerP1 += GetFrameTime();
       if (gravityTimerP1 >= gravityInterval) {
         logicPlayer1.Tick();
@@ -1079,6 +1120,22 @@ void Game::Update() {
             currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
           SendGameEvent(
               "MOVE_DOWN"); // Send automatic gravity tick as MOVE_DOWN
+        }
+      }
+
+      // Check if a piece was locked (spawnCounter increased)
+      if (logicPlayer1.spawnCounter > prevSpawnCounter) {
+        if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
+            currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
+          // Send SYNC_STATE with full board, score, and next piece
+          std::string boardStr = "";
+          for (int r = 0; r < BOARD_HEIGHT; r++) {
+            for (int c = 0; c < BOARD_WIDTH; c++) {
+              boardStr += std::to_string(logicPlayer1.board.GetCell(r, c));
+            }
+          }
+          SendGameEvent(NetworkProtocol::SerializeSyncState(
+              logicPlayer1.score, (int)logicPlayer1.nextPiece.type, boardStr));
         }
       }
     }
