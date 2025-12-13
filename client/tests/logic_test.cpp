@@ -370,4 +370,47 @@ TEST(LogicSyncTest, TwoPlayersSameSeedProduceSamePieces) {
   }
 }
 
-// Duplicate test removed.
+TEST_F(LogicTest, TickLocking) {
+  // 1. Move piece to the bottom-most valid position
+  while (true) {
+    Piece next = logic.currentPiece;
+    next.y++;
+    if (!logic.IsValidPosition(next))
+      break;
+    logic.currentPiece.y++;
+  }
+
+  // Record state before Tick
+  int preTicketSpawnCounter = logic.spawnCounter;
+  int bottomY = logic.currentPiece.y;
+  int pieceX = logic.currentPiece.x;
+
+  // 2. Call Tick. Since we are at the bottom, this should Trigger Lock -> Spawn
+  logic.Tick();
+
+  // 3. Verify
+  // Spawn counter should increment
+  EXPECT_GT(logic.spawnCounter, preTicketSpawnCounter);
+
+  // Current piece should be new (spawned at top y=0 usually)
+  EXPECT_EQ(logic.currentPiece.y, 0);
+
+  // The board should have blocks where the piece was locked
+  // Since SetUp uses I-piece (horizontal usually), check the cell at (bottomY,
+  // pieceX) Warning: Exact offset depends on Piece definition. But generally
+  // (0,0) of piece is (x,y). Let's iterate the board row at bottomY or check
+  // known block. We can check if the board is NOT empty anymore.
+  bool boardHasBlocks = false;
+  for (int r = 0; r < BOARD_HEIGHT; r++) {
+    for (int c = 0; c < BOARD_WIDTH; c++) {
+      if (logic.board.GetCell(r, c) != 0) {
+        boardHasBlocks = true;
+        break;
+      }
+    }
+    if (boardHasBlocks)
+      break;
+  }
+  EXPECT_TRUE(boardHasBlocks)
+      << "Board should contain locked piece blocks after Tick";
+}

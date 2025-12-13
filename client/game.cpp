@@ -588,13 +588,11 @@ void Game::HandleInput() {
       if (currentGameState != GameState::TITLE_SCREEN &&
           currentGameState != GameState::MODE_SELECTION &&
           currentGameState != GameState::NETWORK_SETUP) {
-        // If in network mode, disconnect before resetting
         if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
             currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
           Disconnect();
           currentGameState =
-              GameState::MODE_SELECTION; // Go back to mode select after
-                                         // disconnect
+              GameState::NETWORK_SETUP; // Go back to network setup
         } else {
           ResetGame();
         }
@@ -612,7 +610,7 @@ void Game::HandleInput() {
       if (currentMode == GameMode::TWO_PLAYER_NETWORK_HOST ||
           currentMode == GameMode::TWO_PLAYER_NETWORK_CLIENT) {
         Disconnect();
-        currentGameState = GameState::MODE_SELECTION;
+        currentGameState = GameState::NETWORK_SETUP;
       } else {
         ResetGame();
       }
