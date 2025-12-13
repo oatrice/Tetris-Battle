@@ -36,7 +36,7 @@ mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
 # Run CMake with the detected IP
-emcmake cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DHOST_IP="$LOCAL_IP" > /dev/null
+emcmake cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DHOST_IP="$LOCAL_IP" -DPLATFORM=Web > /dev/null
 
 # Compile
 emmake make
