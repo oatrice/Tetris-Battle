@@ -30,6 +30,7 @@ export class Game {
     private dropInterval: number = 1000; // 1 second
 
     isPaused: boolean = false;
+    ghostPieceEnabled: boolean = true;
 
     start(): void {
         this.gameOver = false;
@@ -50,6 +51,10 @@ export class Game {
         if (!this.gameOver) {
             this.isPaused = !this.isPaused;
         }
+    }
+
+    toggleGhostPiece(): void {
+        this.ghostPieceEnabled = !this.ghostPieceEnabled;
     }
 
     update(deltaTime: number): void {

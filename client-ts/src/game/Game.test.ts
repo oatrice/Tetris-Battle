@@ -182,4 +182,12 @@ describe('Game', () => {
         expect(game.score).toBe(100);
         expect(game.lines).toBe(1);
     });
+
+    it('should have ghost piece enabled by default and toggle correctly', () => {
+        expect(game.ghostPieceEnabled).toBe(true);
+        game.toggleGhostPiece();
+        expect(game.ghostPieceEnabled).toBe(false);
+        game.toggleGhostPiece();
+        expect(game.ghostPieceEnabled).toBe(true);
+    });
 });
