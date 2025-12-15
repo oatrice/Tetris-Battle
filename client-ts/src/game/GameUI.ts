@@ -48,6 +48,11 @@ export class GameUI {
             this.updatePauseBtnText();
         });
 
+        const ghostBtn = createMenuItem('menuGhostBtn', `Ghost Piece: ${this.game.ghostPieceEnabled ? 'ON' : 'OFF'}`, () => {
+            this.game.toggleGhostPiece();
+            ghostBtn.textContent = `Ghost Piece: ${this.game.ghostPieceEnabled ? 'ON' : 'OFF'}`;
+        });
+
         const renameBtn = createMenuItem('menuRenameBtn', 'Rename (Next feature)');
         // renameBtn.disabled = true;
 
@@ -57,6 +62,7 @@ export class GameUI {
         });
 
         this.menu.appendChild(restartBtn);
+        this.menu.appendChild(ghostBtn);
         this.menu.appendChild(renameBtn);
         this.menu.appendChild(quitBtn);
 

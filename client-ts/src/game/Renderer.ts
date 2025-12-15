@@ -39,7 +39,7 @@ export class Renderer {
         });
 
         // Draw Ghost Piece
-        if (game.currentPiece) {
+        if (game.currentPiece && game.ghostPieceEnabled) {
             const ghostPos = game.getGhostPosition();
             game.currentPiece.shape.forEach((row, r) => {
                 row.forEach((cell, c) => {

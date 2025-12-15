@@ -72,4 +72,26 @@ describe('GameUI', () => {
         expect(menu.style.display).toBe('none');
         expect(game.isPaused).toBe(false);
     });
+
+    it('should toggle ghost piece setting when Ghost Piece option is clicked', () => {
+        ui.init();
+        const pauseBtn = root.querySelector('#pauseBtn') as HTMLButtonElement;
+
+        // Open menu
+        pauseBtn.click();
+
+        const ghostBtn = root.querySelector('#menuGhostBtn') as HTMLButtonElement;
+        expect(ghostBtn).not.toBeNull();
+        expect(ghostBtn.textContent).toBe('Ghost Piece: ON');
+
+        // Click to toggle OFF
+        ghostBtn.click();
+        expect(ghostBtn.textContent).toBe('Ghost Piece: OFF');
+        expect(game.ghostPieceEnabled).toBe(false);
+
+        // Click to toggle ON
+        ghostBtn.click();
+        expect(ghostBtn.textContent).toBe('Ghost Piece: ON');
+        expect(game.ghostPieceEnabled).toBe(true);
+    });
 });
