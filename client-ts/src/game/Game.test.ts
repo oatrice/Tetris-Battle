@@ -66,4 +66,42 @@ describe('Game', () => {
             expect(shapeBefore).not.toBe(shapeAfter);
         }
     });
+
+    it('should lock piece and spawn new one when hitting bottom', () => {
+        game.start();
+        const firstPiece = game.currentPiece;
+
+        // Simulate drop to bottom
+        // We can manually set position to bottom-1
+        if (!firstPiece) throw new Error('Piece not spawned');
+
+        // Position at bottom (height - shape height)
+        // For O (2x2), y = 18. Move to 19 is valid? No, 19 + 2 = 21 (OOB).
+        // Board height 20. Indices 0..19.
+        // If piece at 18: rows 18, 19.
+        // Valid.
+        // Move to 19: rows 19, 20. 20 is OOB.
+        // So 18 is max Y for O-piece. Move to 19 fails.
+
+        game.position.y = 18;
+
+        // Trigger update/gravity
+        game.update(1001);
+
+        // Should have locked first object and spawned new one
+        expect(game.currentPiece).not.toBe(firstPiece);
+        // Grid at old position should be filled
+        expect(game.board.grid[19][5]).not.toBe(0); // Assuming center x=4/5 and O layout
+    });
+
+    it('should detect game over', () => {
+        game = new Game();
+        // Block top area completely to ensure any piece collides
+        game.board.grid[0].fill(1);
+        game.board.grid[1].fill(1);
+        game.board.grid[2].fill(1);
+        game.start();
+
+        expect(game.gameOver).toBe(true);
+    });
 });

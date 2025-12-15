@@ -13,14 +13,18 @@ export class Game {
         this.position = { x: 0, y: 0 };
     }
 
+    gameOver: boolean = false;
     private dropTimer: number = 0;
     private dropInterval: number = 1000; // 1 second
 
     start(): void {
+        this.gameOver = false;
         this.spawnPiece();
     }
 
     update(deltaTime: number): void {
+        if (this.gameOver) return;
+
         this.dropTimer += deltaTime;
         if (this.dropTimer > this.dropInterval) {
             this.moveDown();
@@ -32,11 +36,18 @@ export class Game {
         const types: any[] = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
         const type = types[Math.floor(Math.random() * types.length)];
         this.currentPiece = new Tetromino(type);
+
         // Center the piece
         this.position = {
             x: Math.floor((this.board.width - this.currentPiece.shape[0].length) / 2),
             y: 0
         };
+
+        // Check collision immediately
+        if (!this.board.isValidPosition(this.currentPiece, this.position.x, this.position.y)) {
+            this.gameOver = true;
+            this.currentPiece = null; // Clean up
+        }
     }
 
     private moveDown(): void {
@@ -44,7 +55,14 @@ export class Game {
             if (this.board.isValidPosition(this.currentPiece, this.position.x, this.position.y + 1)) {
                 this.position.y += 1;
             } else {
-                // Lock piece logic would go here
+                // Lock piece
+                this.board.lockPiece(this.currentPiece, this.position.x, this.position.y);
+
+                // Clear lines
+                this.board.clearLines();
+
+                // Spawn next
+                this.spawnPiece();
             }
         }
     }
