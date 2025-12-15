@@ -2,10 +2,18 @@ import { Board } from './Board';
 import { Tetromino } from './Tetromino';
 import { GameAction } from './InputHandler';
 
+export interface Effect {
+    type: 'LINE_CLEAR';
+    y: number;
+    timeLeft: number;
+    color: string;
+}
+
 export class Game {
     board: Board;
     currentPiece: Tetromino | null;
     position: { x: number, y: number };
+    effects: Effect[] = [];
 
     constructor() {
         this.board = new Board();
@@ -52,6 +60,12 @@ export class Game {
             this.moveDown();
             this.dropTimer = 0;
         }
+
+        // Update effects
+        this.effects = this.effects.filter(e => {
+            e.timeLeft -= deltaTime;
+            return e.timeLeft > 0;
+        });
     }
 
     private generatePiece(): Tetromino {
@@ -89,10 +103,30 @@ export class Game {
                 // Lock piece
                 this.board.lockPiece(this.currentPiece, this.position.x, this.position.y);
 
-                const cleared = this.board.clearLines();
-                if (cleared > 0) {
-                    this.lines += cleared;
-                    this.score += cleared * 100;
+                const { count, indices } = this.board.clearLines();
+                if (count > 0) {
+                    this.lines += count;
+                    this.score += count * 100;
+
+                    // Select color based on number of lines cleared
+                    let effectColor = '#ffffff'; // Default white
+                    switch (count) {
+                        case 1: effectColor = '#00f0f0'; break; // Cyan (Single)
+                        case 2: effectColor = '#00f000'; break; // Green (Double)
+                        case 3: effectColor = '#f0a000'; break; // Orange (Triple)
+                        case 4: effectColor = '#f0f000'; break; // Yellow (Tetris)
+                    }
+
+                    // Add effects
+                    indices.forEach(y => {
+                        this.effects.push({
+                            type: 'LINE_CLEAR',
+                            y: y,
+                            timeLeft: 500, // 500ms effect
+                            color: effectColor
+                        });
+                    });
+
                     // Level up logic (every 10 lines)
                     this.level = Math.floor(this.lines / 10) + 1;
                     // Speed up?
