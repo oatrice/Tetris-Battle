@@ -3,6 +3,7 @@ import { Game } from './game/Game';
 import { Renderer } from './game/Renderer';
 import { InputHandler, GameAction } from './game/InputHandler';
 import { GameUI } from './game/GameUI';
+import { registerSW } from './pwa/registerSW';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
@@ -24,6 +25,9 @@ const inputHandler = new InputHandler();
 const ui = new GameUI(game, app);
 
 ui.init();
+
+// Register Service Worker for Offline capabilities
+registerSW();
 
 // Start Game
 game.start();
