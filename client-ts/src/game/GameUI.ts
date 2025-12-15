@@ -41,7 +41,7 @@ export class GameUI {
                 this.root.appendChild(modeDisplay);
             }
         }
-        modeDisplay.textContent = `Mode: ${this.game.mode}`;
+        modeDisplay.textContent = `Mode: ${this.game.mode} | Player: ${this.game.playerName}`;
 
         // 2. Create Menu
         // Styles are handled in style.css targeting #pauseMenu
@@ -75,6 +75,11 @@ export class GameUI {
             if (newName && newName.trim().length > 0) {
                 this.game.setPlayerName(newName.trim());
                 alert(`Name changed to: ${this.game.playerName}`);
+                // Update display
+                const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
+                if (modeDisplay) {
+                    modeDisplay.textContent = `Mode: ${this.game.mode} | Player: ${this.game.playerName}`;
+                }
             }
         });
 
