@@ -38,6 +38,18 @@ export class Renderer {
             });
         });
 
+        // Draw Ghost Piece
+        if (game.currentPiece) {
+            const ghostPos = game.getGhostPosition();
+            game.currentPiece.shape.forEach((row, r) => {
+                row.forEach((cell, c) => {
+                    if (cell !== 0) {
+                        this.drawBlock(ghostPos.x + c, ghostPos.y + r, 'rgba(255, 255, 255, 0.2)');
+                    }
+                });
+            });
+        }
+
         // Draw Current Piece
         if (game.currentPiece) {
             game.currentPiece.shape.forEach((row, r) => {

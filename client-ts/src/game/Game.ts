@@ -140,6 +140,23 @@ export class Game {
                 this.moveDown();
                 this.score += 1; // Bonus for soft drop
                 break;
+            case GameAction.HARD_DROP:
+                while (this.board.isValidPosition(this.currentPiece, this.position.x, this.position.y + 1)) {
+                    this.position.y++;
+                    this.score += 2; // Bonus for hard drop
+                }
+                this.moveDown(); // Triggers lock
+                break;
         }
+    }
+    getGhostPosition(): { x: number, y: number } {
+        if (!this.currentPiece) return { x: 0, y: 0 };
+
+        let ghostY = this.position.y;
+        while (this.board.isValidPosition(this.currentPiece, this.position.x, ghostY + 1)) {
+            ghostY++;
+        }
+
+        return { x: this.position.x, y: ghostY };
     }
 }

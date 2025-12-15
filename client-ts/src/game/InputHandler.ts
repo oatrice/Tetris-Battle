@@ -3,6 +3,7 @@ export enum GameAction {
     MOVE_RIGHT = 'MOVE_RIGHT',
     ROTATE_CW = 'ROTATE_CW',
     SOFT_DROP = 'SOFT_DROP',
+    HARD_DROP = 'HARD_DROP',
     PAUSE = 'PAUSE',
     RESTART = 'RESTART'
 }
@@ -13,6 +14,7 @@ export class InputHandler {
         ArrowRight: GameAction.MOVE_RIGHT,
         ArrowUp: GameAction.ROTATE_CW,
         ArrowDown: GameAction.SOFT_DROP,
+        Space: GameAction.HARD_DROP,
         KeyP: GameAction.PAUSE,
         KeyR: GameAction.RESTART
     };

@@ -12,7 +12,7 @@ app.innerHTML = `
         <button id="pauseBtn">Pause</button>
     </div>
     <canvas id="gameCanvas" width="480" height="600"></canvas>
-    <p>Use Arrow keys to move/rotate</p>
+    <p>Arrows to Move/Rotate | Space to Hard Drop | P to Pause</p>
   </div>
 `;
 
