@@ -36,3 +36,5 @@ client/TetrisClient
 client-ts/node_modules/
 client-ts/dist/
 client-ts/coverage/
+*.result.json
+result.json
