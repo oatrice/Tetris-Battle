@@ -42,13 +42,14 @@ describe('GameUI', () => {
         expect(game.isPaused).toBe(false);
     });
 
-    it('should have Restart, Rename, and Quit options in the menu', () => {
+    it('should have Resume, Restart, and Rename options in the menu', () => {
         ui.init();
         const menu = root.querySelector('#pauseMenu') as HTMLElement;
 
+        expect(menu.textContent).toContain('Resume');
         expect(menu.textContent).toContain('Restart');
         expect(menu.textContent).toContain('Rename');
-        expect(menu.textContent).toContain('Quit');
+        expect(menu.textContent).toContain('Leaderboard');
     });
 
     it('should restart game when Restart option is clicked', () => {
