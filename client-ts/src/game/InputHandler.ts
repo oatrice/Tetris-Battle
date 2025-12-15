@@ -54,7 +54,7 @@ export class InputHandler {
         } else {
             // Vertical Swipe
             if (Math.abs(dy) > this.SWIPE_THRESHOLD) {
-                return dy > 0 ? GameAction.SOFT_DROP : GameAction.HARD_DROP;
+                return dy > 0 ? GameAction.HARD_DROP : GameAction.SOFT_DROP;
             }
         }
 
