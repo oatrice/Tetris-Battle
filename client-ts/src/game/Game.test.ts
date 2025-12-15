@@ -68,11 +68,18 @@ describe('Game', () => {
 
     it('should lock piece and spawn new one when hitting bottom', () => {
         game.start();
-        const firstPiece = game.currentPiece;
 
-        // Simulate drop to bottom
-        // We can manually set position to bottom-1
-        if (!firstPiece) throw new Error('Piece not spawned');
+        // Force specific piece to insure deterministic behavior (O piece is safe)
+        const oPiece = new Tetromino('O'); // [[1,1],[1,1]]
+        // Mock shape if Tetromino is complex, but 'O' is standard.
+        // We assume Tetromino class works.
+
+        game.currentPiece = oPiece;
+        // Adjust position logic if necessary, but update() uses currentPiece
+        // Ensure x is consistent
+        game.position.x = 4;
+
+        const firstPiece = game.currentPiece;
 
         // Position at bottom (height - shape height)
         // For O (2x2), y = 18. Move to 19 is valid? No, 19 + 2 = 21 (OOB).
