@@ -38,3 +38,4 @@ client-ts/dist/
 client-ts/coverage/
 *.result.json
 result.json
+client-ts/node_modules/.vite/vitest/results.json

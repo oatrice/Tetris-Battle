@@ -56,6 +56,30 @@ export class Renderer {
 
         // Draw Stats
         this.drawStats(game, 11, 7);
+
+        // Draw Pause/Game Over Overlay
+        if (game.gameOver) {
+            this.drawOverlay('GAME OVER');
+        } else if (game.isPaused) {
+            this.drawOverlay('PAUSED');
+        }
+    }
+
+    private drawOverlay(text: string): void {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(0, 0, 10 * this.cellSize, this.canvas.height);
+
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = 'bold 32px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+
+        const boardWidth = 10 * this.cellSize;
+        this.ctx.fillText(text, boardWidth / 2, this.canvas.height / 2);
+
+        // Reset
+        this.ctx.textAlign = 'start';
+        this.ctx.textBaseline = 'alphabetic';
     }
 
     private drawStats(game: Game, offsetX: number, offsetY: number): void {
