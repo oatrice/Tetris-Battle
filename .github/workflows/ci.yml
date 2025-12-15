@@ -6,28 +6,6 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
-jobs:
-  # Keep legacy C++ build for now until fully migrated
-  build-cpp:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Install Dependencies (Raylib)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev wayland-protocols libwayland-dev libxkbcommon-dev
-
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/client/build -S ${{github.workspace}}/client
-
-    - name: Build
-      run: cmake --build ${{github.workspace}}/client/build
-
-    - name: Test
-      working-directory: ${{github.workspace}}/client/build
-      run: ctest --output-on-failure
-
   build-ts:
     runs-on: ubuntu-latest
     defaults:
