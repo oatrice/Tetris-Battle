@@ -27,7 +27,7 @@ export class GameUI {
         }
 
         // 1.5 Setup Mode Display
-        let modeDisplay = this.root.querySelector('#modeDisplay');
+        let modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (!modeDisplay) {
             modeDisplay = document.createElement('div');
             modeDisplay.id = 'modeDisplay';
