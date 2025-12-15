@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Game } from './Game';
 import { Tetromino } from './Tetromino';
+import { GameAction } from './InputHandler';
 
 describe('Game', () => {
     let game: Game;
@@ -41,13 +42,11 @@ describe('Game', () => {
         const startX = game.position.x;
 
         // Move Left (assuming not blocked)
-        // We need to expose a method to handle arbitrary actions or call moveLeft directly
-        // Let's assume game.handleAction is the interface
-        game.handleAction('MOVE_LEFT');
+        game.handleAction(GameAction.MOVE_LEFT);
         expect(game.position.x).toBe(startX - 1);
 
-        game.handleAction('MOVE_RIGHT'); // Back to start
-        game.handleAction('MOVE_RIGHT'); // One right
+        game.handleAction(GameAction.MOVE_RIGHT); // Back to start
+        game.handleAction(GameAction.MOVE_RIGHT); // One right
         expect(game.position.x).toBe(startX + 1);
     });
 
@@ -61,7 +60,7 @@ describe('Game', () => {
 
         if (game.currentPiece) {
             const shapeBefore = JSON.stringify(game.currentPiece.shape);
-            game.handleAction('ROTATE_CW');
+            game.handleAction(GameAction.ROTATE_CW);
             const shapeAfter = JSON.stringify(game.currentPiece.shape);
             expect(shapeBefore).not.toBe(shapeAfter);
         }
@@ -143,5 +142,33 @@ describe('Game', () => {
         expect(game.currentPiece?.type).toBe(initialNextPiece?.type);
         expect(game.nextPiece).not.toBe(initialNextPiece);
         expect(game.nextPiece).toBeDefined();
+    });
+
+    it('should increase score when lines are cleared', () => {
+        game.start();
+        expect(game.score).toBe(0);
+
+        // Mock board.clearLines to return 1
+        game.board.clearLines = () => 1;
+
+        // Trigger an update that causes a lock
+        // We can simulate logic manually or call internal method if we could
+        // But better to use public API or mock dependencies.
+
+        // Since Game.moveDown() calls lockPiece() then clearLines()
+        // We'll trust the flow.
+
+        // Force lock condition
+        game.position.y = 18;
+        game.board.isValidPosition = (_p, _x, y) => {
+            if (y > game.position.y) return false;
+            return true;
+        };
+
+        game.update(1001); // Trigger moveDown -> lock -> clearLines -> update score
+
+        // Basic scoring: 100 per line (simplified)
+        expect(game.score).toBe(100);
+        expect(game.lines).toBe(1);
     });
 });

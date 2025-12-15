@@ -51,8 +51,28 @@ export class Renderer {
 
         // Draw Next Piece Preview
         if (game.nextPiece) {
-            this.drawNextPiece(game.nextPiece, 11, 1); // Draw at (11, 1) - slight offset from board
+            this.drawNextPiece(game.nextPiece, 11, 1); // Draw at (11, 1)
         }
+
+        // Draw Stats
+        this.drawStats(game, 11, 7);
+    }
+
+    private drawStats(game: Game, offsetX: number, offsetY: number): void {
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '20px Arial';
+
+        const x = offsetX * this.cellSize;
+        const yLine = this.cellSize;
+
+        this.ctx.fillText(`SCORE`, x, offsetY * yLine);
+        this.ctx.fillText(`${game.score}`, x, offsetY * yLine + 30);
+
+        this.ctx.fillText(`LEVEL`, x, offsetY * yLine + 80);
+        this.ctx.fillText(`${game.level}`, x, offsetY * yLine + 110);
+
+        this.ctx.fillText(`LINES`, x, offsetY * yLine + 160);
+        this.ctx.fillText(`${game.lines}`, x, offsetY * yLine + 190);
     }
 
     private drawNextPiece(piece: any, offsetX: number, offsetY: number): void {

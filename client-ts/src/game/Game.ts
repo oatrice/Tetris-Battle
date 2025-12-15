@@ -15,11 +15,17 @@ export class Game {
 
     gameOver: boolean = false;
     nextPiece: Tetromino | null = null;
+    score: number = 0;
+    lines: number = 0;
+    level: number = 1;
     private dropTimer: number = 0;
     private dropInterval: number = 1000; // 1 second
 
     start(): void {
         this.gameOver = false;
+        this.score = 0;
+        this.lines = 0;
+        this.level = 1;
         this.nextPiece = this.generatePiece(); // Pre-generate
         this.spawnPiece();
     }
@@ -69,51 +75,46 @@ export class Game {
                 // Lock piece
                 this.board.lockPiece(this.currentPiece, this.position.x, this.position.y);
 
-                // Clear lines
-                this.board.clearLines();
-
-                // Spawn next
+                const cleared = this.board.clearLines();
+                if (cleared > 0) {
+                    this.lines += cleared;
+                    this.score += cleared * 100;
+                    // Level up logic (every 10 lines)
+                    this.level = Math.floor(this.lines / 10) + 1;
+                    // Speed up?
+                    this.dropInterval = Math.max(100, 1000 - (this.level - 1) * 100);
+                }
                 this.spawnPiece();
             }
         }
     }
 
-    handleAction(action: GameAction | string): void {
-        if (!this.currentPiece) return;
+    handleAction(action: GameAction): void {
+        if (this.gameOver || !this.currentPiece) return;
 
         switch (action) {
             case GameAction.MOVE_LEFT:
-            case 'MOVE_LEFT':
                 if (this.board.isValidPosition(this.currentPiece, this.position.x - 1, this.position.y)) {
-                    this.position.x -= 1;
+                    this.position.x--;
                 }
                 break;
             case GameAction.MOVE_RIGHT:
-            case 'MOVE_RIGHT':
                 if (this.board.isValidPosition(this.currentPiece, this.position.x + 1, this.position.y)) {
-                    this.position.x += 1;
+                    this.position.x++;
                 }
                 break;
             case GameAction.ROTATE_CW:
-            case 'ROTATE_CW':
                 this.currentPiece.rotate();
                 if (!this.board.isValidPosition(this.currentPiece, this.position.x, this.position.y)) {
-                    // Wall kick (basic: try moving left/right)
-                    // For now, simplify: if invalid, rotate back
-                    // To rotate back we need separate logic or 3 more rotates.
-                    // Let's assume naive rotation first: just revert manual deep copy or re-rotate 3 times?
-                    // Since Tetromino.rotate() mutates, we need to revert it.
-                    // Or clone before rotate.
-                    // Simple revert: rotate 3 times (270 deg)
+                    // Revert by rotating 3 times (270 degrees)
                     this.currentPiece.rotate();
                     this.currentPiece.rotate();
                     this.currentPiece.rotate();
                 }
                 break;
             case GameAction.SOFT_DROP:
-            case 'SOFT_DROP':
                 this.moveDown();
-                // Reset timer if moved by user? Optional design choice.
+                this.score += 1; // Bonus for soft drop
                 break;
         }
     }
