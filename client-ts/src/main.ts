@@ -1,7 +1,7 @@
 import './style.css'
 import { Game } from './game/Game';
 import { Renderer } from './game/Renderer';
-import { InputHandler } from './game/InputHandler';
+import { InputHandler, GameAction } from './game/InputHandler';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
@@ -24,16 +24,20 @@ const game = new Game();
 const renderer = new Renderer(canvas);
 const inputHandler = new InputHandler();
 
+function updatePauseBtn() {
+  pauseBtn.textContent = game.isPaused ? 'Resume' : 'Pause';
+}
+
 // UI Bindings
 restartBtn.addEventListener('click', () => {
   game.restart();
-  pauseBtn.textContent = 'Pause';
+  updatePauseBtn();
   restartBtn.blur(); // Release focus for keyboard inputs
 });
 
 pauseBtn.addEventListener('click', () => {
   game.togglePause();
-  pauseBtn.textContent = game.isPaused ? 'Resume' : 'Pause';
+  updatePauseBtn();
   pauseBtn.blur();
 });
 
@@ -45,6 +49,10 @@ window.addEventListener('keydown', (e) => {
   const action = inputHandler.handleInput(e);
   if (action) {
     game.handleAction(action);
+    // Sync UI if needed
+    if (action === GameAction.PAUSE || action === GameAction.RESTART) {
+      updatePauseBtn();
+    }
   }
 });
 

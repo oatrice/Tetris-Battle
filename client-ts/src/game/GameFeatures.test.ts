@@ -1,6 +1,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Game } from './Game';
+import { GameAction } from './InputHandler';
 
 describe('Game Features', () => {
     let game: Game;
@@ -59,6 +60,28 @@ describe('Game Features', () => {
             expect(game.isPaused).toBe(true);
             game.restart();
             expect(game.isPaused).toBe(false);
+        });
+    });
+
+    describe('Keyboard Shortcuts', () => {
+        it('should pause game when PAUSE action is received', () => {
+            game.handleAction(GameAction.PAUSE);
+            expect(game.isPaused).toBe(true);
+            game.handleAction(GameAction.PAUSE);
+            expect(game.isPaused).toBe(false);
+        });
+
+        it('should restart game when RESTART action is received', () => {
+            game.start();
+            game.score = 100;
+            game.handleAction(GameAction.RESTART);
+            expect(game.score).toBe(0);
+        });
+
+        it('should allow restart even if game over', () => {
+            game.gameOver = true;
+            game.handleAction(GameAction.RESTART);
+            expect(game.gameOver).toBe(false);
         });
     });
 });

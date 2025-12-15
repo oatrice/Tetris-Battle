@@ -23,4 +23,14 @@ describe('InputHandler', () => {
         const invalidEvent = new KeyboardEvent('keydown', { code: 'KeyQ' });
         expect(handler.handleInput(invalidEvent)).toBeNull();
     });
+
+    it('should map P and R keys to shortcuts', () => {
+        const handler = new InputHandler();
+
+        const pauseEvent = new KeyboardEvent('keydown', { code: 'KeyP' });
+        expect(handler.handleInput(pauseEvent)).toBe('PAUSE');
+
+        const restartEvent = new KeyboardEvent('keydown', { code: 'KeyR' });
+        expect(handler.handleInput(restartEvent)).toBe('RESTART');
+    });
 });

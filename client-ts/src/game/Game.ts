@@ -104,7 +104,17 @@ export class Game {
     }
 
     handleAction(action: GameAction): void {
-        if (this.gameOver || !this.currentPiece) return;
+        if (action === GameAction.RESTART) {
+            this.restart();
+            return;
+        }
+
+        if (action === GameAction.PAUSE) {
+            this.togglePause();
+            return;
+        }
+
+        if (this.gameOver || this.isPaused || !this.currentPiece) return;
 
         switch (action) {
             case GameAction.MOVE_LEFT:
