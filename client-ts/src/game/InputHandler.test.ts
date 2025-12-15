@@ -94,5 +94,34 @@ describe('InputHandler', () => {
             expect(handler.handleTouchEnd(end)).toBe(GameAction.SOFT_DROP);
             vi.useRealTimers();
         });
+        it('should detect continuous swipe (DAS)', () => {
+            const handler = new InputHandler();
+            const start = {
+                changedTouches: [{ clientX: 100, clientY: 100 }]
+            } as unknown as TouchEvent;
+
+            const move1 = {
+                changedTouches: [{ clientX: 135, clientY: 100 }] // +35
+            } as unknown as TouchEvent;
+
+            const move2 = {
+                changedTouches: [{ clientX: 170, clientY: 100 }] // +35 from move1
+            } as unknown as TouchEvent;
+
+            const end = {
+                changedTouches: [{ clientX: 175, clientY: 100 }]
+            } as unknown as TouchEvent;
+
+            handler.handleTouchStart(start);
+
+            // First move
+            expect(handler.handleTouchMove(move1)).toBe(GameAction.MOVE_RIGHT);
+
+            // Second move
+            expect(handler.handleTouchMove(move2)).toBe(GameAction.MOVE_RIGHT);
+
+            // End - shouldn't trigger tap or another move if small delta remains
+            expect(handler.handleTouchEnd(end)).toBeNull();
+        });
     });
 });

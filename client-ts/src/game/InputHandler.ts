@@ -30,12 +30,30 @@ export class InputHandler {
 
     private touchStartTime: number = 0;
     private readonly LONG_PRESS_THRESHOLD = 200; // ms
+    private touchMoved: boolean = false;
 
     handleTouchStart(event: TouchEvent): void {
         const touch = event.changedTouches[0];
         this.touchStartX = touch.clientX;
         this.touchStartY = touch.clientY;
         this.touchStartTime = Date.now();
+        this.touchMoved = false;
+    }
+
+    handleTouchMove(event: TouchEvent): GameAction | null {
+        const touch = event.changedTouches[0];
+        const dx = touch.clientX - this.touchStartX;
+        const dy = touch.clientY - this.touchStartY;
+
+        if (Math.abs(dx) > this.SWIPE_THRESHOLD) {
+            // Only handle horizontal here for DAS
+            if (Math.abs(dx) > Math.abs(dy)) {
+                this.touchStartX = touch.clientX; // Reset start for next step
+                this.touchMoved = true;
+                return dx > 0 ? GameAction.MOVE_RIGHT : GameAction.MOVE_LEFT;
+            }
+        }
+        return null;
     }
 
     handleTouchEnd(event: TouchEvent): GameAction | null {
@@ -47,7 +65,7 @@ export class InputHandler {
         const dy = touchEndY - this.touchStartY;
         const duration = Date.now() - this.touchStartTime;
 
-        if (Math.abs(dx) < this.TAP_THRESHOLD && Math.abs(dy) < this.TAP_THRESHOLD) {
+        if (!this.touchMoved && Math.abs(dx) < this.TAP_THRESHOLD && Math.abs(dy) < this.TAP_THRESHOLD) {
             if (duration > this.LONG_PRESS_THRESHOLD) {
                 return GameAction.SOFT_DROP;
             }
@@ -55,12 +73,19 @@ export class InputHandler {
         }
 
         if (Math.abs(dx) > Math.abs(dy)) {
-            // Horizontal Swipe
+            // Horizontal Swipe (Remainder)
             if (Math.abs(dx) > this.SWIPE_THRESHOLD) {
                 return dx > 0 ? GameAction.MOVE_RIGHT : GameAction.MOVE_LEFT;
             }
         } else {
-            // Vertical Swipe
+            // Vertical Swipe - Should we allow vertical if moved horizontally?
+            // Usually not mixed. Let's rely on checking if it's "mostly vertical".
+            // If we moved horizontally, touchStartX shifted, so dx is small.
+            // dy is still valid against touchStartY.
+
+            // However, we want to prevent accidental hard drops after DAS.
+            // But if user drags Right then Down?
+            // Let's allow it if it clears threshold.
             if (Math.abs(dy) > this.SWIPE_THRESHOLD) {
                 return dy > 0 ? GameAction.HARD_DROP : GameAction.SOFT_DROP;
             }
