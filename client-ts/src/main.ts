@@ -12,7 +12,7 @@ app.innerHTML = `
     <div class="ui-controls" style="margin-bottom: 1rem;">
         <button id="pauseBtn">Pause</button>
         <button id="fullscreenBtn" style="margin-left: 10px;">Full Screen</button>
-        <button id="installBtn" style="display: none; margin-left: 10px;">Install App</button>
+        <button id="installBtn" style="margin-left: 10px;">Install App</button>
     </div>
     <canvas id="gameCanvas" width="480" height="600"></canvas>
     <p>Arrows to Move/Rotate | Space to Hard Drop | P to Pause</p>
@@ -43,21 +43,21 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   // Stash the event so it can be triggered later.
   deferredPrompt = e;
-  // Update UI notify the user they can install the PWA
-  if (installBtn) {
-    installBtn.style.display = 'inline-block';
-
-    installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        deferredPrompt = null;
-        installBtn.style.display = 'none';
-      }
-    });
-  }
+  console.log('beforeinstallprompt fired');
 });
+
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
+      deferredPrompt = null;
+    } else {
+      alert('To install, please use your browser menu (Add to Home Screen).');
+    }
+  });
+}
 
 
 const game = new Game();
