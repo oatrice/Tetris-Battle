@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { InputHandler, GameAction } from './InputHandler';
 
 describe('InputHandler', () => {
@@ -32,5 +32,96 @@ describe('InputHandler', () => {
 
         const restartEvent = new KeyboardEvent('keydown', { code: 'KeyR' });
         expect(handler.handleInput(restartEvent)).toBe('RESTART');
+    });
+
+    describe('Gestures', () => {
+        const createTouchEvents = (startX: number, startY: number, endX: number, endY: number) => {
+            // Mocking TouchEvent for simplicity in JSDOM environment
+            const start = {
+                changedTouches: [{ clientX: startX, clientY: startY }]
+            } as unknown as TouchEvent;
+
+            const end = {
+                changedTouches: [{ clientX: endX, clientY: endY }]
+            } as unknown as TouchEvent;
+
+            return { start, end };
+        };
+
+        it('should detect swipe left', () => {
+            const handler = new InputHandler();
+            const { start, end } = createTouchEvents(100, 100, 40, 100);
+            handler.handleTouchStart(start);
+            expect(handler.handleTouchEnd(end)).toBe(GameAction.MOVE_LEFT);
+        });
+
+        it('should detect swipe right', () => {
+            const handler = new InputHandler();
+            const { start, end } = createTouchEvents(100, 100, 160, 100);
+            handler.handleTouchStart(start);
+            expect(handler.handleTouchEnd(end)).toBe(GameAction.MOVE_RIGHT);
+        });
+
+        it('should detect swipe down (hard drop)', () => {
+            const handler = new InputHandler();
+            const { start, end } = createTouchEvents(100, 100, 100, 160);
+            handler.handleTouchStart(start);
+            expect(handler.handleTouchEnd(end)).toBe(GameAction.HARD_DROP);
+        });
+
+        it('should detect swipe up (soft drop)', () => {
+            const handler = new InputHandler();
+            const { start, end } = createTouchEvents(100, 100, 100, 40);
+            handler.handleTouchStart(start);
+            expect(handler.handleTouchEnd(end)).toBe(GameAction.SOFT_DROP);
+        });
+
+        it('should detect tap (rotate)', () => {
+            const handler = new InputHandler();
+            const { start, end } = createTouchEvents(100, 100, 102, 102);
+            handler.handleTouchStart(start);
+            expect(handler.handleTouchEnd(end)).toBe(GameAction.ROTATE_CW);
+        });
+
+        it('should detect long touch (soft drop)', () => {
+            vi.useFakeTimers();
+            const handler = new InputHandler();
+            const { start, end } = createTouchEvents(100, 100, 102, 102);
+
+            handler.handleTouchStart(start);
+            vi.advanceTimersByTime(300); // Advance time passed threshold
+
+            expect(handler.handleTouchEnd(end)).toBe(GameAction.SOFT_DROP);
+            vi.useRealTimers();
+        });
+        it('should detect continuous swipe (DAS)', () => {
+            const handler = new InputHandler();
+            const start = {
+                changedTouches: [{ clientX: 100, clientY: 100 }]
+            } as unknown as TouchEvent;
+
+            const move1 = {
+                changedTouches: [{ clientX: 135, clientY: 100 }] // +35
+            } as unknown as TouchEvent;
+
+            const move2 = {
+                changedTouches: [{ clientX: 170, clientY: 100 }] // +35 from move1
+            } as unknown as TouchEvent;
+
+            const end = {
+                changedTouches: [{ clientX: 175, clientY: 100 }]
+            } as unknown as TouchEvent;
+
+            handler.handleTouchStart(start);
+
+            // First move
+            expect(handler.handleTouchMove(move1)).toBe(GameAction.MOVE_RIGHT);
+
+            // Second move
+            expect(handler.handleTouchMove(move2)).toBe(GameAction.MOVE_RIGHT);
+
+            // End - shouldn't trigger tap or another move if small delta remains
+            expect(handler.handleTouchEnd(end)).toBeNull();
+        });
     });
 });
