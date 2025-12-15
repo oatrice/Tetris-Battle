@@ -41,7 +41,7 @@ export class GameUI {
                 this.root.appendChild(modeDisplay);
             }
         }
-        modeDisplay.textContent = `Mode: ${this.game.mode} | Player: ${this.game.playerName}`;
+        modeDisplay.innerHTML = `Mode: ${this.game.mode} | Player: ${this.game.playerName}<br><span style="font-size: 0.8em; color: #888;">v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__BUILD_DATE__).toLocaleString()}</span>`;
 
         // 2. Create Menu
         // Styles are handled in style.css targeting #pauseMenu
