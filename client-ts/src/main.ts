@@ -63,6 +63,8 @@ window.addEventListener('touchmove', (e) => {
   if (e.target === canvas) {
     e.preventDefault();
   }
+  const action = inputHandler.handleTouchMove(e);
+  handleGameAction(action);
 }, { passive: false });
 
 window.addEventListener('touchend', (e) => {
