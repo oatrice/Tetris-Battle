@@ -93,16 +93,15 @@ export class GameUI {
             alert(`🏆 Leaderboard 🏆\n\n${message}`);
         });
 
-        const quitBtn = createMenuItem('menuQuitBtn', 'Quit', () => {
-            console.log('Quit clicked');
-            alert('Quit not implemented');
+        const resumeBtn = createMenuItem('menuResumeBtn', 'Resume', () => {
+            this.toggleMenu();
         });
 
+        this.menu.appendChild(resumeBtn);
         this.menu.appendChild(restartBtn);
         this.menu.appendChild(ghostBtn);
         this.menu.appendChild(renameBtn);
         this.menu.appendChild(leaderboardBtn);
-        this.menu.appendChild(quitBtn);
 
         this.root.appendChild(this.menu);
 
