@@ -26,6 +26,23 @@ export class GameUI {
             }
         }
 
+        // 1.5 Setup Mode Display
+        let modeDisplay = this.root.querySelector('#modeDisplay');
+        if (!modeDisplay) {
+            modeDisplay = document.createElement('div');
+            modeDisplay.id = 'modeDisplay';
+            modeDisplay.style.marginLeft = '1rem';
+            modeDisplay.style.display = 'inline-block';
+
+            const controls = this.root.querySelector('.ui-controls');
+            if (controls) {
+                controls.appendChild(modeDisplay);
+            } else {
+                this.root.appendChild(modeDisplay);
+            }
+        }
+        modeDisplay.textContent = `Mode: ${this.game.mode}`;
+
         // 2. Create Menu
         // Styles are handled in style.css targeting #pauseMenu
         this.menu = document.createElement('div');
