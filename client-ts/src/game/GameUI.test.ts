@@ -94,4 +94,12 @@ describe('GameUI', () => {
         expect(ghostBtn.textContent).toBe('Ghost Piece: ON');
         expect(game.ghostPieceEnabled).toBe(true);
     });
+
+    it('should display the current game mode', () => {
+        ui.init();
+        // Assume there's an element defining the mode
+        const modeDisplay = root.querySelector('#modeDisplay');
+        expect(modeDisplay).not.toBeNull();
+        expect(modeDisplay?.textContent).toContain('Mode: OFFLINE');
+    });
 });

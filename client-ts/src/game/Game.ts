@@ -1,6 +1,7 @@
 import { Board } from './Board';
 import { Tetromino } from './Tetromino';
 import { GameAction } from './InputHandler';
+import { GameMode } from './GameMode';
 
 export interface Effect {
     type: 'LINE_CLEAR';
@@ -15,10 +16,17 @@ export class Game {
     position: { x: number, y: number };
     effects: Effect[] = [];
 
-    constructor() {
+    constructor(mode: GameMode = GameMode.OFFLINE) {
+        this.mode = mode;
         this.board = new Board();
         this.currentPiece = null;
         this.position = { x: 0, y: 0 };
+    }
+
+    mode: GameMode = GameMode.OFFLINE;
+
+    get isOffline(): boolean {
+        return this.mode === GameMode.OFFLINE;
     }
 
     gameOver: boolean = false;
