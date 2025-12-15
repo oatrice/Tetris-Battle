@@ -1,0 +1,21 @@
+{
+    "name": "Tetris Battle TS",
+    "short_name": "Tetris",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#242424",
+    "theme_color": "#242424",
+    "description": "A Tetris Battle game built with TypeScript.",
+    "icons": [
+        {
+            "src": "pwa-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "pwa-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
