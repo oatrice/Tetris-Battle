@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { InputHandler, GameAction } from './InputHandler';
 
 describe('InputHandler', () => {
@@ -81,6 +81,18 @@ describe('InputHandler', () => {
             const { start, end } = createTouchEvents(100, 100, 102, 102);
             handler.handleTouchStart(start);
             expect(handler.handleTouchEnd(end)).toBe(GameAction.ROTATE_CW);
+        });
+
+        it('should detect long touch (soft drop)', () => {
+            vi.useFakeTimers();
+            const handler = new InputHandler();
+            const { start, end } = createTouchEvents(100, 100, 102, 102);
+
+            handler.handleTouchStart(start);
+            vi.advanceTimersByTime(300); // Advance time passed threshold
+
+            expect(handler.handleTouchEnd(end)).toBe(GameAction.SOFT_DROP);
+            vi.useRealTimers();
         });
     });
 });

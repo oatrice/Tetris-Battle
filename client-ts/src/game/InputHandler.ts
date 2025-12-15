@@ -28,10 +28,14 @@ export class InputHandler {
         return this.keyMap[event.code] || null;
     }
 
+    private touchStartTime: number = 0;
+    private readonly LONG_PRESS_THRESHOLD = 200; // ms
+
     handleTouchStart(event: TouchEvent): void {
         const touch = event.changedTouches[0];
         this.touchStartX = touch.clientX;
         this.touchStartY = touch.clientY;
+        this.touchStartTime = Date.now();
     }
 
     handleTouchEnd(event: TouchEvent): GameAction | null {
@@ -41,8 +45,12 @@ export class InputHandler {
 
         const dx = touchEndX - this.touchStartX;
         const dy = touchEndY - this.touchStartY;
+        const duration = Date.now() - this.touchStartTime;
 
         if (Math.abs(dx) < this.TAP_THRESHOLD && Math.abs(dy) < this.TAP_THRESHOLD) {
+            if (duration > this.LONG_PRESS_THRESHOLD) {
+                return GameAction.SOFT_DROP;
+            }
             return GameAction.ROTATE_CW;
         }
 
