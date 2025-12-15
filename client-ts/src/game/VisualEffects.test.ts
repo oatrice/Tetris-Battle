@@ -65,23 +65,55 @@ describe('Visual Effects Logic', () => {
 
         it('should add LineClearEffect when lines are cleared', () => {
             game.start();
-            // Setup board: Row 19 is full except col 0.
-            // We will drop an I piece into col 0.
-            game.board.grid[19] = Array(10).fill(1);
-            game.board.grid[19][0] = 0;
-
-            // We need a piece that fits.
-            // Let's manually set currentPiece to a customized one or just use 'I'.
-            // and position it above the hole.
-
-            // Mocking internal state for test
             // @ts-ignore
-            game.currentPiece = { shape: [[1], [1], [1], [1]], type: 'I', rotate: () => { } }; // Vertical line mock
-            // Actually real Tetromino is better
+            game.board.clearLines = () => ({ count: 1, indices: [19] });
 
-            // ... This setup is complex. 
-            // Simpler approach: If I modify clearLines to return info, 
-            // i can verify game.moveDown() uses it.
+            // Trigger update that calls moveDown (mocking internals or triggering via update)
+            // We need to ensure we get into the logic block. 
+            // Simplest way: manually call the logic that adds effects or mock enough state.
+            // But Game.ts logic is inside private moveDown.
+
+            // Let's rely on the public 'update' method + state setup like in previous tests.
+            game.position.y = 10;
+            game.currentPiece = { type: 'I', shape: [[1]], rotate: () => { } } as any;
+            // Mock isValidPosition to force lock on next update
+            game.board.isValidPosition = (p, x, y) => {
+                return y <= game.position.y; // Allow current, block next
+            };
+
+            // Manually advance timer to trigger drop without expiring effect
+            // @ts-ignore
+            game.dropTimer = 1000;
+            game.update(10);
+
+            expect(game.effects.length).toBe(1);
+            expect(game.effects[0].color).toBeDefined();
+        });
+
+        it('should assign different colors for different clear counts', () => {
+            const clearCounts = [1, 2, 3, 4];
+            const colors = new Set();
+
+            clearCounts.forEach(count => {
+                const g = new Game();
+                g.start();
+                g.currentPiece = { type: 'I', shape: [[1]], rotate: () => { } } as any;
+                g.board.isValidPosition = (p, x, y) => y <= g.position.y;
+
+                // Mock clearLines
+                g.board.clearLines = () => ({ count, indices: Array.from({ length: count }, (_, i) => 19 - i) });
+
+                // @ts-ignore
+                g.dropTimer = 1000;
+                g.update(10);
+
+                if (g.effects.length > 0) {
+                    colors.add(g.effects[0].color);
+                }
+            });
+
+            // Should have 4 distinct colors
+            expect(colors.size).toBe(4);
         });
     });
 });

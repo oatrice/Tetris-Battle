@@ -6,6 +6,7 @@ export interface Effect {
     type: 'LINE_CLEAR';
     y: number;
     timeLeft: number;
+    color: string;
 }
 
 export class Game {
@@ -107,12 +108,22 @@ export class Game {
                     this.lines += count;
                     this.score += count * 100;
 
+                    // Select color based on number of lines cleared
+                    let effectColor = '#ffffff'; // Default white
+                    switch (count) {
+                        case 1: effectColor = '#00f0f0'; break; // Cyan (Single)
+                        case 2: effectColor = '#00f000'; break; // Green (Double)
+                        case 3: effectColor = '#f0a000'; break; // Orange (Triple)
+                        case 4: effectColor = '#f0f000'; break; // Yellow (Tetris)
+                    }
+
                     // Add effects
                     indices.forEach(y => {
                         this.effects.push({
                             type: 'LINE_CLEAR',
                             y: y,
-                            timeLeft: 500 // 500ms effect
+                            timeLeft: 500, // 500ms effect
+                            color: effectColor
                         });
                     });
 

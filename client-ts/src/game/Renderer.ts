@@ -65,8 +65,11 @@ export class Renderer {
         game.effects.forEach(effect => {
             if (effect.type === 'LINE_CLEAR') {
                 const alpha = effect.timeLeft / 500; // Fade out
-                this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                // this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                this.ctx.globalAlpha = alpha;
+                this.ctx.fillStyle = effect.color;
                 this.ctx.fillRect(0, effect.y * this.cellSize, 10 * this.cellSize, this.cellSize);
+                this.ctx.globalAlpha = 1.0;
             }
         });
 
