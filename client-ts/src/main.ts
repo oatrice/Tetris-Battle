@@ -11,6 +11,7 @@ app.innerHTML = `
     <h1>Tetris Battle TS</h1>
     <div class="ui-controls" style="margin-bottom: 1rem;">
         <button id="pauseBtn">Pause</button>
+        <button id="fullscreenBtn" style="margin-left: 10px;">Full Screen</button>
     </div>
     <canvas id="gameCanvas" width="480" height="600"></canvas>
     <p>Arrows to Move/Rotate | Space to Hard Drop | P to Pause</p>
@@ -18,6 +19,19 @@ app.innerHTML = `
 `;
 
 const canvas = document.querySelector<HTMLCanvasElement>('#gameCanvas')!;
+const fullscreenBtn = document.querySelector<HTMLButtonElement>('#fullscreenBtn');
+
+if (fullscreenBtn) {
+  fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  });
+}
 
 const game = new Game();
 const renderer = new Renderer(canvas);
