@@ -77,7 +77,7 @@ describe('Visual Effects Logic', () => {
             game.position.y = 10;
             game.currentPiece = { type: 'I', shape: [[1]], rotate: () => { } } as any;
             // Mock isValidPosition to force lock on next update
-            game.board.isValidPosition = (p, x, y) => {
+            game.board.isValidPosition = (_p, _x, y) => {
                 return y <= game.position.y; // Allow current, block next
             };
 
@@ -98,7 +98,7 @@ describe('Visual Effects Logic', () => {
                 const g = new Game();
                 g.start();
                 g.currentPiece = { type: 'I', shape: [[1]], rotate: () => { } } as any;
-                g.board.isValidPosition = (p, x, y) => y <= g.position.y;
+                g.board.isValidPosition = (_p, _x, y) => y <= g.position.y;
 
                 // Mock clearLines
                 g.board.clearLines = () => ({ count, indices: Array.from({ length: count }, (_, i) => 19 - i) });
