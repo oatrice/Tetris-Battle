@@ -57,13 +57,13 @@ describe('Board', () => {
             board.grid[19][x] = 1;
         }
         // No clear yet
-        expect(board.clearLines()).toBe(0);
+        expect(board.clearLines().count).toBe(0);
 
         // Fill last cell
         board.grid[19][9] = 1;
 
         // Should clear 1 line
-        expect(board.clearLines()).toBe(1);
+        expect(board.clearLines().count).toBe(1);
 
         // Bottom row should be empty (new row) or filled with row above (0)
         expect(board.grid[19][0]).toBe(0);

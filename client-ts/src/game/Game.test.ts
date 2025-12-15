@@ -152,7 +152,8 @@ describe('Game', () => {
         expect(game.score).toBe(0);
 
         // Mock board.clearLines to return 1
-        game.board.clearLines = () => 1;
+        // @ts-ignore
+        game.board.clearLines = () => ({ count: 1, indices: [19] });
 
         // Trigger an update that causes a lock
         // We can simulate logic manually or call internal method if we could

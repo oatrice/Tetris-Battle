@@ -52,19 +52,28 @@ export class Board {
         }
     }
 
-    clearLines(): number {
-        let linesCleared = 0;
+    clearLines(): { count: number, indices: number[] } {
+        const indices: number[] = [];
 
-        // Filter out full rows
-        // Check from bottom up is optimization, but filter is cleaner code
-        // Check from bottom up is optimization, but filter is cleaner code
-        const newGrid = this.grid.filter(row => row.some(cell => cell === 0));
-        linesCleared = this.height - newGrid.length;
+        // Identify full rows
+        for (let y = 0; y < this.height; y++) {
+            if (this.grid[y].every(cell => cell !== 0)) {
+                indices.push(y);
+            }
+        }
 
-        // Pad new empty rows at top
-        const emptyRows = Array.from({ length: linesCleared }, () => Array(this.width).fill(0));
-        this.grid = [...emptyRows, ...newGrid];
+        if (indices.length > 0) {
+            // Remove full rows - create new grid without them
+            const newGrid = this.grid.filter((_, index) => !indices.includes(index));
+            const linesCleared = indices.length;
 
-        return linesCleared;
+            // Pad new empty rows at top
+            const emptyRows = Array.from({ length: linesCleared }, () => Array(this.width).fill(0));
+            this.grid = [...emptyRows, ...newGrid];
+
+            return { count: linesCleared, indices };
+        }
+
+        return { count: 0, indices: [] };
     }
 }
