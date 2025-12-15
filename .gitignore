@@ -31,3 +31,8 @@ client/build-web/
 client/*.app
 client/TetrisClient
 
+
+# TypeScript Client
+client-ts/node_modules/
+client-ts/dist/
+client-ts/coverage/

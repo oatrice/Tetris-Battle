@@ -12,11 +12,24 @@ export class Renderer {
     }
 
     render(game: Game): void {
-        // Clear
+        // Clear & Backgrounds
+        // Board Area (0-10 columns)
         this.ctx.fillStyle = '#1a1a1a';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, 10 * this.cellSize, this.canvas.height);
 
-        // Draw Board
+        // UI Area (10+ columns)
+        this.ctx.fillStyle = '#222'; // Slightly lighter or different tone
+        this.ctx.fillRect(10 * this.cellSize, 0, this.canvas.width - (10 * this.cellSize), this.canvas.height);
+
+        // Separator Line
+        this.ctx.strokeStyle = '#444';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(10 * this.cellSize, 0);
+        this.ctx.lineTo(10 * this.cellSize, this.canvas.height);
+        this.ctx.stroke();
+
+        // Draw Board Grid
         game.board.grid.forEach((row, y) => {
             row.forEach((cell, x) => {
                 if (cell !== 0) {
@@ -35,6 +48,26 @@ export class Renderer {
                 });
             });
         }
+
+        // Draw Next Piece Preview
+        if (game.nextPiece) {
+            this.drawNextPiece(game.nextPiece, 11, 1); // Draw at (11, 1) - slight offset from board
+        }
+    }
+
+    private drawNextPiece(piece: any, offsetX: number, offsetY: number): void {
+        const previewColor = this.getColor(piece.type);
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '16px Arial';
+        this.ctx.fillText('NEXT', offsetX * this.cellSize, offsetY * this.cellSize - 5);
+
+        piece.shape.forEach((row: number[], r: number) => {
+            row.forEach((cell: number, c: number) => {
+                if (cell !== 0) {
+                    this.drawBlock(offsetX + c, offsetY + r, previewColor);
+                }
+            });
+        });
     }
 
     private drawBlock(x: number, y: number, color: string): void {

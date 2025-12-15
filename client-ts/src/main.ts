@@ -7,7 +7,7 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <div>
     <h1>Tetris Battle TS</h1>
-    <canvas id="gameCanvas" width="300" height="600"></canvas>
+    <canvas id="gameCanvas" width="480" height="600"></canvas>
     <p>Use Arrow keys to move/rotate</p>
   </div>
 `;

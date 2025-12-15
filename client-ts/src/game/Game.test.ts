@@ -104,4 +104,44 @@ describe('Game', () => {
 
         expect(game.gameOver).toBe(true);
     });
+
+    it('should generate next piece and shift it to current piece on spawn', () => {
+        game.start();
+
+        const initialNextPiece = game.nextPiece;
+        expect(initialNextPiece).toBeDefined();
+
+        // Force simple spawn (simulate lock behavior)
+        // We can directly call private method if we cast to any, or trigger update
+        // Let's modify state to trigger lock
+        game.position.y = 18; // Bottom-ish
+        // Determine where it locks efficiently or just call a simpler public method if available?
+        // We don't have public spawn, but start() calls it.
+        // Ideally we want to see the sequence.
+
+        // Let's inspect the queue mechanic.
+        // If we call update with enough time to lock:
+        // game.update(1001) -> moveDown -> lock -> spawnPiece
+
+        // Need to ensure valid position for lock so we don't game over
+        // Let's assume empty board
+        const originalIsValid = game.board.isValidPosition;
+
+        // Move piece to bottom to ensure it locks on next update
+        // Simple hack: mock isValidPosition to return false on move down
+        game.board.isValidPosition = (_p, _x, y) => {
+            // If checking (x, y+1) (move down), fail to trigger lock
+            if (y > game.position.y) return false;
+            return true;
+        };
+
+        game.update(1001); // Trigger lock & spawn
+
+        // Restore
+        game.board.isValidPosition = originalIsValid;
+
+        expect(game.currentPiece?.type).toBe(initialNextPiece?.type);
+        expect(game.nextPiece).not.toBe(initialNextPiece);
+        expect(game.nextPiece).toBeDefined();
+    });
 });
