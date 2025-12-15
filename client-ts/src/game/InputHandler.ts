@@ -19,7 +19,45 @@ export class InputHandler {
         KeyR: GameAction.RESTART
     };
 
+    private touchStartX: number = 0;
+    private touchStartY: number = 0;
+    private readonly SWIPE_THRESHOLD = 30;
+    private readonly TAP_THRESHOLD = 10;
+
     handleInput(event: KeyboardEvent): GameAction | null {
         return this.keyMap[event.code] || null;
+    }
+
+    handleTouchStart(event: TouchEvent): void {
+        const touch = event.changedTouches[0];
+        this.touchStartX = touch.clientX;
+        this.touchStartY = touch.clientY;
+    }
+
+    handleTouchEnd(event: TouchEvent): GameAction | null {
+        const touch = event.changedTouches[0];
+        const touchEndX = touch.clientX;
+        const touchEndY = touch.clientY;
+
+        const dx = touchEndX - this.touchStartX;
+        const dy = touchEndY - this.touchStartY;
+
+        if (Math.abs(dx) < this.TAP_THRESHOLD && Math.abs(dy) < this.TAP_THRESHOLD) {
+            return GameAction.ROTATE_CW;
+        }
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            // Horizontal Swipe
+            if (Math.abs(dx) > this.SWIPE_THRESHOLD) {
+                return dx > 0 ? GameAction.MOVE_RIGHT : GameAction.MOVE_LEFT;
+            }
+        } else {
+            // Vertical Swipe
+            if (Math.abs(dy) > this.SWIPE_THRESHOLD) {
+                return dy > 0 ? GameAction.SOFT_DROP : GameAction.HARD_DROP;
+            }
+        }
+
+        return null;
     }
 }

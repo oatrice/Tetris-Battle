@@ -33,8 +33,7 @@ registerSW();
 game.start();
 
 // Handle Input
-window.addEventListener('keydown', (e) => {
-  const action = inputHandler.handleInput(e);
+const handleGameAction = (action: GameAction | null) => {
   if (action) {
     if (action === GameAction.PAUSE) {
       ui.toggleMenu();
@@ -46,6 +45,30 @@ window.addEventListener('keydown', (e) => {
       }
     }
   }
+};
+
+window.addEventListener('keydown', (e) => {
+  const action = inputHandler.handleInput(e);
+  handleGameAction(action);
+});
+
+// Touch Handling
+window.addEventListener('touchstart', (e) => {
+  if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+  inputHandler.handleTouchStart(e);
+}, { passive: false });
+
+window.addEventListener('touchmove', (e) => {
+  // Prevent scrolling if touching the canvas/game area
+  if (e.target === canvas) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+window.addEventListener('touchend', (e) => {
+  if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+  const action = inputHandler.handleTouchEnd(e);
+  handleGameAction(action);
 });
 
 // Game Loop
