@@ -2,6 +2,7 @@ import { Board } from './Board';
 import { Tetromino } from './Tetromino';
 import { GameAction } from './InputHandler';
 import { GameMode } from './GameMode';
+import { Leaderboard } from './Leaderboard';
 
 export interface Effect {
     type: 'LINE_CLEAR';
@@ -15,18 +16,25 @@ export class Game {
     currentPiece: Tetromino | null;
     position: { x: number, y: number };
     effects: Effect[] = [];
+    leaderboard: Leaderboard;
+    playerName: string = 'Player';
 
     constructor(mode: GameMode = GameMode.OFFLINE) {
         this.mode = mode;
         this.board = new Board();
         this.currentPiece = null;
         this.position = { x: 0, y: 0 };
+        this.leaderboard = new Leaderboard();
     }
 
     mode: GameMode = GameMode.OFFLINE;
 
     get isOffline(): boolean {
         return this.mode === GameMode.OFFLINE;
+    }
+
+    setPlayerName(name: string): void {
+        this.playerName = name;
     }
 
     gameOver: boolean = false;
@@ -104,6 +112,7 @@ export class Game {
         // Check collision immediately
         if (!this.board.isValidPosition(this.currentPiece, this.position.x, this.position.y)) {
             this.gameOver = true;
+            this.leaderboard.addScore(this.playerName, this.score);
             this.currentPiece = null; // Clean up
         }
     }

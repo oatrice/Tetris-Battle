@@ -70,8 +70,23 @@ export class GameUI {
             ghostBtn.textContent = `Ghost Piece: ${this.game.ghostPieceEnabled ? 'ON' : 'OFF'}`;
         });
 
-        const renameBtn = createMenuItem('menuRenameBtn', 'Rename (Next feature)');
-        // renameBtn.disabled = true;
+        const renameBtn = createMenuItem('menuRenameBtn', 'Rename', () => {
+            const newName = prompt('Enter your name:', this.game.playerName);
+            if (newName && newName.trim().length > 0) {
+                this.game.setPlayerName(newName.trim());
+                alert(`Name changed to: ${this.game.playerName}`);
+            }
+        });
+
+        const leaderboardBtn = createMenuItem('menuLeaderboardBtn', 'Leaderboard', () => {
+            const scores = this.game.leaderboard.getTopScores();
+            if (scores.length === 0) {
+                alert('No scores yet!');
+                return;
+            }
+            const message = scores.map((s, i) => `${i + 1}. ${s.name} - ${s.score}`).join('\n');
+            alert(`🏆 Leaderboard 🏆\n\n${message}`);
+        });
 
         const quitBtn = createMenuItem('menuQuitBtn', 'Quit', () => {
             console.log('Quit clicked');
@@ -81,6 +96,7 @@ export class GameUI {
         this.menu.appendChild(restartBtn);
         this.menu.appendChild(ghostBtn);
         this.menu.appendChild(renameBtn);
+        this.menu.appendChild(leaderboardBtn);
         this.menu.appendChild(quitBtn);
 
         this.root.appendChild(this.menu);
