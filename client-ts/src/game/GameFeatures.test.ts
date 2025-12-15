@@ -84,4 +84,42 @@ describe('Game Features', () => {
             expect(game.gameOver).toBe(false);
         });
     });
+    describe('Hard Drop', () => {
+        it('should drop piece to bottom immediately', () => {
+            game.start();
+
+
+            game.handleAction(GameAction.HARD_DROP);
+
+            // Score should increase by 2 * drop distance (> 0)
+            expect(game.score).toBeGreaterThan(0);
+        });
+
+        it('should lock the piece and spawn a new one', () => {
+            game.start();
+            const initialPiece = game.currentPiece;
+
+            game.handleAction(GameAction.HARD_DROP);
+
+            // Current piece should be different (new piece spawned)
+            expect(game.currentPiece).not.toBe(initialPiece);
+        });
+    });
+
+    describe('Ghost Piece', () => {
+        it('should calculate ghost position correctly', () => {
+            game.start();
+            const ghostPos = game.getGhostPosition();
+
+            expect(ghostPos).toBeDefined();
+            expect(ghostPos.x).toBe(game.position.x);
+            expect(ghostPos.y).toBeGreaterThanOrEqual(game.position.y);
+
+            // Validate it is effectively the hard drop position
+            // Verify that moving one more down would be invalid
+            expect(game.board.isValidPosition(game.currentPiece!, ghostPos.x, ghostPos.y)).toBe(true);
+            expect(game.board.isValidPosition(game.currentPiece!, ghostPos.x, ghostPos.y + 1)).toBe(false);
+        });
+    });
 });
+
