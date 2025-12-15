@@ -14,11 +14,13 @@ export class Game {
     }
 
     gameOver: boolean = false;
+    nextPiece: Tetromino | null = null;
     private dropTimer: number = 0;
     private dropInterval: number = 1000; // 1 second
 
     start(): void {
         this.gameOver = false;
+        this.nextPiece = this.generatePiece(); // Pre-generate
         this.spawnPiece();
     }
 
@@ -32,10 +34,19 @@ export class Game {
         }
     }
 
-    private spawnPiece(): void {
+    private generatePiece(): Tetromino {
         const types: any[] = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
         const type = types[Math.floor(Math.random() * types.length)];
-        this.currentPiece = new Tetromino(type);
+        return new Tetromino(type);
+    }
+
+    private spawnPiece(): void {
+        if (!this.nextPiece) {
+            this.nextPiece = this.generatePiece();
+        }
+
+        this.currentPiece = this.nextPiece;
+        this.nextPiece = this.generatePiece();
 
         // Center the piece
         this.position = {
