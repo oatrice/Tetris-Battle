@@ -41,7 +41,7 @@ export class GameUI {
                 this.root.appendChild(modeDisplay);
             }
         }
-        modeDisplay.textContent = `Mode: ${this.game.mode}`;
+        modeDisplay.textContent = `Mode: ${this.game.mode} | Player: ${this.game.playerName}`;
 
         // 2. Create Menu
         // Styles are handled in style.css targeting #pauseMenu
@@ -70,18 +70,38 @@ export class GameUI {
             ghostBtn.textContent = `Ghost Piece: ${this.game.ghostPieceEnabled ? 'ON' : 'OFF'}`;
         });
 
-        const renameBtn = createMenuItem('menuRenameBtn', 'Rename (Next feature)');
-        // renameBtn.disabled = true;
-
-        const quitBtn = createMenuItem('menuQuitBtn', 'Quit', () => {
-            console.log('Quit clicked');
-            alert('Quit not implemented');
+        const renameBtn = createMenuItem('menuRenameBtn', 'Rename', () => {
+            const newName = prompt('Enter your name:', this.game.playerName);
+            if (newName && newName.trim().length > 0) {
+                this.game.setPlayerName(newName.trim());
+                alert(`Name changed to: ${this.game.playerName}`);
+                // Update display
+                const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
+                if (modeDisplay) {
+                    modeDisplay.textContent = `Mode: ${this.game.mode} | Player: ${this.game.playerName}`;
+                }
+            }
         });
 
+        const leaderboardBtn = createMenuItem('menuLeaderboardBtn', 'Leaderboard', () => {
+            const scores = this.game.leaderboard.getTopScores();
+            if (scores.length === 0) {
+                alert('No scores yet!');
+                return;
+            }
+            const message = scores.map((s, i) => `${i + 1}. ${s.name} - ${s.score}`).join('\n');
+            alert(`🏆 Leaderboard 🏆\n\n${message}`);
+        });
+
+        const resumeBtn = createMenuItem('menuResumeBtn', 'Resume', () => {
+            this.toggleMenu();
+        });
+
+        this.menu.appendChild(resumeBtn);
         this.menu.appendChild(restartBtn);
         this.menu.appendChild(ghostBtn);
         this.menu.appendChild(renameBtn);
-        this.menu.appendChild(quitBtn);
+        this.menu.appendChild(leaderboardBtn);
 
         this.root.appendChild(this.menu);
 
