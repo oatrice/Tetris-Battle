@@ -21,17 +21,31 @@ export class Game {
     private dropTimer: number = 0;
     private dropInterval: number = 1000; // 1 second
 
+    isPaused: boolean = false;
+
     start(): void {
         this.gameOver = false;
+        this.isPaused = false;
         this.score = 0;
         this.lines = 0;
         this.level = 1;
+        this.board = new Board(this.board.width, this.board.height); // Reset board
         this.nextPiece = this.generatePiece(); // Pre-generate
         this.spawnPiece();
     }
 
+    restart(): void {
+        this.start();
+    }
+
+    togglePause(): void {
+        if (!this.gameOver) {
+            this.isPaused = !this.isPaused;
+        }
+    }
+
     update(deltaTime: number): void {
-        if (this.gameOver) return;
+        if (this.gameOver || this.isPaused) return;
 
         this.dropTimer += deltaTime;
         if (this.dropTimer > this.dropInterval) {

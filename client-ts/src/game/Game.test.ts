@@ -93,13 +93,16 @@ describe('Game', () => {
         expect(game.board.grid[19][5]).not.toBe(0); // Assuming center x=4/5 and O layout
     });
 
-    it('should detect game over', () => {
-        game = new Game();
-        // Block top area completely to ensure any piece collides
+    it('should detect game over when spawning on full board', () => {
+        game.start();
+        // Fill top rows to cause collision with new piece
         game.board.grid[0].fill(1);
         game.board.grid[1].fill(1);
         game.board.grid[2].fill(1);
-        game.start();
+
+        // Force spawn to trigger collision check
+        // Accessing private method for testing purposes
+        (game as any).spawnPiece();
 
         expect(game.gameOver).toBe(true);
     });

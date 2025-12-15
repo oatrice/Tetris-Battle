@@ -7,15 +7,35 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <div>
     <h1>Tetris Battle TS</h1>
+    <div class="ui-controls" style="margin-bottom: 1rem;">
+        <button id="restartBtn">Restart</button>
+        <button id="pauseBtn">Pause</button>
+    </div>
     <canvas id="gameCanvas" width="480" height="600"></canvas>
     <p>Use Arrow keys to move/rotate</p>
   </div>
 `;
 
 const canvas = document.querySelector<HTMLCanvasElement>('#gameCanvas')!;
+const restartBtn = document.querySelector<HTMLButtonElement>('#restartBtn')!;
+const pauseBtn = document.querySelector<HTMLButtonElement>('#pauseBtn')!;
+
 const game = new Game();
 const renderer = new Renderer(canvas);
 const inputHandler = new InputHandler();
+
+// UI Bindings
+restartBtn.addEventListener('click', () => {
+  game.restart();
+  pauseBtn.textContent = 'Pause';
+  restartBtn.blur(); // Release focus for keyboard inputs
+});
+
+pauseBtn.addEventListener('click', () => {
+  game.togglePause();
+  pauseBtn.textContent = game.isPaused ? 'Resume' : 'Pause';
+  pauseBtn.blur();
+});
 
 // Start Game
 game.start();
