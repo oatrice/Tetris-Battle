@@ -181,9 +181,6 @@ export class GameUI {
         // Add Quit to Home
         const homeBtn = createMenuItem('menuHomeBtn', 'Quit to Home', () => {
             this.hideMenu();
-            this.game.restart(); // Reset game state
-            this.game.togglePause(); // Ensure it acts paused/stopped (restart sets paused=false)
-            this.game.isPaused = true; // Explicitly pause
             this.showHome();
         });
 
@@ -283,6 +280,7 @@ export class GameUI {
 
         this.hideGameOver(); // Ensure overlay is gone
         this.game.start();
+        this.updatePauseBtnText();
     }
 
     showHome() {
