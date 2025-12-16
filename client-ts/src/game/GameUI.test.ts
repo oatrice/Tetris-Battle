@@ -108,7 +108,7 @@ describe('GameUI', () => {
         ui.init();
         const modeDisplay = root.querySelector('#modeDisplay');
         // In test environment, import.meta.env.PROD is false, so it should show version
-        expect(modeDisplay?.innerHTML).toContain('v0.0.0'); // mocked version
+        expect(modeDisplay?.innerHTML).toContain('v0.1.0'); // mocked version
     });
 
     it('should quit to home when Quit to Home option is clicked', () => {

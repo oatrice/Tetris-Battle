@@ -1,5 +1,29 @@
 # Tetris Battle
 
+**🚧 Status: Migrating to TypeScript/Web Client 🚧**
+
+This project is currently being migrated from a C++/Raylib desktop application to a modern **TypeScript/Vite Web Application (PWA)** for better accessibility and cross-platform support.
+
+## 🌟 New TypeScript Client (Recommended)
+
+Please proceed to the `client-ts` directory for the latest version.
+
+- **Directory:** [`/client-ts`](./client-ts)
+- **Tech Stack:** TypeScript, Vite, HTML5 Canvas
+- **Features:** PWA (Offline Support), Mobile Controls, Modern UI
+- **Setup:**
+  ```bash
+  cd client-ts
+  npm install
+  npm run dev
+  ```
+
+---
+
+# Legacy C++ Version (Raylib)
+
+*The documentation below applies to the original C++ implementation.*
+
 A modern Tetris game built with Raylib, featuring single-player, local two-player, and online two-player modes. Compete against friends locally or online to see who can clear lines faster and survive longer!
 
 ## Features

@@ -20,12 +20,14 @@
 *   **Security:** ห้าม Hardcode Secret Keys
 
 ### TypeScript (Client - Web/Canvas)
-*   **Frameworks:** Vite, HTML5 Canvas (No heavy UI frameworks for game loop).
-*   **Style:** Functional + OOP Hybrid (Class for State, Function for Logic).
+*   **Frameworks:** Vite, HTML5 Canvas (Game Loop), DOM (UI Overlay).
+*   **Testing:** Vitest + JSDOM. เน้น TDD Circle (Red -> Green -> Refactor) สำหรับทั้ง Logic (`Game.ts`) และ UI (`GameUI.test.ts`).
+*   **PWA:** Ensure Service Worker updates correctly (`updateViaCache: 'none'`).
+*   **Style:** Functional + OOP Hybrid.
 *   **Performance:**
-    *   หลีกเลี่ยง GC Spike ใน Loop (Reuse objects).
-    *   ใช้ `requestAnimationFrame` สำหรับ Render Loop.
-*   **Type Safety:** `Strict: true`, No `any`.
+    *   Avoid Garbage Collection spikes in loop.
+    *   Use `requestAnimationFrame`.
+*   **Type Safety:** `Strict: true`.
 
 ### Go (Server - WebSocket/Matchmaking)
 *   **Concurrency:** Use Channels & Goroutines. Avoid excessive Mutex locking.

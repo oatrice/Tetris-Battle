@@ -41,14 +41,17 @@ flowchart TD
     style AI_Bot fill:#ff6b6b,stroke:#333
 ```
 
-## 📂 Folder Structure (Proposed)
-*   `src/engine/`: Core Game Logic (Board, Pieces, Rotation System) - *Pure TS, no UI dependency*
-*   `src/renderer/`: Code สำหรับวาดภาพบน Canvas - *Abstracted rendering layer*
-*   `src/input/`: จัดการ Keyboard/Touch Event
-*   `src/network/`: WebSocket client และ Protocol Buffers/JSON handling
-*   `server/`: (Existing Go Code)
+## 📂 Folder Structure (Current Implementation)
+*   `src/game/`: Core Game Logic & State (Game.ts, Board.ts, Tetromino.ts)
+*   `src/game/GameUI.ts`: DOM-based UI Manager (Menus, Buttons, Scoreboard)
+*   `src/game/Renderer.ts`: Canvas Rendering System
+*   `src/pwa/`: Progressive Web App (Service Worker) configuration
+*   `server/`: (Future / Legacy Go Code)
 
 ## 🧩 Key Design Decisions
+1.  **Separation of Concerns:** Split Game Logic (`Game.ts`) from Rendering (`Renderer.ts`) and UI (`GameUI.ts`).
+2.  **Hybrid Rendering:** Use Canvas for the Game Board (High Performance) and DOM/HTML for UI Overlays (Accessibility, Styling).
+3.  **PWA First:** Designed for offline capability and installability on mobile devices.
 1.  **Separation of Concerns:** แยก Game Logic ออกจาก Rendering 100% เพื่อให้เขียน Unit Test ง่าย (TDD)
 2.  **Game Loop:** ใช้ `requestAnimationFrame` สำหรับ Render Loop และ Fixed Time Step สำหรับ Physics/Logic Loop
 3.  **State Management:** สถานะของเกม (Board, Queue, Score) จะถูกเก็บใน State Object กลาง เพื่อให้ง่ายต่อการ Sync กับ Server
