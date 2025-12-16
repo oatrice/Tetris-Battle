@@ -46,6 +46,31 @@ canvas {
   /* Visual border */
 }
 
+/* UI Controls */
+.ui-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.ui-controls button {
+  padding: 8px 16px;
+  cursor: pointer;
+  background-color: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.ui-controls button:hover {
+  background-color: #444;
+}
+
 /* Pause Menu Styles */
 #pauseMenu {
   position: absolute;
