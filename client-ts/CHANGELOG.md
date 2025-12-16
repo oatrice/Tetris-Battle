@@ -1,6 +1,16 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.3.0] - 2025-12-16
+
+### Added
+- **Wall Kicks (SRS):**
+    - Implemented Super Rotation System (SRS) logic.
+    - Allows pieces (T, I, S, Z, L, J) to rotate when obstructed by walls or floor by testing alternative positions.
+    - Enables advanced moves like T-Spins.
+    - Added `WallKick.test.ts` to verify kick tables and behavior.
+
 ## [0.2.0] - 2025-12-16
 
 ### Added
