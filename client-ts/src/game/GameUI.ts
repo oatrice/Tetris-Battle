@@ -38,12 +38,14 @@ export class GameUI {
         if (!modeDisplay) {
             modeDisplay = document.createElement('div');
             modeDisplay.id = 'modeDisplay';
-            modeDisplay.style.marginLeft = '1rem';
+            modeDisplay.style.marginTop = '0'; // Adjusted for placement
             modeDisplay.style.display = 'none'; // Initially hidden
+            modeDisplay.style.marginBottom = '0.5rem';
 
-            const controls = this.root.querySelector('.ui-controls');
-            if (controls) {
-                controls.appendChild(modeDisplay);
+            // Insert before the description paragraph (usually the last p element)
+            const descriptionRef = this.root.querySelector('p');
+            if (descriptionRef && descriptionRef.parentNode) {
+                descriptionRef.parentNode.insertBefore(modeDisplay, descriptionRef);
             } else {
                 this.root.appendChild(modeDisplay);
             }
@@ -59,6 +61,26 @@ export class GameUI {
             this.toggleMenu();
             this.pauseBtn?.blur();
         });
+        // 4. Mobile Enhancements
+        this.preventPullToRefresh();
+    }
+
+    private preventPullToRefresh() {
+        document.body.style.overscrollBehaviorY = 'none';
+        // Disable touch actions like double-tap zoom or pan, but take care not to break scroll if needed.
+        // For Tetris, we generally want to disable all default touch actions on the body.
+        document.body.style.touchAction = 'none';
+
+        // Add a preventative listener as backup for older browsers/contexts
+        window.addEventListener('touchmove', (e) => {
+            // If we are at the top and pulling down
+            if (window.scrollY === 0 && e.touches[0].clientY > 0 && e.cancelable) {
+                // Determine if it looks like a pull-to-refresh
+                // Usually handled by overscroll-behavior, but preventing default here is safe for a game
+                // unless we are in a scrollable container.
+                e.preventDefault();
+            }
+        }, { passive: false });
     }
 
     private createHomeMenu() {
@@ -176,7 +198,7 @@ export class GameUI {
         if (this.homeMenu) this.homeMenu.style.display = 'none';
         if (this.pauseBtn) this.pauseBtn.style.display = 'block';
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
-        if (modeDisplay) modeDisplay.style.display = 'inline-block';
+        if (modeDisplay) modeDisplay.style.display = 'block';
 
         this.game.start();
     }
@@ -213,7 +235,10 @@ export class GameUI {
     updateModeDisplay() {
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) {
-            modeDisplay.innerHTML = `Mode: ${this.game.mode} | Player: ${this.game.playerName}<br><span style="font-size: 0.8em; color: #888;">v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}</span>`;
+            const versionInfo = import.meta.env.PROD
+                ? ''
+                : `<br><span style="font-size: 0.8em; color: #888;">v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}</span>`;
+            modeDisplay.innerHTML = `Player: ${this.game.playerName}${versionInfo}`;
         }
     }
 

@@ -9,10 +9,10 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <div>
     <h1>Tetris Battle TS</h1>
-    <div class="ui-controls" style="margin-bottom: 1rem;">
+    <div class="ui-controls">
         <button id="pauseBtn">Pause</button>
-        <button id="fullscreenBtn" style="margin-left: 10px;">Full Screen</button>
-        <button id="installBtn" style="margin-left: 10px;">Install App</button>
+        <button id="fullscreenBtn">Full Screen</button>
+        <button id="installBtn">Install App</button>
     </div>
     <canvas id="gameCanvas" width="480" height="600"></canvas>
     <p>Arrows to Move/Rotate | Space to Hard Drop | P to Pause</p>
