@@ -11,6 +11,9 @@ export interface Effect {
     color: string;
 }
 
+const INITIAL_DROP_INTERVAL = 1000;
+const MIN_DROP_INTERVAL = 100;
+
 export class Game {
     board: Board;
     currentPiece: Tetromino | null;
@@ -43,7 +46,7 @@ export class Game {
     lines: number = 0;
     level: number = 1;
     private dropTimer: number = 0;
-    private dropInterval: number = 1000; // 1 second
+    private dropInterval: number = INITIAL_DROP_INTERVAL; // 1 second
 
     isPaused: boolean = false;
     ghostPieceEnabled: boolean = true;
@@ -54,6 +57,8 @@ export class Game {
         this.score = 0;
         this.lines = 0;
         this.level = 1;
+        this.dropInterval = INITIAL_DROP_INTERVAL;
+        this.dropTimer = 0;
         this.board = new Board(this.board.width, this.board.height); // Reset board
         this.nextPiece = this.generatePiece(); // Pre-generate
         this.spawnPiece();
@@ -152,7 +157,7 @@ export class Game {
                     // Level up logic (every 10 lines)
                     this.level = Math.floor(this.lines / 10) + 1;
                     // Speed up?
-                    this.dropInterval = Math.max(100, 1000 - (this.level - 1) * 100);
+                    this.dropInterval = Math.max(MIN_DROP_INTERVAL, INITIAL_DROP_INTERVAL - (this.level - 1) * 100);
                 }
                 this.spawnPiece();
             }
