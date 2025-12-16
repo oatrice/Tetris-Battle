@@ -220,7 +220,22 @@ export class Game {
                 break;
             case GameAction.ROTATE_CW:
                 this.currentPiece.rotate();
-                if (!this.board.isValidPosition(this.currentPiece, this.position.x, this.position.y)) {
+                const kicks = this.currentPiece.getWallKicks(this.currentPiece.rotationIndex);
+                let kickSuccess = false;
+
+                for (const kick of kicks) {
+                    const newX = this.position.x + kick.x;
+                    const newY = this.position.y + kick.y;
+
+                    if (this.board.isValidPosition(this.currentPiece, newX, newY)) {
+                        this.position.x = newX;
+                        this.position.y = newY;
+                        kickSuccess = true;
+                        break;
+                    }
+                }
+
+                if (!kickSuccess) {
                     // Revert by rotating 3 times (270 degrees)
                     this.currentPiece.rotate();
                     this.currentPiece.rotate();
