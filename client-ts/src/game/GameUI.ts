@@ -59,6 +59,26 @@ export class GameUI {
             this.toggleMenu();
             this.pauseBtn?.blur();
         });
+        // 4. Mobile Enhancements
+        this.preventPullToRefresh();
+    }
+
+    private preventPullToRefresh() {
+        document.body.style.overscrollBehaviorY = 'none';
+        // Disable touch actions like double-tap zoom or pan, but take care not to break scroll if needed.
+        // For Tetris, we generally want to disable all default touch actions on the body.
+        document.body.style.touchAction = 'none';
+
+        // Add a preventative listener as backup for older browsers/contexts
+        window.addEventListener('touchmove', (e) => {
+            // If we are at the top and pulling down
+            if (window.scrollY === 0 && e.touches[0].clientY > 0 && e.cancelable) {
+                // Determine if it looks like a pull-to-refresh
+                // Usually handled by overscroll-behavior, but preventing default here is safe for a game
+                // unless we are in a scrollable container.
+                e.preventDefault();
+            }
+        }, { passive: false });
     }
 
     private createHomeMenu() {
