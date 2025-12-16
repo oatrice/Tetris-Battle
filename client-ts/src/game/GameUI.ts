@@ -54,6 +54,7 @@ export class GameUI {
 
         // 2. Create Pause Menu
         this.createPauseMenu();
+        this.createGameOverMenu();
 
         // 3. Bind Events
         this.pauseBtn?.addEventListener('click', (e) => {
@@ -180,7 +181,6 @@ export class GameUI {
         // Add Quit to Home
         const homeBtn = createMenuItem('menuHomeBtn', 'Quit to Home', () => {
             this.hideMenu();
-            this.game.gameOver = true; // Stop game loop logic effectively
             this.showHome();
         });
 
@@ -194,13 +194,93 @@ export class GameUI {
         this.root.appendChild(this.menu);
     }
 
+    private createGameOverMenu() {
+        const menu = document.createElement('div');
+        menu.id = 'gameOverMenu';
+        menu.style.display = 'none';
+        menu.classList.add('game-over-menu'); // Re-use or add new class
+
+        // Inline styles for now to match Pause Menu usually, or use CSS class
+        // Making it overlay
+        menu.style.position = 'absolute';
+        menu.style.top = '0';
+        menu.style.left = '0';
+        menu.style.width = '100%';
+        menu.style.height = '100%';
+        menu.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+        menu.style.flexDirection = 'column';
+        menu.style.justifyContent = 'center';
+        menu.style.alignItems = 'center';
+        menu.style.zIndex = '100'; // above everything
+
+        const title = document.createElement('h1');
+        title.textContent = 'GAME OVER';
+        title.style.color = 'white';
+        title.style.fontSize = '3rem';
+        title.style.marginBottom = '2rem';
+        menu.appendChild(title);
+
+        const restartBtn = document.createElement('button');
+        restartBtn.id = 'gameOverRestartBtn';
+        restartBtn.textContent = 'Restart';
+        restartBtn.className = 'menu-btn'; // Use shared class
+        restartBtn.style.fontSize = '1.5rem';
+        restartBtn.style.padding = '15px 40px';
+        restartBtn.style.border = 'none';
+        restartBtn.style.borderRadius = '50px';
+        restartBtn.style.background = 'linear-gradient(45deg, #FF512F 0%, #DD2476 100%)';
+        restartBtn.style.color = 'white';
+        restartBtn.style.cursor = 'pointer';
+        restartBtn.style.boxShadow = '0 10px 20px rgba(0,0,0,0.3)';
+        restartBtn.style.transition = 'transform 0.2s, box-shadow 0.2s';
+
+        // Add simple hover effect via JS since inline
+        restartBtn.onmouseenter = () => {
+            restartBtn.style.transform = 'translateY(-2px)';
+            restartBtn.style.boxShadow = '0 15px 25px rgba(0,0,0,0.4)';
+        };
+        restartBtn.onmouseleave = () => {
+            restartBtn.style.transform = 'translateY(0)';
+            restartBtn.style.boxShadow = '0 10px 20px rgba(0,0,0,0.3)';
+        };
+
+        restartBtn.addEventListener('click', () => {
+            this.game.restart();
+            this.hideGameOver();
+        });
+
+        menu.appendChild(restartBtn);
+        this.root.appendChild(menu);
+        this.gameOverMenu = menu;
+    }
+
+    private gameOverMenu: HTMLElement | null = null;
+
+    showGameOver() {
+        if (this.gameOverMenu) {
+            this.gameOverMenu.style.display = 'flex';
+        }
+        if (this.pauseBtn) this.pauseBtn.style.display = 'none';
+    }
+
+    hideGameOver() {
+        if (this.gameOverMenu) {
+            this.gameOverMenu.style.display = 'none';
+        }
+        this.updatePauseBtnText();
+        // Since restart shows pause button handled in startGame usually
+        if (this.pauseBtn) this.pauseBtn.style.display = 'block';
+    }
+
     startGame() {
         if (this.homeMenu) this.homeMenu.style.display = 'none';
         if (this.pauseBtn) this.pauseBtn.style.display = 'block';
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) modeDisplay.style.display = 'block';
 
+        this.hideGameOver(); // Ensure overlay is gone
         this.game.start();
+        this.updatePauseBtnText();
     }
 
     showHome() {

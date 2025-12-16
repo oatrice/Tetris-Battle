@@ -132,9 +132,10 @@ describe('GameUI', () => {
         // Click quit
         quitBtn.click();
 
-        // Expect: Home visible, Game "stopped" (gameOver=true or running stopped), Pause button hidden
+        // Expect: Home visible, Game "stopped" (gameOver=false but paused), Pause button hidden
         expect(homeMenu.style.display).toBe('flex');
-        expect(game.gameOver).toBe(true);
+        expect(game.gameOver).toBe(false);
+        expect(game.isPaused).toBe(true);
         expect(pauseBtn.style.display).toBe('none');
 
         const menu = root.querySelector('#pauseMenu') as HTMLElement;
