@@ -1,7 +1,15 @@
 # Changelog
 
 ## [Unreleased]
+## [0.2.0] - 2025-12-16
 
+### Added
+- **Auto Save & Restore:**
+    - Game state is now automatically saved when the window loses focus (blur).
+    - Game automatically pauses on blur.
+    - Game state is restored when the window regains focus.
+    - Prevents accidental loss of progress when switching tabs or apps.
+- **Service Worker:** updated to use "Network First" strategy. Users will always get the latest version if online, falling back to cache only when offline.
 ## [0.1.0] - 2025-12-16
 
 ### Fixed
