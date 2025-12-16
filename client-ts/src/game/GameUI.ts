@@ -4,6 +4,7 @@ export class GameUI {
     private game: Game;
     private root: HTMLElement;
     private menu: HTMLElement | null = null;
+    private homeMenu: HTMLElement | null = null;
     private pauseBtn: HTMLButtonElement | null = null;
 
     constructor(game: Game, root: HTMLElement) {
@@ -12,18 +13,24 @@ export class GameUI {
     }
 
     init() {
+        // 0. Setup Home Page
+        this.createHomeMenu();
+
         // 1. Setup Pause Button
         this.pauseBtn = this.root.querySelector('#pauseBtn');
         if (!this.pauseBtn) {
             this.pauseBtn = document.createElement('button');
             this.pauseBtn.id = 'pauseBtn';
             this.pauseBtn.textContent = 'Pause';
+            this.pauseBtn.style.display = 'none'; // Initially hidden on home screen
             const controls = this.root.querySelector('.ui-controls');
             if (controls) {
                 controls.appendChild(this.pauseBtn);
             } else {
                 this.root.appendChild(this.pauseBtn);
             }
+        } else {
+            this.pauseBtn.style.display = 'none';
         }
 
         // 1.5 Setup Mode Display
@@ -32,7 +39,7 @@ export class GameUI {
             modeDisplay = document.createElement('div');
             modeDisplay.id = 'modeDisplay';
             modeDisplay.style.marginLeft = '1rem';
-            modeDisplay.style.display = 'inline-block';
+            modeDisplay.style.display = 'none'; // Initially hidden
 
             const controls = this.root.querySelector('.ui-controls');
             if (controls) {
@@ -41,10 +48,76 @@ export class GameUI {
                 this.root.appendChild(modeDisplay);
             }
         }
-        modeDisplay.innerHTML = `Mode: ${this.game.mode} | Player: ${this.game.playerName}<br><span style="font-size: 0.8em; color: #888;">v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}</span>`;
+        this.updateModeDisplay();
 
-        // 2. Create Menu
-        // Styles are handled in style.css targeting #pauseMenu
+        // 2. Create Pause Menu
+        this.createPauseMenu();
+
+        // 3. Bind Events
+        this.pauseBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleMenu();
+            this.pauseBtn?.blur();
+        });
+    }
+
+    private createHomeMenu() {
+        this.homeMenu = document.createElement('div');
+        this.homeMenu.id = 'homeMenu';
+        this.homeMenu.classList.add('home-menu');
+        // Styles are now in style.css
+
+        const title = document.createElement('h1');
+        title.textContent = 'Tetris Battle';
+        title.classList.add('home-menu-title');
+        this.homeMenu.appendChild(title);
+
+        const createBtn = (id: string, text: string, onClick: () => void) => {
+            const btn = document.createElement('button');
+            btn.id = id;
+            btn.textContent = text;
+            btn.className = 'menu-btn'; // For CSS styling
+            btn.addEventListener('click', onClick);
+            return btn;
+        };
+
+        const btnSolo = createBtn('btnSolo', 'Solo Mode (Normal)', () => {
+            this.startGame();
+        });
+
+        const btnSpecial = createBtn('btnSpecial', 'Special Mode', () => {
+            alert('Next feature coming soon!');
+        });
+
+        /*
+        const btnOnline = createBtn('btnOnline', 'vs Online', () => {
+             alert('Online mode coming soon!');
+        });
+
+        const btnComputer = createBtn('btnComputer', 'vs Computer', () => {
+             alert('Vs Computer coming soon!');
+        });
+        */
+
+        const btnChangeName = createBtn('btnChangeName', 'Change Name', () => {
+            this.promptRename();
+        });
+
+        const btnLeaderboard = createBtn('btnLeaderboard', 'Leaderboard', () => {
+            this.showLeaderboard();
+        });
+
+        this.homeMenu.appendChild(btnSolo);
+        this.homeMenu.appendChild(btnSpecial);
+        // this.homeMenu.appendChild(btnOnline);
+        // this.homeMenu.appendChild(btnComputer);
+        this.homeMenu.appendChild(btnChangeName);
+        this.homeMenu.appendChild(btnLeaderboard);
+
+        this.root.appendChild(this.homeMenu);
+    }
+
+    private createPauseMenu() {
         this.menu = document.createElement('div');
         this.menu.id = 'pauseMenu';
         this.menu.style.display = 'none';
@@ -71,30 +144,22 @@ export class GameUI {
         });
 
         const renameBtn = createMenuItem('menuRenameBtn', 'Rename', () => {
-            const newName = prompt('Enter your name:', this.game.playerName);
-            if (newName && newName.trim().length > 0) {
-                this.game.setPlayerName(newName.trim());
-                alert(`Name changed to: ${this.game.playerName}`);
-                // Update display
-                const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
-                if (modeDisplay) {
-                    modeDisplay.textContent = `Mode: ${this.game.mode} | Player: ${this.game.playerName}`;
-                }
-            }
+            this.promptRename();
         });
 
         const leaderboardBtn = createMenuItem('menuLeaderboardBtn', 'Leaderboard', () => {
-            const scores = this.game.leaderboard.getTopScores();
-            if (scores.length === 0) {
-                alert('No scores yet!');
-                return;
-            }
-            const message = scores.map((s, i) => `${i + 1}. ${s.name} - ${s.score}`).join('\n');
-            alert(`🏆 Leaderboard 🏆\n\n${message}`);
+            this.showLeaderboard();
         });
 
         const resumeBtn = createMenuItem('menuResumeBtn', 'Resume', () => {
             this.toggleMenu();
+        });
+
+        // Add Quit to Home
+        const homeBtn = createMenuItem('menuHomeBtn', 'Quit to Home', () => {
+            this.hideMenu();
+            this.game.gameOver = true; // Stop game loop logic effectively
+            this.showHome();
         });
 
         this.menu.appendChild(resumeBtn);
@@ -102,15 +167,54 @@ export class GameUI {
         this.menu.appendChild(ghostBtn);
         this.menu.appendChild(renameBtn);
         this.menu.appendChild(leaderboardBtn);
+        this.menu.appendChild(homeBtn);
 
         this.root.appendChild(this.menu);
+    }
 
-        // 3. Bind Events
-        this.pauseBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleMenu();
-            this.pauseBtn?.blur();
-        });
+    startGame() {
+        if (this.homeMenu) this.homeMenu.style.display = 'none';
+        if (this.pauseBtn) this.pauseBtn.style.display = 'block';
+        const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
+        if (modeDisplay) modeDisplay.style.display = 'inline-block';
+
+        this.game.start();
+    }
+
+    showHome() {
+        if (this.homeMenu) this.homeMenu.style.display = 'flex';
+        if (this.pauseBtn) this.pauseBtn.style.display = 'none';
+        const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
+        if (modeDisplay) modeDisplay.style.display = 'none';
+
+        // Ensure game is paused or stopped? 
+        this.game.isPaused = true;
+    }
+
+    promptRename() {
+        const newName = prompt('Enter your name:', this.game.playerName);
+        if (newName && newName.trim().length > 0) {
+            this.game.setPlayerName(newName.trim());
+            alert(`Name changed to: ${this.game.playerName}`);
+            this.updateModeDisplay();
+        }
+    }
+
+    showLeaderboard() {
+        const scores = this.game.leaderboard.getTopScores();
+        if (scores.length === 0) {
+            alert('No scores yet!');
+            return;
+        }
+        const message = scores.map((s, i) => `${i + 1}. ${s.name} - ${s.score}`).join('\n');
+        alert(`🏆 Leaderboard 🏆\n\n${message}`);
+    }
+
+    updateModeDisplay() {
+        const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
+        if (modeDisplay) {
+            modeDisplay.innerHTML = `Mode: ${this.game.mode} | Player: ${this.game.playerName}<br><span style="font-size: 0.8em; color: #888;">v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}</span>`;
+        }
     }
 
     toggleMenu() {
@@ -124,7 +228,7 @@ export class GameUI {
     }
 
     showMenu() {
-        if (this.menu) this.menu.style.display = 'flex'; // Use flex to align items vertically
+        if (this.menu) this.menu.style.display = 'flex';
         this.updatePauseBtnText();
     }
 

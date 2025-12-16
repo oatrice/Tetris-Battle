@@ -103,4 +103,34 @@ describe('GameUI', () => {
         expect(modeDisplay).not.toBeNull();
         expect(modeDisplay?.textContent).toContain('Mode: OFFLINE');
     });
+
+    it('should quit to home when Quit to Home option is clicked', () => {
+        ui.init();
+        const pauseBtn = root.querySelector('#pauseBtn') as HTMLButtonElement;
+
+        // Start game via UI to ensure proper state transition
+        ui.startGame();
+
+        // Check initial state: Home hidden, Pause visible
+        const homeMenu = root.querySelector('#homeMenu') as HTMLElement;
+        expect(homeMenu.style.display).toBe('none');
+
+        // Open menu
+        pauseBtn.click();
+
+        const quitBtn = root.querySelector('#menuHomeBtn') as HTMLButtonElement;
+        expect(quitBtn).not.toBeNull();
+        expect(quitBtn.textContent).toBe('Quit to Home');
+
+        // Click quit
+        quitBtn.click();
+
+        // Expect: Home visible, Game "stopped" (gameOver=true or running stopped), Pause button hidden
+        expect(homeMenu.style.display).toBe('flex');
+        expect(game.gameOver).toBe(true);
+        expect(pauseBtn.style.display).toBe('none');
+
+        const menu = root.querySelector('#pauseMenu') as HTMLElement;
+        expect(menu.style.display).toBe('none');
+    });
 });
