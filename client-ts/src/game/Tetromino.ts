@@ -56,4 +56,8 @@ export class Tetromino {
         );
         this.currentShape = transposed.map(row => row.reverse());
     }
+
+    setShape(shape: number[][]): void {
+        this.currentShape = shape.map(row => [...row]);
+    }
 }

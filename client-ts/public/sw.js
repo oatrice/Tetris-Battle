@@ -36,6 +36,34 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // Network First strategy for navigation requests (HTML)
+    // This ensures users get the latest version on refresh (cmd+r)
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    // Check if we received a valid response
+                    if (!response || response.status !== 200 || response.type !== 'basic') {
+                        return response;
+                    }
+
+                    // Clone response to cache it
+                    const responseToCache = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseToCache);
+                    });
+
+                    return response;
+                })
+                .catch(() => {
+                    // Start of offline fallback
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+
+    // Cache First strategy for other resources (assets, images, scripts)
     event.respondWith(
         caches.match(event.request).then((response) => {
             return response || fetch(event.request).then((fetchResponse) => {
