@@ -65,13 +65,13 @@ const renderer = new Renderer(canvas);
 const inputHandler = new InputHandler();
 const ui = new GameUI(game, app);
 
+// Start Game (Load state first)
+game.start();
+
 ui.init();
 
 // Register Service Worker for Offline capabilities
 registerSW();
-
-// Start Game
-game.start();
 
 // Handle Input
 const handleGameAction = (action: GameAction | null) => {

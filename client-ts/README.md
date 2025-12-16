@@ -38,6 +38,14 @@ npm test
 npm run build
 ```
 
+### debug
+```bash
+# In Browser Console:
+enableLogs(true)  # Enable persistent logging to Local Storage
+downloadLogs()    # Download collected logs as a file
+clearLogs()       # Clear existing logs
+```
+
 ## 📂 Project Structure
 
 - `src/game/`: Core Game Logic (Board, Tetromino, Game Loop).
