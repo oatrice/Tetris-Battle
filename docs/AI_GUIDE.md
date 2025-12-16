@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # AI & Development Guidelines (Tetris-Battle)
 
 > **Role:** Senior System Architect and Lead Developer for "Tetris-Battle".
@@ -40,3 +44,8 @@
 *   **Plan:** สรุปสิ่งที่กำลังจะทำสั้นๆ
 *   **Action:** Code Block หรือ Command
 *   **Next:** สิ่งที่ต้องทำต่อ
+
+## ✅ 4. Definition of Done (DoD)
+*   **Tests:** All tests passed (Green state).
+*   **Docs:** Updated [CHANGELOG.md](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-ts/CHANGELOG.md:0:0-0:0) & [README.md](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-ts/README.md:0:0-0:0) if applicable.
+*   **Versioning:** Bump version in [package.json](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-ts/package.json:0:0-0:0) if a new feature is completed.
