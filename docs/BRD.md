@@ -12,16 +12,16 @@
 3.  **Cross-Platform:** รองรับทั้ง Desktop, Tablet และ Mobile (ในอนาคต)
 
 ## 2. Scope
-### 2.1 In-Scope (Phase 1)
-*   **Game Core:** ระบบการเล่น Tetris พื้นฐาน (Move, Rotate, Drop, Line Clear)
-*   **Multiplayer:** ระบบห้องเล่น 2 คน (1vs1) เชื่อมต่อผ่าน WebSocket
-*   **Platform:** Web Browser (Chrome, Firefox, Safari) บน Desktop และ Laptop
-*   **UI:** หน้า Game Board, Scoreboard, Next Piece, Hold Piece
+### 2.1 In-Scope (Phase 1 - Current)
+*   **Game Core:** ระบบการเล่น Tetris พื้นฐาน, Gravity, Wall Kick, Ghost Piece
+*   **Solo Mode:** เล่นคนเดียวแบบ Offline (Classic / Sprint)
+*   **PWA:** ติดตั้งได้, Offline Support, Responsive UI (Mobile/Desktop)
+*   **UI/UX:** Modern Glassmorphism Design, Touch Controls
 
 ### 2.2 Out-of-Scope (Phase 1)
-*   ระบบจัดอันดับ (Leaderboard/Ranking)
-*   การเล่นบนมือถือ (Mobile Touch Controls - จะทำใน Phase 2)
-*   ระบบ AI Opponent
+*   **Multiplayer:** Real-time Network Battle (Moved to Phase 2)
+*   **Backend:** Database & Authentications (Moved to Phase 2)
+*   **AI Opponent**
 
 ## 3. Success Metrics (KPIs)
 *   **Performance:** เกมรันที่ 60 FPS บนเครื่อง Mid-range laptop
