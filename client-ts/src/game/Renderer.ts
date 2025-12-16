@@ -81,10 +81,8 @@ export class Renderer {
         // Draw Stats
         this.drawStats(game, 11, 7);
 
-        // Draw Pause/Game Over Overlay
-        if (game.gameOver) {
-            this.drawOverlay('GAME OVER');
-        } else if (game.isPaused) {
+        // Draw Pause Overlay
+        if (game.isPaused) {
             this.drawOverlay('PAUSED');
         }
     }

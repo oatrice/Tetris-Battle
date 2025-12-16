@@ -121,6 +121,11 @@ function loop(timestamp: number) {
   lastTime = timestamp;
 
   game.update(deltaTime);
+
+  if (game.gameOver) {
+    ui.showGameOver();
+  }
+
   renderer.render(game);
 
   requestAnimationFrame(loop);
