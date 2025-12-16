@@ -34,6 +34,18 @@ describe('InputHandler', () => {
         expect(handler.handleInput(restartEvent)).toBe('RESTART');
     });
 
+    it('should ignore keys with modifiers (Cmd/Ctrl/Alt)', () => {
+        const handler = new InputHandler();
+
+        const keyR = new KeyboardEvent('keydown', { code: 'KeyR', metaKey: true });
+        const keyP = new KeyboardEvent('keydown', { code: 'KeyP', ctrlKey: true });
+        const arrow = new KeyboardEvent('keydown', { code: 'ArrowUp', altKey: true });
+
+        expect(handler.handleInput(keyR)).toBeNull();
+        expect(handler.handleInput(keyP)).toBeNull();
+        expect(handler.handleInput(arrow)).toBeNull();
+    });
+
     describe('Gestures', () => {
         const createTouchEvents = (startX: number, startY: number, endX: number, endY: number) => {
             // Mocking TouchEvent for simplicity in JSDOM environment

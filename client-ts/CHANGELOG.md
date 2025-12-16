@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.3.3] - 2025-12-16
+### Changed
+- **Logging:** Disabled automatic saving of debug logs to LocalStorage by default to conserve space. Added global console command `enableLogs(true)` to re-enable them for debugging.
+
+## [0.3.2] - 2025-12-16
+### Fixed
+- **Refresh Command Conflict:** Fixed a bug where pressing `Cmd+R` (or `Ctrl+R`) to refresh would trigger a Game Restart (clearing the score) before reloading. The InputHandler now ignores key presses combined with modifier keys.
+- **Race Condition:** Fixed a race condition between game initialization and UI event listeners that could cause state to be overwritten with empty data on load.
+- **Logging:** Added `Logger` utility for persistent debugging logs in LocalStorage.
+
+## [0.3.1] - 2025-12-16
+### Fixed
+- **State Persistence:** Fixed an issue where the game state was not saved when refreshing the tab or closing the window (`beforeunload` event).
+
 ## [0.3.0] - 2025-12-16
 
 ### Added

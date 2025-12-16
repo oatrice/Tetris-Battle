@@ -25,6 +25,10 @@ export class InputHandler {
     private readonly TAP_THRESHOLD = 10;
 
     handleInput(event: KeyboardEvent): GameAction | null {
+        // Prepare modifier keys check
+        if (event.metaKey || event.ctrlKey || event.altKey) {
+            return null;
+        }
         return this.keyMap[event.code] || null;
     }
 

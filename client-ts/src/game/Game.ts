@@ -3,6 +3,7 @@ import { Tetromino, TetrominoType } from './Tetromino';
 import { GameAction } from './InputHandler';
 import { GameMode } from './GameMode';
 import { Leaderboard } from './Leaderboard';
+import { Logger } from '../utils/Logger';
 
 export interface Effect {
     type: 'LINE_CLEAR';
@@ -45,6 +46,7 @@ export class Game {
     playerName: string = 'Player';
 
     constructor(mode: GameMode = GameMode.OFFLINE) {
+        Logger.log('[Game] Constructor called');
         this.mode = mode;
         this.board = new Board();
         this.currentPiece = null;
@@ -74,6 +76,7 @@ export class Game {
     ghostPieceEnabled: boolean = true;
 
     start(forceReset: boolean = false): void {
+        Logger.log(`[Game] start called. ForceReset: ${forceReset}`);
         if (!forceReset && this.loadState()) {
             return;
         }
@@ -258,8 +261,10 @@ export class Game {
     }
 
     saveState(): void {
+        Logger.log(`[Game] saveState called. GameOver: ${this.gameOver}, Paused: ${this.isPaused}, Score: ${this.score}`);
         if (this.gameOver) {
             localStorage.removeItem(SAVE_STATE_KEY);
+            Logger.log(`[Game] Game Over - State removed`);
             return;
         }
 
@@ -283,12 +288,22 @@ export class Game {
             isPaused: this.isPaused
         };
 
-        localStorage.setItem(SAVE_STATE_KEY, JSON.stringify(state));
+        try {
+            const serialized = JSON.stringify(state);
+            localStorage.setItem(SAVE_STATE_KEY, serialized);
+            Logger.log(`[Game] State saved(Size: ${serialized.length})`);
+        } catch (e) {
+            Logger.error('[Game] Failed to save state', e);
+        }
     }
 
     loadState(): boolean {
+        Logger.log('[Game] loadState called');
         const savedJson = localStorage.getItem(SAVE_STATE_KEY);
-        if (!savedJson) return false;
+        if (!savedJson) {
+            Logger.log('[Game] No saved state found');
+            return false;
+        }
 
         try {
             const state: GameState = JSON.parse(savedJson);
@@ -328,9 +343,10 @@ export class Game {
             // Recalculate speed based on level
             this.dropInterval = Math.max(MIN_DROP_INTERVAL, INITIAL_DROP_INTERVAL - (this.level - 1) * 100);
 
+            Logger.log(`[Game] State loaded.Score: ${this.score}, Paused: ${this.isPaused} `);
             return true;
         } catch (e) {
-            console.error('Failed to load state', e);
+            Logger.error('[Game] Failed to load state', e);
             return false;
         }
     }

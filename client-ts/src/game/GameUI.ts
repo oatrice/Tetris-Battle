@@ -79,6 +79,13 @@ export class GameUI {
             this.game.saveState();
         });
 
+        window.addEventListener('beforeunload', () => {
+            if (!this.game.gameOver) {
+                this.game.isPaused = true;
+            }
+            this.game.saveState();
+        });
+
         window.addEventListener('focus', () => {
             // Restore functionality as requested
             // Note: If we just paused on blur, we are still paused.
