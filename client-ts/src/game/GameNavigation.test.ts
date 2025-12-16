@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { Game } from './Game';
 import { GameUI } from './GameUI';
 
@@ -29,7 +29,7 @@ describe('Game Navigation Flow', () => {
 
         // Check states
         const homeMenu = root.querySelector('#homeMenu') as HTMLElement;
-        const gameOverMenu = root.querySelector('#gameOverMenu') as HTMLElement;
+        // const gameOverMenu = root.querySelector('#gameOverMenu') as HTMLElement; // Unused
 
         expect(homeMenu.style.display).not.toBe('none'); // Should be visible
 
