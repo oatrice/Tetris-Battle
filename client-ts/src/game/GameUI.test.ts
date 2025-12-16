@@ -96,12 +96,14 @@ describe('GameUI', () => {
         expect(game.ghostPieceEnabled).toBe(true);
     });
 
-    it('should display the current game mode', () => {
+    it('should display player info', () => {
         ui.init();
         // Assume there's an element defining the mode
         const modeDisplay = root.querySelector('#modeDisplay');
         expect(modeDisplay).not.toBeNull();
-        expect(modeDisplay?.textContent).toContain('Mode: OFFLINE');
+        expect(modeDisplay?.textContent).not.toContain('Mode: OFFLINE');
+        // It should still show other info like Player
+        expect(modeDisplay?.textContent).toContain('Player:');
     });
 
     it('should quit to home when Quit to Home option is clicked', () => {

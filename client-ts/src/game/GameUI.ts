@@ -213,7 +213,7 @@ export class GameUI {
     updateModeDisplay() {
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) {
-            modeDisplay.innerHTML = `Mode: ${this.game.mode} | Player: ${this.game.playerName}<br><span style="font-size: 0.8em; color: #888;">v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}</span>`;
+            modeDisplay.innerHTML = `Player: ${this.game.playerName}<br><span style="font-size: 0.8em; color: #888;">v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}</span>`;
         }
     }
 
