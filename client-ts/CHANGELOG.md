@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased] - 2025-12-16
+## [Unreleased]
+
+## [0.1.0] - 2025-12-16
 
 ### Fixed
 - **Gravity Reset:** Fixed a bug where game speed (gravity) would not reset after Game Over or Restart, causing new games to start at high speed.
