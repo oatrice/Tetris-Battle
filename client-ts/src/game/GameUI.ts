@@ -64,6 +64,33 @@ export class GameUI {
         });
         // 4. Mobile Enhancements
         this.preventPullToRefresh();
+
+        // 5. Auto Save/Restore on Focus/Blur
+        this.setupAutoSave();
+    }
+
+    private setupAutoSave() {
+        window.addEventListener('blur', () => {
+            if (!this.game.gameOver && !this.game.isPaused) {
+                this.game.isPaused = true;
+                this.updatePauseBtnText();
+                this.showMenu();
+            }
+            this.game.saveState();
+        });
+
+        window.addEventListener('focus', () => {
+            // Restore functionality as requested
+            // Note: If we just paused on blur, we are still paused.
+            // If the user wants to "Restore" the state from storage (e.g. if they modified it elsewhere or just to be safe)
+            this.game.loadState();
+            // We do NOT auto-resume to be polite, unless requested. 
+            // loading state might overwrite isPaused if it was saved as true.
+            this.updatePauseBtnText();
+            if (this.game.isPaused) {
+                this.showMenu();
+            }
+        });
     }
 
     private preventPullToRefresh() {

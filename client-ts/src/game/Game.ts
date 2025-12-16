@@ -1,5 +1,5 @@
 import { Board } from './Board';
-import { Tetromino } from './Tetromino';
+import { Tetromino, TetrominoType } from './Tetromino';
 import { GameAction } from './InputHandler';
 import { GameMode } from './GameMode';
 import { Leaderboard } from './Leaderboard';
@@ -11,8 +11,30 @@ export interface Effect {
     color: string;
 }
 
+
 const INITIAL_DROP_INTERVAL = 1000;
 const MIN_DROP_INTERVAL = 100;
+const SAVE_STATE_KEY = 'tetris_state';
+
+interface GameState {
+    score: number;
+    lines: number;
+    level: number;
+    board: number[][];
+    currentPiece: {
+        type: TetrominoType;
+        shape: number[][];
+    } | null;
+    nextPiece: {
+        type: TetrominoType;
+        shape: number[][];
+    } | null;
+    position: { x: number, y: number };
+    playerName: string;
+    ghostPieceEnabled: boolean;
+    gameOver: boolean;
+    isPaused: boolean;
+}
 
 export class Game {
     board: Board;
@@ -51,7 +73,11 @@ export class Game {
     isPaused: boolean = false;
     ghostPieceEnabled: boolean = true;
 
-    start(): void {
+    start(forceReset: boolean = false): void {
+        if (!forceReset && this.loadState()) {
+            return;
+        }
+
         this.gameOver = false;
         this.isPaused = false;
         this.score = 0;
@@ -65,7 +91,7 @@ export class Game {
     }
 
     restart(): void {
-        this.start();
+        this.start(true);
     }
 
     togglePause(): void {
@@ -120,6 +146,7 @@ export class Game {
             this.leaderboard.addScore(this.playerName, this.score);
             this.currentPiece = null; // Clean up
         }
+        // this.saveState(); // Removed per user request
     }
 
     private moveDown(): void {
@@ -160,6 +187,9 @@ export class Game {
                     this.dropInterval = Math.max(MIN_DROP_INTERVAL, INITIAL_DROP_INTERVAL - (this.level - 1) * 100);
                 }
                 this.spawnPiece();
+            }
+            if (this.currentPiece) { // Only save if move was successful/processed
+                // this.saveState(); // Removed per user request
             }
         }
     }
@@ -208,6 +238,85 @@ export class Game {
                 }
                 this.moveDown(); // Triggers lock
                 break;
+        }
+        // this.saveState(); // Removed per user request
+    }
+
+    saveState(): void {
+        if (this.gameOver) {
+            localStorage.removeItem(SAVE_STATE_KEY);
+            return;
+        }
+
+        const state: GameState = {
+            score: this.score,
+            lines: this.lines,
+            level: this.level,
+            board: this.board.grid,
+            currentPiece: this.currentPiece ? {
+                type: this.currentPiece.type,
+                shape: this.currentPiece.shape
+            } : null,
+            nextPiece: this.nextPiece ? {
+                type: this.nextPiece.type,
+                shape: this.nextPiece.shape
+            } : null,
+            position: this.position,
+            playerName: this.playerName,
+            ghostPieceEnabled: this.ghostPieceEnabled,
+            gameOver: this.gameOver,
+            isPaused: this.isPaused
+        };
+
+        localStorage.setItem(SAVE_STATE_KEY, JSON.stringify(state));
+    }
+
+    loadState(): boolean {
+        const savedJson = localStorage.getItem(SAVE_STATE_KEY);
+        if (!savedJson) return false;
+
+        try {
+            const state: GameState = JSON.parse(savedJson);
+
+            this.score = state.score;
+            this.lines = state.lines;
+            this.level = state.level;
+
+            // Restore Board
+            if (state.board) {
+                this.board = new Board(this.board.width, this.board.height);
+                // Deep copy grid to ensure no ref issues, though assignment is probably fine for POJO
+                this.board.grid = state.board.map(row => [...row]);
+            }
+
+            // Restore Pieces
+            if (state.currentPiece) {
+                this.currentPiece = new Tetromino(state.currentPiece.type);
+                this.currentPiece.setShape(state.currentPiece.shape);
+            } else {
+                this.currentPiece = null;
+            }
+
+            if (state.nextPiece) {
+                this.nextPiece = new Tetromino(state.nextPiece.type);
+                this.nextPiece.setShape(state.nextPiece.shape);
+            } else {
+                this.nextPiece = null;
+            }
+
+            this.position = state.position || { x: 0, y: 0 };
+            this.playerName = state.playerName || 'Player';
+            this.ghostPieceEnabled = state.ghostPieceEnabled !== undefined ? state.ghostPieceEnabled : true;
+            this.gameOver = state.gameOver || false;
+            this.isPaused = state.isPaused || false;
+
+            // Recalculate speed based on level
+            this.dropInterval = Math.max(MIN_DROP_INTERVAL, INITIAL_DROP_INTERVAL - (this.level - 1) * 100);
+
+            return true;
+        } catch (e) {
+            console.error('Failed to load state', e);
+            return false;
         }
     }
     getGhostPosition(): { x: number, y: number } {
