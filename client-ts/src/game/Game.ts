@@ -179,7 +179,7 @@ export class Game {
             this.effects.push({
                 type: 'LINE_CLEAR',
                 y: y,
-                timeLeft: 500, // 500ms effect
+                timeLeft: 300, // 300ms effect (faster than cascade 500ms)
                 color: effectColor
             });
         });
