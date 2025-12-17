@@ -419,7 +419,15 @@ export class GameUI {
                 const span = document.createElement('span');
                 span.style.fontSize = '0.8em';
                 span.style.color = '#888';
-                span.textContent = `v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}`;
+
+                let dateDisplay: string;
+                if (__COMMIT_HASH__ === 'now') {
+                    dateDisplay = new Date().toLocaleString();
+                } else {
+                    dateDisplay = new Date(__COMMIT_DATE__).toLocaleString();
+                }
+
+                span.textContent = `v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${dateDisplay}`;
 
                 modeDisplay.appendChild(span);
             }

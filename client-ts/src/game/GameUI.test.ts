@@ -159,4 +159,37 @@ describe('GameUI', () => {
         modeDisplay = root.querySelector('#modeDisplay');
         expect(modeDisplay?.textContent).toContain('Special');
     });
+
+
+    it('should display git date for clean commits', () => {
+        vi.stubGlobal('__APP_VERSION__', '1.0.0');
+        vi.stubGlobal('__COMMIT_HASH__', 'abc1234');
+        const fixedDate = '2023-01-01T10:00:00.000Z'; // Fixed UTC
+        vi.stubGlobal('__COMMIT_DATE__', fixedDate);
+
+        ui.init();
+        ui.startGame();
+
+        const modeDisplay = root.querySelector('#modeDisplay');
+        const expectedDateStr = new Date(fixedDate).toLocaleString();
+
+        expect(modeDisplay?.textContent).toContain('abc1234');
+        expect(modeDisplay?.textContent).toContain(expectedDateStr);
+    });
+
+    it('should display current time for HMR/dirty updates', () => {
+        vi.stubGlobal('__COMMIT_HASH__', 'now');
+        const oldBuildDate = '2020-01-01T00:00:00.000Z';
+        vi.stubGlobal('__COMMIT_DATE__', oldBuildDate);
+
+        ui.init();
+        ui.startGame();
+
+        const modeDisplay = root.querySelector('#modeDisplay');
+        const oldStr = new Date(oldBuildDate).toLocaleString();
+
+        expect(modeDisplay?.textContent).not.toContain(oldStr);
+        // This check is a bit loose but confirms we aren't using the stale __COMMIT_DATE__
+        // A better check relies on the implementation details we are about to add.
+    });
 });
