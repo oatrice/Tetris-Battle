@@ -1,4 +1,5 @@
 import { Game } from './Game';
+import { GameMode } from './GameMode';
 
 export class Renderer {
     canvas: HTMLCanvasElement;
@@ -76,8 +77,10 @@ export class Renderer {
         // Draw Next Piece Preview
         this.drawPreviewPiece('NEXT', game.nextPiece, 11, 1);
 
-        // Draw Hold Piece Preview
-        this.drawPreviewPiece('HOLD', game.holdPiece, 11, 6, !game.canHold);
+        // Draw Hold Piece Preview (Special Mode Only)
+        if (game.mode === GameMode.SPECIAL) {
+            this.drawPreviewPiece('HOLD', game.holdPiece, 11, 6, !game.canHold);
+        }
 
         // Draw Stats
         this.drawStats(game, 11, 11);

@@ -324,6 +324,7 @@ export class Game {
     }
 
     hold(): void {
+        if (this.mode !== GameMode.SPECIAL) return;
         if (!this.canHold || this.gameOver || this.isPaused || !this.currentPiece) return;
 
         const pieceToHold = this.currentPiece;

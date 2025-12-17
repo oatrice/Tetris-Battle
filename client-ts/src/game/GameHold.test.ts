@@ -1,14 +1,30 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Game } from './Game';
+import { GameMode } from './GameMode';
 import { GameAction } from './InputHandler';
 
 describe('Game Hold Mechanic', () => {
     let game: Game;
 
     beforeEach(() => {
-        game = new Game();
+        // Hold is now restricted to SPECIAL mode
+        game = new Game(GameMode.SPECIAL);
         game.start();
+    });
+
+    it('should NOT hold piece if NOT in SPECIAL mode', () => {
+        const standardGame = new Game(GameMode.OFFLINE);
+        standardGame.start();
+        expect(standardGame.mode).toBe(GameMode.OFFLINE);
+
+        const initialCurrent = standardGame.currentPiece;
+        standardGame.handleAction(GameAction.HOLD);
+
+        // Should not have stored anything
+        expect(standardGame.holdPiece).toBeNull();
+        // Current piece should remain the same (or be same reference if valid, checking type)
+        expect(standardGame.currentPiece).toBe(initialCurrent);
     });
 
     it('should hold the current piece and spawn the next one', () => {
