@@ -373,6 +373,7 @@ export class GameUI {
             this.game.start(false);
         }
 
+        this.updateModeDisplay();
         this.updatePauseBtnText();
     }
 
@@ -408,10 +409,20 @@ export class GameUI {
     updateModeDisplay() {
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) {
-            const versionInfo = import.meta.env.PROD
-                ? ''
-                : `<br><span style="font-size: 0.8em; color: #888;">v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}</span>`;
-            modeDisplay.innerHTML = `Player: ${this.game.playerName}${versionInfo}`;
+            const modeText = this.game.mode === GameMode.SPECIAL ? 'Special' : 'Normal';
+            modeDisplay.textContent = `Player: ${this.game.playerName} | Mode: ${modeText}`;
+
+            if (!import.meta.env.PROD) {
+                const br = document.createElement('br');
+                modeDisplay.appendChild(br);
+
+                const span = document.createElement('span');
+                span.style.fontSize = '0.8em';
+                span.style.color = '#888';
+                span.textContent = `v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}`;
+
+                modeDisplay.appendChild(span);
+            }
         }
     }
 

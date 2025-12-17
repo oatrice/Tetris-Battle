@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Game } from './Game';
 import { GameUI } from './GameUI';
+import { GameMode } from './GameMode';
 
 describe('GameUI', () => {
     let game: Game;
@@ -144,5 +145,18 @@ describe('GameUI', () => {
 
         const menu = root.querySelector('#pauseMenu') as HTMLElement;
         expect(menu.style.display).toBe('none');
+    });
+    it('should display the current game mode in the HUD', () => {
+        ui.init();
+
+        // Default mode (Offline/Normal)
+        ui.startGame();
+        let modeDisplay = root.querySelector('#modeDisplay');
+        expect(modeDisplay?.textContent).toContain('Normal');
+
+        // Special mode
+        ui.startGame(GameMode.SPECIAL);
+        modeDisplay = root.querySelector('#modeDisplay');
+        expect(modeDisplay?.textContent).toContain('Special');
     });
 });
