@@ -17,8 +17,10 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
         - Utility: 'C' or 'Shift' to **Hold** (Special Mode), 'P' to Pause, 'R' to Restart.
     - **Touch (Mobile):** 
         - Swipe L/R to move.
-        - Swipe Down to Drop.
+        - Swipe Down to Drop (Hard Drop).
+        - Swipe Up to **Hold**.
         - Tap to Rotate.
+        - Long Press to Soft Drop.
 
 ## 🛠 Setup & Run
 
@@ -54,6 +56,12 @@ enableLogs(true)  # Enable persistent logging to Local Storage
 downloadLogs()    # Download collected logs as a file
 clearLogs()       # Clear existing logs
 ```
+
+## 🔄 Git Hooks Workflow
+- **Pre-commit:** Automatically runs `npm test` and `npm run build` before allowing a commit.
+- **Post-commit:** Automatically triggers **HMR Restart** if server is running, or launches a new one if not.
+
+> To enable these hooks, run: `cp scripts/hooks/* .git/hooks/`
 
 ## 📂 Project Structure
 

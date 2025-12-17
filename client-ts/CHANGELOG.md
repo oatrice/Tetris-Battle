@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.1] - 2025-12-17
+### Added
+- **Mobile Gestures**: Added "Swipe Up" gesture to trigger **Hold** action.
+- **Dev Tools**: Home Screen now displays detailed Version/Commit info in Development environment (Prod shows Clean Version).
+
 ## [1.0.0] - 2025-12-17
 ### Added
 - **Hold Mechanic (Special Mode):**

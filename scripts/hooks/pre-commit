@@ -1,0 +1,47 @@
+#!/bin/sh
+# Pre-commit Hook for Tetris Battle
+
+# TypeScript Client Directory
+TS_DIR="client-ts"
+
+# Check if directory exists relative to repo root
+if [ -d "$TS_DIR" ]; then
+    echo "🔍 Checking TypeScript Client in $TS_DIR..."
+    
+    # Run in subshell
+    (
+        cd "$TS_DIR"
+        
+        # 1. Run Tests
+        echo "🧪 Running Tests..."
+        npm test -- run
+        TEST_RESULT=$?
+        if [ $TEST_RESULT -ne 0 ]; then
+             echo "❌ Tests Failed!"
+             exit 1
+        fi
+        
+        # 2. Run Build
+        echo "🏗️ Running Build Check..."
+        npm run build
+        BUILD_RESULT=$?
+        if [ $BUILD_RESULT -ne 0 ]; then
+             echo "❌ Build Failed!"
+             exit 1
+        fi
+    )
+    
+    # Capture exit code of subshell
+    RESULT=$?
+    
+    if [ $RESULT -ne 0 ]; then
+        echo "❌ Pre-commit checks failed! Commit rejected."
+        exit 1
+    else
+        echo "✅ All checks (Test & Build) passed!"
+    fi
+else
+    echo "⚠️ Warning: $TS_DIR not found. Skipping checks."
+fi
+
+exit 0

@@ -81,11 +81,11 @@ describe('InputHandler', () => {
             expect(handler.handleTouchEnd(end)).toBe(GameAction.HARD_DROP);
         });
 
-        it('should detect swipe up (soft drop)', () => {
+        it('should detect swipe up (hold)', () => {
             const handler = new InputHandler();
             const { start, end } = createTouchEvents(100, 100, 100, 40);
             handler.handleTouchStart(start);
-            expect(handler.handleTouchEnd(end)).toBe(GameAction.SOFT_DROP);
+            expect(handler.handleTouchEnd(end)).toBe(GameAction.HOLD);
         });
 
         it('should detect tap (rotate)', () => {
