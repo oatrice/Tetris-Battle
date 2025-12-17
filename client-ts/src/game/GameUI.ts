@@ -172,6 +172,18 @@ export class GameUI {
         this.homeMenu.appendChild(btnChangeName);
         this.homeMenu.appendChild(btnLeaderboard);
 
+        const versionInfo = document.createElement('div');
+        versionInfo.style.marginTop = '1rem';
+        versionInfo.style.fontSize = '0.8rem';
+        versionInfo.style.color = '#666';
+
+        if (import.meta.env.PROD) {
+            versionInfo.textContent = `v${__APP_VERSION__}`;
+        } else {
+            versionInfo.innerHTML = `v${__APP_VERSION__} (${__COMMIT_HASH__})<br>${new Date(__COMMIT_DATE__).toLocaleString()}`;
+        }
+        this.homeMenu.appendChild(versionInfo);
+
         this.root.appendChild(this.homeMenu);
     }
 
