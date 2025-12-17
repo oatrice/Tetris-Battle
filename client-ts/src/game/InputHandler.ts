@@ -5,7 +5,8 @@ export enum GameAction {
     SOFT_DROP = 'SOFT_DROP',
     HARD_DROP = 'HARD_DROP',
     PAUSE = 'PAUSE',
-    RESTART = 'RESTART'
+    RESTART = 'RESTART',
+    HOLD = 'HOLD'
 }
 
 export class InputHandler {
@@ -16,7 +17,9 @@ export class InputHandler {
         ArrowDown: GameAction.SOFT_DROP,
         Space: GameAction.HARD_DROP,
         KeyP: GameAction.PAUSE,
-        KeyR: GameAction.RESTART
+        KeyR: GameAction.RESTART,
+        KeyC: GameAction.HOLD,
+        ShiftLeft: GameAction.HOLD
     };
 
     private touchStartX: number = 0;

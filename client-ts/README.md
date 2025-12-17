@@ -8,11 +8,17 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
 - **Responsive UI:** Adapts to mobile and desktop screens.
 - **Game Modes:**
     - **Classic Solo Mode**: Standard Tetris gameplay.
-    - **Special Mode**: Features "Cascade Gravity" where floating blocks fall down to fill gaps after line clears.
-    - Currently "Solo Mode" (Offline). Multiplayer coming soon.
+    - **Special Mode**: Features "Cascade Gravity" and **Hold Mechanic**.
+    - **Offline Support**: Full gameplay, Auto-Save, and Local Leaderboard without internet.
 - **Controls:**
-    - **Keyboard:** Arrows to move, Space to Drop, P to Pause.
-    - **Touch:** Swipe to move/drop, Tap to rotate (Mobile optimized).
+    - **Keyboard:** 
+        - Vectors: Arrows to move, Up to rotate.
+        - Dropping: Space (Hard Drop), Down (Soft Drop).
+        - Utility: 'C' or 'Shift' to **Hold** (Special Mode), 'P' to Pause, 'R' to Restart.
+    - **Touch (Mobile):** 
+        - Swipe L/R to move.
+        - Swipe Down to Drop.
+        - Tap to Rotate.
 
 ## 🛠 Setup & Run
 

@@ -35,6 +35,11 @@ interface GameState {
     ghostPieceEnabled: boolean;
     gameOver: boolean;
     isPaused: boolean;
+    holdPiece: {
+        type: TetrominoType;
+        shape: number[][];
+    } | null;
+    canHold: boolean;
 }
 
 export class Game {
@@ -75,6 +80,9 @@ export class Game {
     isPaused: boolean = false;
     ghostPieceEnabled: boolean = true;
 
+    holdPiece: Tetromino | null = null;
+    canHold: boolean = true;
+
     start(forceReset: boolean = false): void {
         Logger.log(`[Game] start called. ForceReset: ${forceReset}`);
         if (!forceReset && this.loadState()) {
@@ -83,6 +91,8 @@ export class Game {
 
         this.gameOver = false;
         this.isPaused = false;
+        this.holdPiece = null;
+        this.canHold = true;
         this.score = 0;
         this.lines = 0;
         this.level = 1;
@@ -190,6 +200,8 @@ export class Game {
         if (!this.nextPiece) {
             this.nextPiece = this.generatePiece();
         }
+
+        this.canHold = true;
 
         this.currentPiece = this.nextPiece;
         this.nextPiece = this.generatePiece();
@@ -304,8 +316,35 @@ export class Game {
                 }
                 this.moveDown(); // Triggers lock
                 break;
+            case GameAction.HOLD:
+                this.hold();
+                break;
         }
         // this.saveState(); // Removed per user request
+    }
+
+    hold(): void {
+        if (this.mode !== GameMode.SPECIAL) return;
+        if (!this.canHold || this.gameOver || this.isPaused || !this.currentPiece) return;
+
+        const pieceToHold = this.currentPiece;
+        pieceToHold.resetRotation();
+
+        if (this.holdPiece === null) {
+            this.holdPiece = pieceToHold;
+            this.spawnPiece();
+        } else {
+            const returnedPiece = this.holdPiece;
+            this.holdPiece = pieceToHold;
+            this.currentPiece = returnedPiece;
+            this.currentPiece.resetRotation();
+            // Reset position
+            this.position = {
+                x: Math.floor((this.board.width - this.currentPiece.shape[0].length) / 2),
+                y: 0
+            };
+        }
+        this.canHold = false;
     }
 
     saveState(): void {
@@ -333,7 +372,12 @@ export class Game {
             playerName: this.playerName,
             ghostPieceEnabled: this.ghostPieceEnabled,
             gameOver: this.gameOver,
-            isPaused: this.isPaused
+            isPaused: this.isPaused,
+            holdPiece: this.holdPiece ? {
+                type: this.holdPiece.type,
+                shape: this.holdPiece.shape
+            } : null,
+            canHold: this.canHold
         };
 
         try {
@@ -387,6 +431,14 @@ export class Game {
             this.ghostPieceEnabled = state.ghostPieceEnabled !== undefined ? state.ghostPieceEnabled : true;
             this.gameOver = state.gameOver || false;
             this.isPaused = state.isPaused || false;
+
+            if (state.holdPiece) {
+                this.holdPiece = new Tetromino(state.holdPiece.type);
+                this.holdPiece.setShape(state.holdPiece.shape);
+            } else {
+                this.holdPiece = null;
+            }
+            this.canHold = state.canHold !== undefined ? state.canHold : true;
 
             // Recalculate speed based on level
             this.dropInterval = Math.max(MIN_DROP_INTERVAL, INITIAL_DROP_INTERVAL - (this.level - 1) * 100);

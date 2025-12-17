@@ -59,6 +59,11 @@ export class Tetromino {
         this.rotationIndex = (this.rotationIndex + 1) % 4;
     }
 
+    resetRotation(): void {
+        this.currentShape = SHAPES[this.type].map(row => [...row]);
+        this.rotationIndex = 0;
+    }
+
     setShape(shape: number[][]): void {
         this.currentShape = shape.map(row => [...row]);
     }

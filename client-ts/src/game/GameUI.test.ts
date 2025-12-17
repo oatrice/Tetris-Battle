@@ -109,6 +109,10 @@ describe('GameUI', () => {
         const modeDisplay = root.querySelector('#modeDisplay');
         // In test environment, import.meta.env.PROD is false, so it should show version
         expect(modeDisplay?.textContent).toBeTruthy();
+
+        // Also check Home Menu
+        const homeMenu = root.querySelector('#homeMenu');
+        expect(homeMenu?.innerHTML).toContain(`v${__APP_VERSION__}`);
     });
 
     it('should quit to home when Quit to Home option is clicked', () => {
