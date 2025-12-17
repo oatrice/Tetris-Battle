@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2] - 2025-12-17
+### Added
+- **Game Over Stats**: Now displays Player Name, Score, and Best Score on the Game Over screen.
+- **Async Visual Effects**: Line clear animations now run independently (asynchronously) from Game Logic. Gravity and other mechanics no longer wait for visual effects to finish, improving responsiveness.
+- **Dev Enhancements**: 
+    - Added HMR (Hot Module Replacement) timestamp to Version Info in development mode for easier debugging.
+    - Git Check: Detects local changes (Dirty state) and marks version as "Dev Changes".
+
 ## [1.0.1] - 2025-12-17
 ### Added
 - **Mobile Gestures**: Added "Swipe Up" gesture to trigger **Hold** action.

@@ -116,4 +116,19 @@ describe('Visual Effects Logic', () => {
             expect(colors.size).toBe(4);
         });
     });
+
+    it('should have line clear effect duration of 300ms (faster than cascade)', () => {
+        const g = new Game();
+        g.start();
+        g.currentPiece = { type: 'I', shape: [[1]], rotate: () => { } } as any;
+        g.board.isValidPosition = (_p, _x, y) => y <= g.position.y;
+        g.board.clearLines = () => ({ count: 1, indices: [19] });
+
+        // @ts-ignore
+        g.dropTimer = 2000;
+        g.update(100);
+
+        expect(g.effects.length).toBeGreaterThan(0);
+        expect(g.effects[0].timeLeft).toBe(200);
+    });
 });

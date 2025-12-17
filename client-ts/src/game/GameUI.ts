@@ -180,7 +180,10 @@ export class GameUI {
         if (import.meta.env.PROD) {
             versionInfo.textContent = `v${__APP_VERSION__}`;
         } else {
-            versionInfo.innerHTML = `v${__APP_VERSION__} (${__COMMIT_HASH__})<br>${new Date(__COMMIT_DATE__).toLocaleString()}`;
+            // In DEV, show current HMR timestamp
+            const hmrTime = new Date().toLocaleString();
+            const hashDisplay = __COMMIT_HASH__ === 'now' ? 'Dev Changes (HMR)' : __COMMIT_HASH__;
+            versionInfo.innerHTML = `v${__APP_VERSION__} (${hashDisplay})<br>Last Update: ${hmrTime}`;
         }
         this.homeMenu.appendChild(versionInfo);
 
@@ -267,6 +270,30 @@ export class GameUI {
         title.style.marginBottom = '2rem';
         menu.appendChild(title);
 
+        const statsContainer = document.createElement('div');
+        statsContainer.style.display = 'flex';
+        statsContainer.style.flexDirection = 'column';
+        statsContainer.style.alignItems = 'center';
+        statsContainer.style.marginBottom = '2rem';
+        statsContainer.style.color = 'white';
+        statsContainer.style.fontSize = '1.2rem';
+        statsContainer.style.gap = '0.5rem';
+
+        const playerName = document.createElement('div');
+        playerName.id = 'gameOverPlayerName';
+        statsContainer.appendChild(playerName);
+
+        const score = document.createElement('div');
+        score.id = 'gameOverScore';
+        statsContainer.appendChild(score);
+
+        const bestScore = document.createElement('div');
+        bestScore.id = 'gameOverBestScore';
+        bestScore.style.color = '#FFD700';
+        statsContainer.appendChild(bestScore);
+
+        menu.appendChild(statsContainer);
+
         const restartBtn = document.createElement('button');
         restartBtn.id = 'gameOverRestartBtn';
         restartBtn.textContent = 'Restart';
@@ -305,6 +332,17 @@ export class GameUI {
 
     showGameOver() {
         if (this.gameOverMenu) {
+            const nameEl = this.gameOverMenu.querySelector('#gameOverPlayerName');
+            const scoreEl = this.gameOverMenu.querySelector('#gameOverScore');
+            const bestScoreEl = this.gameOverMenu.querySelector('#gameOverBestScore');
+
+            if (nameEl) nameEl.textContent = `Player: ${this.game.playerName}`;
+            if (scoreEl) scoreEl.textContent = `Score: ${this.game.score}`;
+
+            const scores = this.game.leaderboard.getTopScores();
+            const best = scores.length > 0 ? scores[0].score : this.game.score;
+            if (bestScoreEl) bestScoreEl.textContent = `Best: ${best}`;
+
             this.gameOverMenu.style.display = 'flex';
         }
         if (this.pauseBtn) this.pauseBtn.style.display = 'none';

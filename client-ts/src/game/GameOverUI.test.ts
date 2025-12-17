@@ -44,4 +44,29 @@ describe('GameUI Game Over', () => {
         const menu = root.querySelector('#gameOverMenu') as HTMLElement;
         expect(menu.style.display).toBe('none');
     });
+
+    it('should display player name, score and best score on game over', () => {
+        game.setPlayerName('TestPlayer');
+        game.score = 12340;
+
+        // Mock leaderboard best score
+        const getTopScoresSpy = vi.spyOn(game.leaderboard, 'getTopScores');
+        getTopScoresSpy.mockReturnValue([
+            { name: 'BestP', score: 50000, timestamp: 0 }
+        ]);
+
+        ui.showGameOver();
+
+        const nameEl = root.querySelector('#gameOverPlayerName');
+        const scoreEl = root.querySelector('#gameOverScore');
+        const bestScoreEl = root.querySelector('#gameOverBestScore');
+
+        expect(nameEl).not.toBeNull();
+        expect(scoreEl).not.toBeNull();
+        expect(bestScoreEl).not.toBeNull();
+
+        expect(nameEl?.textContent).toContain('TestPlayer');
+        expect(scoreEl?.textContent).toContain('12340');
+        expect(bestScoreEl?.textContent).toContain('50000');
+    });
 });
