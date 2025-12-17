@@ -180,7 +180,10 @@ export class GameUI {
         if (import.meta.env.PROD) {
             versionInfo.textContent = `v${__APP_VERSION__}`;
         } else {
-            versionInfo.innerHTML = `v${__APP_VERSION__} (${__COMMIT_HASH__})<br>${new Date(__COMMIT_DATE__).toLocaleString()}`;
+            // In DEV, show current HMR timestamp
+            const hmrTime = new Date().toLocaleString();
+            const hashDisplay = __COMMIT_HASH__ === 'now' ? 'Dev Changes (HMR)' : __COMMIT_HASH__;
+            versionInfo.innerHTML = `v${__APP_VERSION__} (${hashDisplay})<br>Last Update: ${hmrTime}`;
         }
         this.homeMenu.appendChild(versionInfo);
 
