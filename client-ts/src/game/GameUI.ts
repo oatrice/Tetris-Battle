@@ -432,7 +432,8 @@ export class GameUI {
                 span.style.color = '#888';
 
                 // Use the date provided by Vite Config (which is already "now" or "git timestamp")
-                const dateStr = new Date(COMMIT_DATE).toLocaleString();
+                const d = new Date(COMMIT_DATE);
+                const dateStr = isNaN(d.getTime()) ? 'Unknown Date' : d.toLocaleString();
                 const now = new Date().toLocaleString();
                 const cleanHash = String(COMMIT_HASH).trim();
                 const dateDisplay = cleanHash === 'now' ? now : dateStr;

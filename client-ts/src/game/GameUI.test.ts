@@ -187,7 +187,7 @@ describe('GameUI', () => {
         expect(modeDisplay?.textContent).toContain(expectedDateStr);
     });
 
-    it('should use current runtime timestamp for HMR/dirty updates (ignoring COMMIT_DATE)', () => {
+    it('Runtime Clock Override: should use current runtime timestamp for HMR/dirty updates (ignoring COMMIT_DATE)', () => {
         (VersionInfo as any).COMMIT_HASH = 'now';
         // Provide a stale date to simulate cached build info
         const staleDate = '2020-01-01T10:00:00.000Z';
@@ -211,5 +211,32 @@ describe('GameUI', () => {
         expect(modeDisplay?.textContent).toContain('Dev Changes (HMR)');
 
         vi.useRealTimers();
+    });
+    it('should sanitize player name in HUD to prevent XSS', () => {
+        const maliciousName = '<img src=x onerror=alert(1)>';
+        // Directly set on game instance to mock data source
+        game.setPlayerName(maliciousName);
+
+        ui.init();
+        const modeDisplay = root.querySelector('#modeDisplay');
+
+        // Should render as text, not HTML
+        // textContent decodes entities, so it should match the input string exactly
+        expect(modeDisplay?.textContent).toContain(maliciousName);
+        // innerHTML should ideally contain escaped entities like &lt;img
+        expect(modeDisplay?.innerHTML).not.toContain('<img src=x');
+    });
+
+    it('should handle missing or malformed COMMIT_DATE gracefully', () => {
+        (VersionInfo as any).COMMIT_DATE = 'invalid-date-string';
+
+        ui.init();
+        ui.startGame();
+
+        const modeDisplay = root.querySelector('#modeDisplay');
+
+        // Should fallback to a safe default
+        expect(modeDisplay?.textContent).not.toContain('Invalid Date');
+        expect(modeDisplay?.textContent).toContain('Unknown Date');
     });
 });
