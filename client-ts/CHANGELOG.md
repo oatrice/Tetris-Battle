@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.4] - 2025-12-18
+### Fixed
+- **Leaderboard Bugs**: Separated high scores for "Solo Mode" and "Special Mode". Each mode now maintains its own independent leaderboard to ensure fair competition.
+- **Backward Compatibility**: Added migration check to preserve existing offline scores.
+
 ## [1.0.3] - 2025-12-17
 ### Added
 - **HUD Improvements**: 

@@ -349,7 +349,7 @@ export class GameUI {
             if (nameEl) nameEl.textContent = `Player: ${this.game.playerName}`;
             if (scoreEl) scoreEl.textContent = `Score: ${this.game.score}`;
 
-            const scores = this.game.leaderboard.getTopScores();
+            const scores = this.game.leaderboard.getTopScores(this.game.mode);
             const best = scores.length > 0 ? scores[0].score : this.game.score;
             if (bestScoreEl) bestScoreEl.textContent = `Best: ${best}`;
 
@@ -407,13 +407,14 @@ export class GameUI {
     }
 
     showLeaderboard() {
-        const scores = this.game.leaderboard.getTopScores();
+        const scores = this.game.leaderboard.getTopScores(this.game.mode);
         if (scores.length === 0) {
             alert('No scores yet!');
             return;
         }
         const message = scores.map((s, i) => `${i + 1}. ${s.name} - ${s.score}`).join('\n');
-        alert(`🏆 Leaderboard 🏆\n\n${message}`);
+        const modeName = this.game.mode === GameMode.SPECIAL ? 'Special' : 'Normal';
+        alert(`🏆 Leaderboard (${modeName}) 🏆\n\n${message}`);
     }
 
     updateModeDisplay() {

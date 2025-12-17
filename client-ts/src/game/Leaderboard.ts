@@ -1,3 +1,5 @@
+import { GameMode } from './GameMode';
+
 export interface ScoreEntry {
     name: string;
     score: number;
@@ -5,13 +7,13 @@ export interface ScoreEntry {
 }
 
 export class Leaderboard {
-    private readonly STORAGE_KEY = 'tetris_leaderboard';
+    private readonly STORAGE_PREFIX = 'tetris_leaderboard_';
     private readonly MAX_SCORES = 10;
 
     constructor() { }
 
-    addScore(name: string, score: number): void {
-        const scores = this.getTopScores();
+    addScore(name: string, score: number, mode: GameMode = GameMode.OFFLINE): void {
+        const scores = this.getTopScores(mode);
 
         const newEntry: ScoreEntry = {
             name,
@@ -27,12 +29,18 @@ export class Leaderboard {
         // Keep top N
         const topScores = scores.slice(0, this.MAX_SCORES);
 
-        this.saveScores(topScores);
+        this.saveScores(topScores, mode);
     }
 
-    getTopScores(): ScoreEntry[] {
+    getTopScores(mode: GameMode = GameMode.OFFLINE): ScoreEntry[] {
         try {
-            const data = localStorage.getItem(this.STORAGE_KEY);
+            const key = this.getStorageKey(mode);
+            const data = localStorage.getItem(key);
+            // Fallback for legacy data (optional, but good for transition)
+            if (!data && mode === GameMode.OFFLINE) {
+                const legacyData = localStorage.getItem('tetris_leaderboard');
+                if (legacyData) return JSON.parse(legacyData);
+            }
             return data ? JSON.parse(data) : [];
         } catch (e) {
             console.warn('Failed to load leaderboard', e);
@@ -40,11 +48,16 @@ export class Leaderboard {
         }
     }
 
-    private saveScores(scores: ScoreEntry[]): void {
+    private saveScores(scores: ScoreEntry[], mode: GameMode): void {
         try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(scores));
+            const key = this.getStorageKey(mode);
+            localStorage.setItem(key, JSON.stringify(scores));
         } catch (e) {
             console.warn('Failed to save leaderboard', e);
         }
+    }
+
+    private getStorageKey(mode: GameMode): string {
+        return `${this.STORAGE_PREFIX}${mode}`;
     }
 }

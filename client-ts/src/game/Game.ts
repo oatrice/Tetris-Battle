@@ -215,7 +215,7 @@ export class Game {
         // Check collision immediately
         if (!this.board.isValidPosition(this.currentPiece, this.position.x, this.position.y)) {
             this.gameOver = true;
-            this.leaderboard.addScore(this.playerName, this.score);
+            this.leaderboard.addScore(this.playerName, this.score, this.mode);
             this.currentPiece = null; // Clean up
         }
         // this.saveState(); // Removed per user request

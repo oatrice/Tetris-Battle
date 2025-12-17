@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Game } from './Game';
 import { Leaderboard } from './Leaderboard';
+import { GameMode } from './GameMode';
 
 describe('Game Leaderboard Integration', () => {
     let game: Game;
@@ -42,6 +43,6 @@ describe('Game Leaderboard Integration', () => {
         (game as any).spawnPiece();
 
         expect(game.gameOver).toBe(true);
-        expect(addScoreSpy).toHaveBeenCalledWith('Bob', 500);
+        expect(addScoreSpy).toHaveBeenCalledWith('Bob', 500, GameMode.OFFLINE);
     });
 });
