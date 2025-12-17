@@ -17,8 +17,10 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
         - Utility: 'C' or 'Shift' to **Hold** (Special Mode), 'P' to Pause, 'R' to Restart.
     - **Touch (Mobile):** 
         - Swipe L/R to move.
-        - Swipe Down to Drop.
+        - Swipe Down to Drop (Hard Drop).
+        - Swipe Up to **Hold**.
         - Tap to Rotate.
+        - Long Press to Soft Drop.
 
 ## 🛠 Setup & Run
 

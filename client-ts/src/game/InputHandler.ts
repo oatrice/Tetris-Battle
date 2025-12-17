@@ -94,7 +94,7 @@ export class InputHandler {
             // But if user drags Right then Down?
             // Let's allow it if it clears threshold.
             if (Math.abs(dy) > this.SWIPE_THRESHOLD) {
-                return dy > 0 ? GameAction.HARD_DROP : GameAction.SOFT_DROP;
+                return dy > 0 ? GameAction.HARD_DROP : GameAction.HOLD;
             }
         }
 

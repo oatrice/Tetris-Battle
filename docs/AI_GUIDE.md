@@ -49,4 +49,6 @@ trigger: always_on
 *   **Tests:** All tests passed (Green state).
 *   **Docs:** Updated [CHANGELOG.md](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-ts/CHANGELOG.md:0:0-0:0) & [README.md](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-ts/README.md:0:0-0:0) if applicable.
 *   **Versioning:** Bump version in [package.json](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-ts/package.json:0:0-0:0) if a new feature is completed.
-*   **Build Check:** Run `npm run build` whenever the version is bumped to ensure the production build is valid.
+
+*   **Build Check:** Run `npm test` and `npm run build` whenever the version is bumped to ensure the code is stable and production build is valid.
+*   **Runtime Check:** Run `npm run dev` and verify that the game loads and runs correctly in the browser.
