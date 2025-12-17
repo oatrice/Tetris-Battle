@@ -74,12 +74,13 @@ export class Renderer {
         });
 
         // Draw Next Piece Preview
-        if (game.nextPiece) {
-            this.drawNextPiece(game.nextPiece, 11, 1); // Draw at (11, 1)
-        }
+        this.drawPreviewPiece('NEXT', game.nextPiece, 11, 1);
+
+        // Draw Hold Piece Preview
+        this.drawPreviewPiece('HOLD', game.holdPiece, 11, 6, !game.canHold);
 
         // Draw Stats
-        this.drawStats(game, 11, 7);
+        this.drawStats(game, 11, 11);
 
         // Draw Pause Overlay
         if (game.isPaused) {
@@ -121,19 +122,21 @@ export class Renderer {
         this.ctx.fillText(`${game.lines}`, x, offsetY * yLine + 190);
     }
 
-    private drawNextPiece(piece: any, offsetX: number, offsetY: number): void {
-        const previewColor = this.getColor(piece.type);
+    private drawPreviewPiece(label: string, piece: any, offsetX: number, offsetY: number, isDimmed: boolean = false): void {
         this.ctx.fillStyle = '#ffffff';
         this.ctx.font = '16px Arial';
-        this.ctx.fillText('NEXT', offsetX * this.cellSize, offsetY * this.cellSize - 5);
+        this.ctx.fillText(label, offsetX * this.cellSize, offsetY * this.cellSize - 5);
 
-        piece.shape.forEach((row: number[], r: number) => {
-            row.forEach((cell: number, c: number) => {
-                if (cell !== 0) {
-                    this.drawBlock(offsetX + c, offsetY + r, previewColor);
-                }
+        if (piece) {
+            const previewColor = this.getColor(piece.type);
+            piece.shape.forEach((row: number[], r: number) => {
+                row.forEach((cell: number, c: number) => {
+                    if (cell !== 0) {
+                        this.drawBlock(offsetX + c, offsetY + r, isDimmed ? '#555' : previewColor);
+                    }
+                });
             });
-        });
+        }
     }
 
     private drawBlock(x: number, y: number, color: string): void {
