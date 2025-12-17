@@ -59,7 +59,7 @@ clearLogs()       # Clear existing logs
 
 ## 🔄 Git Hooks Workflow
 - **Pre-commit:** Automatically runs `npm test` and `npm run build` before allowing a commit.
-- **Post-commit:** Automatically runs `npm run dev` after a successful commit to launch the dev server for verification.
+- **Post-commit:** Automatically triggers **HMR Restart** if server is running, or launches a new one if not.
 
 > To enable these hooks, run: `cp scripts/hooks/* .git/hooks/`
 
