@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.0] - 2025-12-17
+### Added
+- **Hold Mechanic (Special Mode):**
+    - Press 'C' or 'Shift' to hold a piece (Strategic swapping).
+    - Only available in "Special Mode".
+    - UI indicator for held piece.
+- **Gesture Controls:** Mobile-friendly swipe and tap controls.
+- **Offline Mode:** Local Leaderboard and offline renaming support.
+- **Wall Kicks (SRS):** Advanced rotation maneuvers (T-Spins, etc.).
+- **Auto Save/Restore:** Never lose game progress on browser refresh or close.
+- **Leaderboard:** Local offline leaderboard to track top scores.
+
 ## [0.4.0] - 2025-12-17
 ### Added
 - **Special Mode**: Added "Special Mode" with Cascade Gravity mechanics.
