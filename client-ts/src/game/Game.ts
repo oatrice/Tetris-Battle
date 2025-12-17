@@ -107,8 +107,27 @@ export class Game {
         this.ghostPieceEnabled = !this.ghostPieceEnabled;
     }
 
+    isCascading: boolean = false;
+    private cascadeTimer: number = 0;
+    private CASCADE_DELAY: number = 50; // ms per step
+
     update(deltaTime: number): void {
         if (this.gameOver || this.isPaused) return;
+
+        // Cascade Gravity Phase
+        if (this.isCascading) {
+            this.cascadeTimer += deltaTime;
+            if (this.cascadeTimer > this.CASCADE_DELAY) {
+                const moved = this.board.processGravityStep();
+                this.cascadeTimer = 0;
+                if (!moved) {
+                    // Done cascading
+                    this.isCascading = false;
+                    this.spawnPiece();
+                }
+            }
+            return; // Skip normal drop logic while cascading
+        }
 
         this.dropTimer += deltaTime;
         if (this.dropTimer > this.dropInterval) {
@@ -159,6 +178,7 @@ export class Game {
             } else {
                 // Lock piece
                 this.board.lockPiece(this.currentPiece, this.position.x, this.position.y);
+                this.currentPiece = null; // Piece is now part of the board
 
                 const { count, indices } = this.board.clearLines();
                 if (count > 0) {
@@ -184,12 +204,26 @@ export class Game {
                         });
                     });
 
+                    // Trigger Cascade Gravity if in Special Mode
+                    if (this.mode === GameMode.SPECIAL) {
+                        this.isCascading = true;
+                        this.cascadeTimer = 0;
+                        // Do NOT spawn piece yet. Wait for cascade to finish.
+                    } else {
+                        // Standard mode: spawn immediately
+                        this.spawnPiece();
+                    }
+
                     // Level up logic (every 10 lines)
                     this.level = Math.floor(this.lines / 10) + 1;
                     // Speed up?
                     this.dropInterval = Math.max(MIN_DROP_INTERVAL, INITIAL_DROP_INTERVAL - (this.level - 1) * 100);
+                } else {
+                    // No lines cleared, just spawn
+                    this.spawnPiece();
                 }
-                this.spawnPiece();
+
+                // this.spawnPiece(); // Removed from here, moved into branches
             }
             if (this.currentPiece) { // Only save if move was successful/processed
                 // this.saveState(); // Removed per user request

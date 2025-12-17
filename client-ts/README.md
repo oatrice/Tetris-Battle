@@ -6,10 +6,13 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
 
 - **PWA Support:** Installable on Mobile/Desktop, Offline capable.
 - **Responsive UI:** Adapts to mobile and desktop screens.
+- **Game Modes:**
+    - **Classic Solo Mode**: Standard Tetris gameplay.
+    - **Special Mode**: Features "Cascade Gravity" where floating blocks fall down to fill gaps after line clears.
+    - Currently "Solo Mode" (Offline). Multiplayer coming soon.
 - **Controls:**
     - **Keyboard:** Arrows to move, Space to Drop, P to Pause.
     - **Touch:** Swipe to move/drop, Tap to rotate (Mobile optimized).
-- **Game Modes:** Currently "Solo Mode" (Offline). Multiplayer coming soon.
 
 ## 🛠 Setup & Run
 

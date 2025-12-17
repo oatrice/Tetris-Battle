@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+- Added "Special Mode" with Cascade Gravity mechanics.
+- Implemented "Gravity Animation" allowing blocks to fall step-by-step in Special Mode.
+- Added UI button to toggle between Solo and Special Mode.
 
 ## [0.3.3] - 2025-12-16
 ### Changed

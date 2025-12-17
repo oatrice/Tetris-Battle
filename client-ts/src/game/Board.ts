@@ -76,4 +76,17 @@ export class Board {
 
         return { count: 0, indices: [] };
     }
+    processGravityStep(): boolean {
+        let moved = false;
+        for (let x = 0; x < this.width; x++) {
+            for (let y = this.height - 2; y >= 0; y--) {
+                if (this.grid[y][x] !== 0 && this.grid[y + 1][x] === 0) {
+                    this.grid[y + 1][x] = this.grid[y][x];
+                    this.grid[y][x] = 0;
+                    moved = true;
+                }
+            }
+        }
+        return moved;
+    }
 }

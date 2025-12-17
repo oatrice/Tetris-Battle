@@ -1,4 +1,5 @@
 import { Game } from './Game';
+import { GameMode } from './GameMode';
 
 export class GameUI {
     private game: Game;
@@ -143,7 +144,7 @@ export class GameUI {
         });
 
         const btnSpecial = createBtn('btnSpecial', 'Special Mode', () => {
-            alert('Next feature coming soon!');
+            this.startGame(GameMode.SPECIAL);
         });
 
         /*
@@ -306,14 +307,22 @@ export class GameUI {
         if (this.pauseBtn) this.pauseBtn.style.display = 'block';
     }
 
-    startGame() {
+    startGame(mode?: GameMode) {
         if (this.homeMenu) this.homeMenu.style.display = 'none';
         if (this.pauseBtn) this.pauseBtn.style.display = 'block';
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) modeDisplay.style.display = 'block';
 
         this.hideGameOver(); // Ensure overlay is gone
-        this.game.start();
+
+        if (mode) {
+            this.game.mode = mode;
+            this.game.start(true);
+        } else {
+            this.game.mode = GameMode.OFFLINE;
+            this.game.start(false);
+        }
+
         this.updatePauseBtnText();
     }
 
