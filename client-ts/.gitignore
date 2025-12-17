@@ -6,6 +6,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Vite
+vite.config.ts.timestamp*
+.vite/
 *.local
 .env
 .env.*.local
