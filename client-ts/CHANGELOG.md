@@ -1,9 +1,11 @@
 # Changelog
 
-## [Unreleased]
-- Added "Special Mode" with Cascade Gravity mechanics.
-- Implemented "Gravity Animation" allowing blocks to fall step-by-step in Special Mode.
-- Added UI button to toggle between Solo and Special Mode.
+## [0.4.0] - 2025-12-17
+### Added
+- **Special Mode**: Added "Special Mode" with Cascade Gravity mechanics.
+- **Gravity Animation**: Blocks now fall step-by-step in Special Mode with a 500ms delay.
+- **Chain Reactions**: Implemented recursive line clearing for multi-step combos in Special Mode.
+- **UI Update**: Added toggle button in Home Menu to switch between Solo and Special Mode.
 
 ## [0.3.3] - 2025-12-16
 ### Changed
