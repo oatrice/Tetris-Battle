@@ -166,4 +166,44 @@ describe('Special Mode - Cascade Gravity', () => {
 
         expect(game.isCascading).toBe(false); // Flag not set
     });
+
+    it('should trigger gravity step overlapping with visual effect (Async/Fast Gravity)', () => {
+        // Re-setup logic for this test:
+        game = new Game(GameMode.SPECIAL);
+        game.currentPiece = new Tetromino('I'); // Required for moveDown
+        game.board.grid[19].fill(1);
+        game.board.grid[18][0] = 0; game.board.grid[18][1] = 1;
+        game.board.grid[17][0] = 1; game.board.grid[17][1] = 0;
+
+        // Mock Lock/Clear
+        const originalIsValid = game.board.isValidPosition;
+        game.board.isValidPosition = (_p, _x, y) => (y > game.position.y ? false : true);
+        game.board.lockPiece = () => { };
+
+        game.board.clearLines = () => {
+            game.board.grid.splice(19, 1);
+            game.board.grid.unshift(Array(10).fill(0));
+            return { count: 1, indices: [19] };
+        };
+
+        (game as any).moveDown();
+        game.board.isValidPosition = originalIsValid;
+
+        // State after shift:
+        // 19: [0, 1]
+        // 18: [1, 0]
+        // Cell (0, 18) is 1. Cell (0, 19) is 0.
+        expect(game.board.grid[19][0]).toBe(0);
+        expect(game.board.grid[18][0]).toBe(1);
+
+        // Update 151ms (Enough for 150ms delay, but less than old 500ms)
+        game.update(151);
+
+        // Should have moved! (This will fail currently as delay is 500ms)
+        expect(game.board.grid[19][0]).toBe(1);
+        expect(game.board.grid[18][0]).toBe(0);
+
+        // Effect should still be visible (300ms duration - 151ms = 149ms > 0)
+        expect(game.effects.length).toBeGreaterThan(0);
+    });
 });

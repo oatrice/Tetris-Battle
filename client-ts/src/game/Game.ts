@@ -119,7 +119,7 @@ export class Game {
 
     isCascading: boolean = false;
     private cascadeTimer: number = 0;
-    private CASCADE_DELAY: number = 500; // ms per step
+    private CASCADE_DELAY: number = 150; // ms per step (Faster for async separation)
 
     update(deltaTime: number): void {
         if (this.gameOver || this.isPaused) return;
