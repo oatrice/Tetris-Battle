@@ -4,7 +4,7 @@ import { Game } from './Game';
 import { GameMode } from './GameMode';
 import { Tetromino } from './Tetromino';
 
-describe.skip('Special Mode - Cascade Gravity', () => {
+describe('Special Mode - Cascade Gravity', () => {
     let game: Game;
 
     beforeEach(() => {
@@ -54,6 +54,23 @@ describe.skip('Special Mode - Cascade Gravity', () => {
             return true;
         };
 
+        // Mock lockPiece to avoid adding the O-piece to the top of the board (which would cause long cascading)
+        game.board.lockPiece = () => { };
+
+        // Mock clearLines to ensure it returns count > 0 and modifies grid ONLY ONCE
+        let clearLinesCalled = false;
+        game.board.clearLines = () => {
+            if (!clearLinesCalled) {
+                clearLinesCalled = true;
+                // Remove row 19
+                game.board.grid.splice(19, 1);
+                // Add empty row at top
+                game.board.grid.unshift(Array(10).fill(0));
+                return { count: 1, indices: [19] };
+            }
+            return { count: 0, indices: [] };
+        };
+
         // Trigger moveDown (which locks and clears lines)
         (game as any).moveDown();
         game.board.isValidPosition = originalIsValid;
@@ -68,16 +85,22 @@ describe.skip('Special Mode - Cascade Gravity', () => {
         expect(game.isCascading).toBe(true);
         expect(game.currentPiece).toBeNull(); // Shouldn't have spawned yet
 
+        // Verify state immediately after line clear (before gravity step)
+        // Old 17 -> New 18. grid[18][1] should be 1.
+        expect(game.board.grid[18][1]).toBe(1);
+        // Old 18 -> New 19. grid[19][1] should be 0.
+        expect(game.board.grid[19][1]).toBe(0);
+
         // Simulate Game Updates for Animation
         // Step 1: Wait for delay
-        game.update(60); // > 50ms delay
+        game.update(550); // > 500ms delay
 
         // Should have moved once
-        expect(game.board.grid[18][1]).toBe(0);
         expect(game.board.grid[19][1]).toBe(1);
+        expect(game.board.grid[18][1]).toBe(0);
 
         // Step 2: Next update (Stable)
-        game.update(60);
+        game.update(550);
 
         // Should be done
         expect(game.isCascading).toBe(false);
