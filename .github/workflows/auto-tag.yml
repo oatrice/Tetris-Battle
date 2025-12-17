@@ -1,0 +1,34 @@
+name: Auto Tag on Merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get Version from client-ts
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./client-ts/package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create Git Tag
+        run: |
+          TAG_NAME="v${{ env.VERSION }}"
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists. Skipping."
+          else
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git tag $TAG_NAME
+            git push origin $TAG_NAME
+            echo "Tagged version $TAG_NAME"
+          fi
