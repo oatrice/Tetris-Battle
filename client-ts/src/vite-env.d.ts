@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
-declare const __APP_VERSION__: string;
-declare const __COMMIT_DATE__: string;
-declare const __COMMIT_HASH__: string;
+declare module 'virtual:version-info' {
+    export const APP_VERSION: string;
+    export const COMMIT_HASH: string;
+    export const COMMIT_DATE: string;
+}

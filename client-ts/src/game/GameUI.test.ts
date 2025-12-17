@@ -1,23 +1,35 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Game } from './Game';
 import { GameUI } from './GameUI';
+import { GameMode } from './GameMode';
+
+// Mock the virtual module
+vi.mock('virtual:version-info', () => {
+    return {
+        APP_VERSION: '1.0.0',
+        COMMIT_HASH: 'initial_mock_hash',
+        COMMIT_DATE: 'initial_mock_date'
+    };
+});
+
+// Import the mocked module to modify its values
+import * as VersionInfo from 'virtual:version-info';
 
 describe('GameUI', () => {
     let game: Game;
-    let root: HTMLDivElement;
     let ui: GameUI;
+    let root: HTMLElement;
 
     beforeEach(() => {
+        document.body.innerHTML = '<div id="app"></div>';
+        root = document.getElementById('app')!;
         game = new Game();
-        root = document.createElement('div');
-
-        // Setup initial DOM as expected by GameUI
-        // We assume GameUI will populate or expect these elements.
-        // For this refactor, let's say GameUI initializes the necessary menu structure 
-        // if it doesn't exist, or we check against what it *should* do.
-
-        // Let's assume we pass the root container where the app lives.
         ui = new GameUI(game, root);
+
+        // Reset mock values to defaults
+        (VersionInfo as any).APP_VERSION = '1.0.0';
+        (VersionInfo as any).COMMIT_HASH = 'initial_mock_hash';
+        (VersionInfo as any).COMMIT_DATE = 'initial_mock_date';
     });
 
     it('should create a pause menu hidden by default', () => {
@@ -112,7 +124,7 @@ describe('GameUI', () => {
 
         // Also check Home Menu
         const homeMenu = root.querySelector('#homeMenu');
-        expect(homeMenu?.innerHTML).toContain(`v${__APP_VERSION__}`);
+        expect(homeMenu?.innerHTML).toContain(`v${VersionInfo.APP_VERSION} `);
     });
 
     it('should quit to home when Quit to Home option is clicked', () => {
@@ -144,5 +156,87 @@ describe('GameUI', () => {
 
         const menu = root.querySelector('#pauseMenu') as HTMLElement;
         expect(menu.style.display).toBe('none');
+    });
+    it('should display the current game mode in the HUD', () => {
+        ui.init();
+
+        // Default mode (Offline/Normal)
+        ui.startGame();
+        let modeDisplay = root.querySelector('#modeDisplay');
+        expect(modeDisplay?.textContent).toContain('Normal');
+
+        // Special mode
+        ui.startGame(GameMode.SPECIAL);
+        modeDisplay = root.querySelector('#modeDisplay');
+        expect(modeDisplay?.textContent).toContain('Special');
+    });
+
+
+    it('should display git date for clean commits', () => {
+        (VersionInfo as any).COMMIT_HASH = 'abc1234';
+        const fixedDate = '2023-01-01T10:00:00.000Z';
+        (VersionInfo as any).COMMIT_DATE = fixedDate;
+
+        ui.init();
+        ui.startGame();
+
+        const modeDisplay = root.querySelector('#modeDisplay');
+        const expectedDateStr = new Date(fixedDate).toLocaleString();
+
+        expect(modeDisplay?.textContent).toContain('abc1234');
+        expect(modeDisplay?.textContent).toContain(expectedDateStr);
+    });
+
+    it('Runtime Clock Override: should use current runtime timestamp for HMR/dirty updates (ignoring COMMIT_DATE)', () => {
+        (VersionInfo as any).COMMIT_HASH = 'now';
+        // Provide a stale date to simulate cached build info
+        const staleDate = '2020-01-01T10:00:00.000Z';
+        (VersionInfo as any).COMMIT_DATE = staleDate;
+
+        // Mock runtime clock to a specific new time
+        const runtimeDate = new Date('2025-12-25T12:00:00.000Z');
+        vi.useFakeTimers();
+        vi.setSystemTime(runtimeDate);
+
+        ui.init();
+        ui.startGame();
+
+        const modeDisplay = root.querySelector('#modeDisplay');
+        const expectedRuntimeDateStr = runtimeDate.toLocaleString();
+        const staleDateStr = new Date(staleDate).toLocaleString();
+
+        // It should use the runtime clock, not the stale info
+        expect(modeDisplay?.textContent).toContain(expectedRuntimeDateStr);
+        expect(modeDisplay?.textContent).not.toContain(staleDateStr);
+        expect(modeDisplay?.textContent).toContain('Dev Changes (HMR)');
+
+        vi.useRealTimers();
+    });
+    it('should sanitize player name in HUD to prevent XSS', () => {
+        const maliciousName = '<img src=x onerror=alert(1)>';
+        // Directly set on game instance to mock data source
+        game.setPlayerName(maliciousName);
+
+        ui.init();
+        const modeDisplay = root.querySelector('#modeDisplay');
+
+        // Should render as text, not HTML
+        // textContent decodes entities, so it should match the input string exactly
+        expect(modeDisplay?.textContent).toContain(maliciousName);
+        // innerHTML should ideally contain escaped entities like &lt;img
+        expect(modeDisplay?.innerHTML).not.toContain('<img src=x');
+    });
+
+    it('should handle missing or malformed COMMIT_DATE gracefully', () => {
+        (VersionInfo as any).COMMIT_DATE = 'invalid-date-string';
+
+        ui.init();
+        ui.startGame();
+
+        const modeDisplay = root.querySelector('#modeDisplay');
+
+        // Should fallback to a safe default
+        expect(modeDisplay?.textContent).not.toContain('Invalid Date');
+        expect(modeDisplay?.textContent).toContain('Unknown Date');
     });
 });

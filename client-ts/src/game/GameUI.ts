@@ -1,5 +1,6 @@
 import { Game } from './Game';
 import { GameMode } from './GameMode';
+import { APP_VERSION, COMMIT_HASH, COMMIT_DATE } from 'virtual:version-info';
 
 export class GameUI {
     private game: Game;
@@ -14,7 +15,14 @@ export class GameUI {
     }
 
     init() {
-        // 0. Setup Home Page
+        console.log('[GameUI] Initializing UI...');
+        console.log('[GameUI] Version Info:', {
+            version: APP_VERSION,
+            hash: COMMIT_HASH,
+            date: COMMIT_DATE
+        });
+
+        // 1. Setup UI Elements Page
         this.createHomeMenu();
 
         // 1. Setup Pause Button
@@ -178,12 +186,14 @@ export class GameUI {
         versionInfo.style.color = '#666';
 
         if (import.meta.env.PROD) {
-            versionInfo.textContent = `v${__APP_VERSION__}`;
+            versionInfo.textContent = `v${APP_VERSION}`;
         } else {
-            // In DEV, show current HMR timestamp
-            const hmrTime = new Date().toLocaleString();
-            const hashDisplay = __COMMIT_HASH__ === 'now' ? 'Dev Changes (HMR)' : __COMMIT_HASH__;
-            versionInfo.innerHTML = `v${__APP_VERSION__} (${hashDisplay})<br>Last Update: ${hmrTime}`;
+            // In DEV, show build date/hash from Vite Config
+            const dateStr = new Date(COMMIT_DATE).toLocaleString();
+            const now = new Date().toLocaleString();
+            const hashDisplay = COMMIT_HASH === 'now' ? 'Dev Changes (HMR)' : COMMIT_HASH;
+            const datetime = COMMIT_HASH === 'now' ? now : dateStr;
+            versionInfo.innerHTML = `v${APP_VERSION} (${hashDisplay})<br>Last Update: ${datetime}`;
         }
         this.homeMenu.appendChild(versionInfo);
 
@@ -373,6 +383,7 @@ export class GameUI {
             this.game.start(false);
         }
 
+        this.updateModeDisplay();
         this.updatePauseBtnText();
     }
 
@@ -408,10 +419,30 @@ export class GameUI {
     updateModeDisplay() {
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) {
-            const versionInfo = import.meta.env.PROD
-                ? ''
-                : `<br><span style="font-size: 0.8em; color: #888;">v${__APP_VERSION__} (${__COMMIT_HASH__}) - ${new Date(__COMMIT_DATE__).toLocaleString()}</span>`;
-            modeDisplay.innerHTML = `Player: ${this.game.playerName}${versionInfo}`;
+            console.log('[GameUI] Version Check:', { version: APP_VERSION, hash: COMMIT_HASH, date: COMMIT_DATE });
+            const modeText = this.game.mode === GameMode.SPECIAL ? 'Special' : 'Normal';
+            modeDisplay.textContent = `Player: ${this.game.playerName} | Mode: ${modeText}`;
+
+            if (!import.meta.env.PROD) {
+                const br = document.createElement('br');
+                modeDisplay.appendChild(br);
+
+                const span = document.createElement('span');
+                span.style.fontSize = '0.8em';
+                span.style.color = '#888';
+
+                // Use the date provided by Vite Config (which is already "now" or "git timestamp")
+                const d = new Date(COMMIT_DATE);
+                const dateStr = isNaN(d.getTime()) ? 'Unknown Date' : d.toLocaleString();
+                const now = new Date().toLocaleString();
+                const cleanHash = String(COMMIT_HASH).trim();
+                const dateDisplay = cleanHash === 'now' ? now : dateStr;
+
+                const hashDisplay = cleanHash === 'now' ? 'Dev Changes (HMR)' : cleanHash;
+                span.textContent = `v${APP_VERSION} (${hashDisplay}) - ${dateDisplay}`;
+
+                modeDisplay.appendChild(span);
+            }
         }
     }
 
