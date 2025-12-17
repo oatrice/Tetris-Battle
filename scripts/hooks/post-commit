@@ -1,0 +1,19 @@
+#!/bin/sh
+# Post-commit Hook for Tetris Battle
+
+# TypeScript Client Directory
+TS_DIR="client-ts"
+
+# Check if directory exists relative to repo root
+if [ -d "$TS_DIR" ]; then
+    echo "✅ Commit Successful! Starting runtime check..."
+    echo "🚀 Starting 'npm run dev' to verify game on browser..."
+    echo "ℹ️  Press Ctrl+C to stop the server and return to terminal."
+    
+    (
+        cd "$TS_DIR"
+        npm run dev
+    )
+fi
+
+exit 0

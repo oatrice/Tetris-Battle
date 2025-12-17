@@ -57,6 +57,12 @@ downloadLogs()    # Download collected logs as a file
 clearLogs()       # Clear existing logs
 ```
 
+## 🔄 Git Hooks Workflow
+- **Pre-commit:** Automatically runs `npm test` and `npm run build` before allowing a commit.
+- **Post-commit:** Automatically runs `npm run dev` after a successful commit to launch the dev server for verification.
+
+> To enable these hooks, run: `cp scripts/hooks/* .git/hooks/`
+
 ## 📂 Project Structure
 
 - `src/game/`: Core Game Logic (Board, Tetromino, Game Loop).
