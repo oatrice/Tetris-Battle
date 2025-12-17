@@ -8,24 +8,22 @@ TS_DIR="$REPO_ROOT/client-ts"
 if [ -d "$TS_DIR" ]; then
     echo "✅ Commit Successful"
     
-    # Check if vite is running
-    # Grep for vite, exclude grep itself
-    if pgrep -f "vite" > /dev/null; then
-        echo "🔄 Existing Dev Server found. Triggering HMR/Restart..."
-        
-        # Touching vite.config.ts forces Vite to restart the server process
-        # This will refresh the environment variables (like Version)
-        touch "$TS_DIR/vite.config.ts"
-        
-        echo "✅ Server restart triggered."
-    else
-        echo "🚀 No Dev Server found. Launching new one..."
-        
-        # Start new server in separate window (macOS)
-        osascript -e "tell application \"Terminal\" to do script \"cd '$TS_DIR' && npm run dev\""
-        
-        echo "ℹ️  Dev server started."
+    COMMIT_DATE=$(git log -1 --format=%cI)
+    echo "📅 Commit Timestamp: $COMMIT_DATE"
+    
+    # Kill any existing dev servers on common ports to prevent duplicates
+    PIDS=$(lsof -t -i:5173 -i:5174 -i:5175)
+    if [ -n "$PIDS" ]; then
+        echo "🛑 Killing existing dev servers (PIDs: $PIDS)..."
+        echo "$PIDS" | xargs kill -9
+        sleep 1
     fi
+
+    echo "🚀 Launching new Dev Server..."
+    # Start new server in separate window (macOS)
+    osascript -e "tell application \"Terminal\" to do script \"cd '$TS_DIR' && npm run dev\""
+    
+    echo "ℹ️  Dev server started."
 fi
 
 exit 0

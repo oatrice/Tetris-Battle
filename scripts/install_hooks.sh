@@ -8,6 +8,8 @@ if [ ! -d "$GIT_DIR" ]; then
 fi
 
 echo "Installing hooks..."
-cp scripts/pre-commit .git/hooks/pre-commit
+cp scripts/hooks/pre-commit .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
-echo "✅ Pre-commit hook installed!"
+cp scripts/hooks/post-commit .git/hooks/post-commit
+chmod +x .git/hooks/post-commit
+echo "✅ Git hooks (pre-commit, post-commit) installed!"

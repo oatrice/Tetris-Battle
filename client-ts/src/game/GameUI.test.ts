@@ -3,22 +3,33 @@ import { Game } from './Game';
 import { GameUI } from './GameUI';
 import { GameMode } from './GameMode';
 
+// Mock the virtual module
+vi.mock('virtual:version-info', () => {
+    return {
+        APP_VERSION: '1.0.0',
+        COMMIT_HASH: 'initial_mock_hash',
+        COMMIT_DATE: 'initial_mock_date'
+    };
+});
+
+// Import the mocked module to modify its values
+import * as VersionInfo from 'virtual:version-info';
+
 describe('GameUI', () => {
     let game: Game;
-    let root: HTMLDivElement;
     let ui: GameUI;
+    let root: HTMLElement;
 
     beforeEach(() => {
+        document.body.innerHTML = '<div id="app"></div>';
+        root = document.getElementById('app')!;
         game = new Game();
-        root = document.createElement('div');
-
-        // Setup initial DOM as expected by GameUI
-        // We assume GameUI will populate or expect these elements.
-        // For this refactor, let's say GameUI initializes the necessary menu structure 
-        // if it doesn't exist, or we check against what it *should* do.
-
-        // Let's assume we pass the root container where the app lives.
         ui = new GameUI(game, root);
+
+        // Reset mock values to defaults
+        (VersionInfo as any).APP_VERSION = '1.0.0';
+        (VersionInfo as any).COMMIT_HASH = 'initial_mock_hash';
+        (VersionInfo as any).COMMIT_DATE = 'initial_mock_date';
     });
 
     it('should create a pause menu hidden by default', () => {
@@ -113,7 +124,7 @@ describe('GameUI', () => {
 
         // Also check Home Menu
         const homeMenu = root.querySelector('#homeMenu');
-        expect(homeMenu?.innerHTML).toContain(`v${__APP_VERSION__}`);
+        expect(homeMenu?.innerHTML).toContain(`v${VersionInfo.APP_VERSION} `);
     });
 
     it('should quit to home when Quit to Home option is clicked', () => {
@@ -162,10 +173,9 @@ describe('GameUI', () => {
 
 
     it('should display git date for clean commits', () => {
-        vi.stubGlobal('__APP_VERSION__', '1.0.0');
-        vi.stubGlobal('__COMMIT_HASH__', 'abc1234');
-        const fixedDate = '2023-01-01T10:00:00.000Z'; // Fixed UTC
-        vi.stubGlobal('__COMMIT_DATE__', fixedDate);
+        (VersionInfo as any).COMMIT_HASH = 'abc1234';
+        const fixedDate = '2023-01-01T10:00:00.000Z';
+        (VersionInfo as any).COMMIT_DATE = fixedDate;
 
         ui.init();
         ui.startGame();
@@ -177,19 +187,29 @@ describe('GameUI', () => {
         expect(modeDisplay?.textContent).toContain(expectedDateStr);
     });
 
-    it('should display current time for HMR/dirty updates', () => {
-        vi.stubGlobal('__COMMIT_HASH__', 'now');
-        const oldBuildDate = '2020-01-01T00:00:00.000Z';
-        vi.stubGlobal('__COMMIT_DATE__', oldBuildDate);
+    it('should use current runtime timestamp for HMR/dirty updates (ignoring COMMIT_DATE)', () => {
+        (VersionInfo as any).COMMIT_HASH = 'now';
+        // Provide a stale date to simulate cached build info
+        const staleDate = '2020-01-01T10:00:00.000Z';
+        (VersionInfo as any).COMMIT_DATE = staleDate;
+
+        // Mock runtime clock to a specific new time
+        const runtimeDate = new Date('2025-12-25T12:00:00.000Z');
+        vi.useFakeTimers();
+        vi.setSystemTime(runtimeDate);
 
         ui.init();
         ui.startGame();
 
         const modeDisplay = root.querySelector('#modeDisplay');
-        const oldStr = new Date(oldBuildDate).toLocaleString();
+        const expectedRuntimeDateStr = runtimeDate.toLocaleString();
+        const staleDateStr = new Date(staleDate).toLocaleString();
 
-        expect(modeDisplay?.textContent).not.toContain(oldStr);
-        // This check is a bit loose but confirms we aren't using the stale __COMMIT_DATE__
-        // A better check relies on the implementation details we are about to add.
+        // It should use the runtime clock, not the stale info
+        expect(modeDisplay?.textContent).toContain(expectedRuntimeDateStr);
+        expect(modeDisplay?.textContent).not.toContain(staleDateStr);
+        expect(modeDisplay?.textContent).toContain('Dev Changes (HMR)');
+
+        vi.useRealTimers();
     });
 });

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3] - 2025-12-17
+### Added
+- **HUD Improvements**: 
+    - Added "Game Mode" indicator (Normal / Special) to the Player Info HUD.
+    - Improved Version Display in Dev Mode: Shows "Current Time" for HMR/Dirty builds vs "Commit Date" for clean builds.
+    - Refactored HUD rendering to use safe DOM manupulation (XSS protection).
+
 ## [1.0.2] - 2025-12-17
 ### Added
 - **Game Over Stats**: Now displays Player Name, Score, and Best Score on the Game Over screen.
