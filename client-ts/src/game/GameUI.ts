@@ -31,17 +31,19 @@ export class GameUI {
         this.createHomeMenu();
 
         // Listen to Auth State logic
-        // In a real app we might subscribe to onAuthStateChanged here or in AuthService
-        // For now, we trust AuthService handles it, and we might poll or check via callbacks if needed.
-        // We can just rely on UI updates triggered by events if we had them. 
-        // Or simply checking on showHome. 
-        // To make it reactive, let's use the property of firebase auth via the service if we exposed a listener.
-        // For simplicity: We will update UI when we manually trigger login/logout, 
-        // AND check on initial load.
         const auth = this.authService.getAuth();
-        auth.onAuthStateChanged((user) => {
-            this.updateAuthUI(user);
-        });
+        if (auth) {
+            auth.onAuthStateChanged((user) => {
+                this.updateAuthUI(user);
+            });
+        } else {
+            console.warn('[GameUI] Auth not configured. UI will be in offline mode.');
+            if (this.loginBtn) {
+                this.loginBtn.style.display = 'none';
+                this.loginBtn.disabled = true;
+                this.loginBtn.textContent = 'Login Unavailable (Offline)';
+            }
+        }
 
         // 1. Setup Pause Button
         this.pauseBtn = this.root.querySelector('#pauseBtn');
@@ -256,10 +258,15 @@ export class GameUI {
                 const nameEl = this.userProfile.querySelector('#user-name');
                 const avatarEl = this.userProfile.querySelector('img');
                 if (nameEl) nameEl.textContent = user.displayName || 'User';
-                if (avatarEl && user.photoURL) avatarEl.src = user.photoURL;
+                // Use placeholder if photoURL is missing
+                const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiPlU8L3RleHQ+PC9zdmc+';
+                if (avatarEl) avatarEl.src = user.photoURL || defaultAvatar;
 
                 this.game.setPlayerName(user.displayName || 'Player');
                 this.game.setPlayerMetadata(user.uid, user.photoURL);
+
+                // Merge anonymous scores
+                this.game.leaderboard.mergeLocalScoresToUser(user.uid, user.photoURL);
             }
         } else {
             if (this.loginBtn) this.loginBtn.style.display = 'block';

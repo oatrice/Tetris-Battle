@@ -1,15 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuthService } from './AuthService';
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 
 // Mock Firebase modules
 vi.mock('firebase/app', () => ({
-    initializeApp: vi.fn(),
+    initializeApp: vi.fn().mockReturnValue({}),
 }));
 
 vi.mock('firebase/auth', () => ({
-    getAuth: vi.fn(),
+    getAuth: vi.fn().mockReturnValue({}),
     GoogleAuthProvider: vi.fn(),
     signInWithPopup: vi.fn(),
     signOut: vi.fn(),
@@ -21,9 +21,19 @@ describe('AuthService', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        // Simulate onAuthStateChanged calling the callback immediately or storing it
-        // For specific tests, we might need to mock implementation of onAuthStateChanged
-        authService = new AuthService();
+
+        // Pass mock config to constructor
+        const mockConfig = {
+            apiKey: 'test-api-key',
+            authDomain: 'test-auth-domain',
+            projectId: 'test-project-id'
+        };
+
+        authService = new AuthService(mockConfig);
+    });
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
     });
 
     it('should initialize firebase on creation', () => {

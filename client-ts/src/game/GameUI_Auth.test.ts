@@ -28,6 +28,12 @@ describe('GameUI Auth Integration', () => {
         (AuthService as any).mockImplementation(() => mockAuthService);
 
         mockGame = new Game();
+        mockGame.setPlayerName = vi.fn();
+        mockGame.setPlayerMetadata = vi.fn();
+        mockGame.leaderboard = {
+            mergeLocalScoresToUser: vi.fn(),
+            getTopScores: vi.fn().mockReturnValue([])
+        };
     });
 
     it('should create a login button on initialization', () => {

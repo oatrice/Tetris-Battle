@@ -279,7 +279,7 @@ export class Game {
             return;
         }
 
-        if (this.gameOver || this.isPaused || !this.currentPiece) return;
+        if (this.gameOver || this.isPaused || !this.currentPiece || this.isCascading) return;
 
         switch (action) {
             case GameAction.MOVE_LEFT:
