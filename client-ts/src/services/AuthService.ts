@@ -92,4 +92,8 @@ export class AuthService {
     getAuth(): Auth | undefined {
         return this.auth;
     }
+
+    getApp(): FirebaseApp | undefined {
+        return this.app;
+    }
 }

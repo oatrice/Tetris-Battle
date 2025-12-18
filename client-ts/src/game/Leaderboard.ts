@@ -1,4 +1,6 @@
 import { GameMode } from './GameMode';
+import { AuthService } from '../services/AuthService';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
 
 export interface ScoreEntry {
     name: string;
@@ -11,10 +13,15 @@ export interface ScoreEntry {
 export class Leaderboard {
     private readonly STORAGE_PREFIX = 'tetris_leaderboard_';
     private readonly MAX_SCORES = 10;
+    private authService: AuthService | undefined;
 
     constructor() { }
 
-    addScore(name: string, score: number, mode: GameMode = GameMode.OFFLINE, metadata?: { userId?: string, photoUrl?: string }): void {
+    setAuthService(authService: AuthService) {
+        this.authService = authService;
+    }
+
+    async addScore(name: string, score: number, mode: GameMode = GameMode.OFFLINE, metadata?: { userId?: string, photoUrl?: string }): Promise<void> {
         const scores = this.getTopScores(mode);
 
         const newEntry: ScoreEntry = {
@@ -24,15 +31,40 @@ export class Leaderboard {
             ...metadata
         };
 
+        // 1. Save Local
         scores.push(newEntry);
-
-        // Sort by score descending
         scores.sort((a, b) => b.score - a.score);
-
-        // Keep top N
         const topScores = scores.slice(0, this.MAX_SCORES);
-
         this.saveScores(topScores, mode);
+
+        // 2. Save Online (if Authenticated)
+        if (this.authService && this.authService.getUser()) {
+            console.log('[Leaderboard] User authenticated, sending score to online leaderboard...');
+            await this.saveScoreOnline(newEntry, mode);
+        }
+    }
+
+    private async saveScoreOnline(entry: ScoreEntry, mode: GameMode): Promise<void> {
+        if (!this.authService) return;
+        const app = this.authService.getApp();
+        if (!app) return;
+
+        try {
+            const db = getFirestore(app);
+            const user = this.authService.getUser();
+
+            // Ensure we use the authenticated ID if available, backing up the metadata one
+            const finalEntry = {
+                ...entry,
+                userId: user?.uid || entry.userId,
+                mode: mode // vital for querying
+            };
+
+            await addDoc(collection(db, 'leaderboard'), finalEntry);
+            console.log('[Leaderboard] Score saved to Firestore');
+        } catch (e) {
+            console.error('[Leaderboard] Failed to save score online', e);
+        }
     }
 
     getTopScores(mode: GameMode = GameMode.OFFLINE): ScoreEntry[] {

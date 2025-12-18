@@ -17,6 +17,7 @@ export class GameUI {
         this.game = game;
         this.root = root;
         this.authService = new AuthService();
+        this.game.setAuthService(this.authService);
     }
 
     init() {
