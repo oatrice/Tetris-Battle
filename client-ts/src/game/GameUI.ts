@@ -616,6 +616,7 @@ export class GameUI {
             this.hideMenu();
         } else {
             this.game.togglePause();
+            this.game.saveState(); // Save immediately when paused
             this.showMenu();
         }
     }
