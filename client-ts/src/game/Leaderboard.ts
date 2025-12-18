@@ -1,6 +1,6 @@
 import { GameMode } from './GameMode';
 import { AuthService } from '../services/AuthService';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 
 export interface ScoreEntry {
     name: string;
@@ -64,6 +64,33 @@ export class Leaderboard {
             console.log('[Leaderboard] Score saved to Firestore');
         } catch (e) {
             console.error('[Leaderboard] Failed to save score online', e);
+        }
+    }
+
+    async getOnlineScores(mode: GameMode = GameMode.OFFLINE): Promise<ScoreEntry[]> {
+        if (!this.authService) return [];
+        const app = this.authService.getApp();
+        if (!app) return [];
+
+        try {
+            const db = getFirestore(app);
+            const q = query(
+                collection(db, 'leaderboard'),
+                where('mode', '==', mode),
+                orderBy('score', 'desc'),
+                limit(this.MAX_SCORES)
+            );
+
+            const querySnapshot = await getDocs(q);
+            const scores: ScoreEntry[] = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data() as ScoreEntry;
+                scores.push(data);
+            });
+            return scores;
+        } catch (e) {
+            console.error('[Leaderboard] Failed to fetch online scores', e);
+            return [];
         }
     }
 

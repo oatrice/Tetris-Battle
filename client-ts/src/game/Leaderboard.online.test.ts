@@ -1,14 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Leaderboard } from './Leaderboard';
 import { AuthService } from '../services/AuthService';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query } from 'firebase/firestore';
 
 // Mock Firestore
 vi.mock('firebase/firestore', () => ({
     getFirestore: vi.fn().mockReturnValue({}),
     collection: vi.fn(),
     addDoc: vi.fn(),
-    getDoc: vi.fn()
+    getDoc: vi.fn(),
+    getDocs: vi.fn(),
+    query: vi.fn(),
+    where: vi.fn(),
+    orderBy: vi.fn(),
+    limit: vi.fn()
 }));
 
 describe('Leaderboard Online', () => {
@@ -46,5 +51,28 @@ describe('Leaderboard Online', () => {
         await leaderboard.addScore('Guest', 500);
 
         expect(addDoc).not.toHaveBeenCalled();
+    });
+
+    it('should fetch online scores correctly', async () => {
+        const mockDocs = [
+            { data: () => ({ name: 'P1', score: 1000, timestamp: 123, userId: 'u1' }) },
+            { data: () => ({ name: 'P2', score: 800, timestamp: 124, userId: 'u2' }) }
+        ];
+
+        // Mock getDocs return value
+        const getDocsMock = getDocs as any;
+        getDocsMock.mockResolvedValue({
+            forEach: (callback: any) => mockDocs.forEach(callback)
+        });
+
+        // Inject mock auth (needed for getApp check usually, though reading public leaderboard might not need auth user, but needs app ref)
+        leaderboard.setAuthService(mockAuthService);
+
+        const scores = await leaderboard.getOnlineScores();
+
+        expect(query).toHaveBeenCalled();
+        expect(getDocs).toHaveBeenCalled();
+        expect(scores).toHaveLength(2);
+        expect(scores[0].name).toBe('P1');
     });
 });

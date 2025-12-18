@@ -85,6 +85,7 @@ export class GameUI {
         // 2. Create Pause Menu
         this.createPauseMenu();
         this.createGameOverMenu();
+        this.createLeaderboardOverlay();
 
         // 3. Bind Events
         this.pauseBtn?.addEventListener('click', (e) => {
@@ -443,8 +444,96 @@ export class GameUI {
             this.gameOverMenu.style.display = 'none';
         }
         this.updatePauseBtnText();
-        // Since restart shows pause button handled in startGame usually
-        if (this.pauseBtn) this.pauseBtn.style.display = 'block';
+        // Since restart shows pause button handled in startGame usually, checking display is tricky
+        // Logic: if not home menu, should show pause button
+        if (this.homeMenu && this.homeMenu.style.display === 'none') {
+            if (this.pauseBtn) this.pauseBtn.style.display = 'block';
+        }
+    }
+
+    private leaderboardOverlay: HTMLElement | null = null;
+    private leaderboardList: HTMLElement | null = null;
+    private leaderboardTitle: HTMLElement | null = null;
+
+    private createLeaderboardOverlay() {
+        const overlay = document.createElement('div');
+        overlay.id = 'leaderboardOverlay';
+        overlay.style.display = 'none';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        overlay.style.flexDirection = 'column';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '200';
+        overlay.style.color = 'white';
+
+        this.leaderboardTitle = document.createElement('h2');
+        this.leaderboardTitle.style.marginBottom = '20px';
+        overlay.appendChild(this.leaderboardTitle);
+
+        this.leaderboardList = document.createElement('div');
+        this.leaderboardList.style.width = '80%';
+        this.leaderboardList.style.maxHeight = '60%';
+        this.leaderboardList.style.overflowY = 'auto';
+        this.leaderboardList.style.display = 'flex';
+        this.leaderboardList.style.flexDirection = 'column';
+        this.leaderboardList.style.gap = '10px';
+        overlay.appendChild(this.leaderboardList);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Close';
+        closeBtn.className = 'menu-btn';
+        closeBtn.style.marginTop = '20px';
+        closeBtn.addEventListener('click', () => {
+            overlay.style.display = 'none';
+        });
+        overlay.appendChild(closeBtn);
+
+        this.root.appendChild(overlay);
+        this.leaderboardOverlay = overlay;
+    }
+
+    async showLeaderboard() {
+        if (!this.leaderboardOverlay || !this.leaderboardList || !this.leaderboardTitle) return;
+
+        this.leaderboardOverlay.style.display = 'flex';
+        this.leaderboardList.innerHTML = '<p>Loading...</p>';
+
+        const modeName = this.game.mode === GameMode.SPECIAL ? 'Special' : 'Normal';
+        if (this.leaderboardTitle) this.leaderboardTitle.textContent = `Leaderboard (${modeName})`;
+
+        // Fetch Data
+        const localScores = this.game.leaderboard.getTopScores(this.game.mode);
+        const onlineScores = await this.game.leaderboard.getOnlineScores(this.game.mode);
+
+        this.leaderboardList.innerHTML = '';
+
+        // Render Local
+        const createSection = (title: string, scores: any[]) => {
+            const section = document.createElement('div');
+            section.style.marginBottom = '20px';
+            section.innerHTML = `<h3>${title}</h3>`;
+            if (scores.length === 0) {
+                section.innerHTML += '<p style="color: #aaa">No scores yet.</p>';
+            } else {
+                scores.forEach((s, i) => {
+                    const row = document.createElement('div');
+                    row.style.background = 'rgba(255,255,255,0.1)';
+                    row.style.padding = '5px 10px';
+                    row.style.borderRadius = '4px';
+                    row.textContent = `#${i + 1} ${s.name}: ${s.score}`;
+                    section.appendChild(row);
+                });
+            }
+            return section;
+        };
+
+        this.leaderboardList.appendChild(createSection('Your Best (Local)', localScores));
+        this.leaderboardList.appendChild(createSection('World Top 10 (Online)', onlineScores));
     }
 
     startGame(mode?: GameMode) {
@@ -486,16 +575,7 @@ export class GameUI {
         }
     }
 
-    showLeaderboard() {
-        const scores = this.game.leaderboard.getTopScores(this.game.mode);
-        if (scores.length === 0) {
-            alert('No scores yet!');
-            return;
-        }
-        const message = scores.map((s, i) => `${i + 1}. ${s.name} - ${s.score}`).join('\n');
-        const modeName = this.game.mode === GameMode.SPECIAL ? 'Special' : 'Normal';
-        alert(`🏆 Leaderboard (${modeName}) 🏆\n\n${message}`);
-    }
+    // showLeaderboard replaced by async version above
 
     updateModeDisplay() {
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
