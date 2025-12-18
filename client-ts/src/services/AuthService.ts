@@ -42,7 +42,9 @@ export class AuthService {
         } catch (error: any) {
             console.error('[AuthService] Error signing in with Google:', error);
             console.error('[AuthService] Error Code:', error.code);
-            console.error('[AuthService] Error Message:', error.message);
+            if (error.code === 'auth/configuration-not-found') {
+                console.error('[AuthService] Hint: Go to Firebase Console > Authentication > Sign-in method and enable "Google" provider.');
+            }
             throw error;
         }
     }
