@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.2] - 2025-12-18
+### Added
+- **Auto Save Enhancements**:
+    - **Separate Save States**: Implemented distinct save files for "Solo" (`tetris_state`) and "Special" (`tetris_state_special`) modes, preventing data overwrites when switching modes.
+    - **Quit to Home Save**: Game now auto-saves when returning to the Home menu.
+    - **Pause Save**: Game now saves immediately upon pausing.
+
+### Fixed
+- **Special Mode Loading**: Fixed a critical bug where starting "Special Mode" would always force a reset (ignoring save files). It now correctly attempts to load the previous state first.
+- **Resume Button Logic**: Fixed "Pause/Resume" button text logic to correctly display "Resume" when loading a saved game that was paused.
+
 ## [1.2.1] - 2025-12-18
 ### Fixed
 - **Input Handling**: Fixed a bug where horizontal swipes could accidentally trigger vertical swipe actions (Hard Drop/Hold) due to touch drift.

@@ -65,6 +65,9 @@ npm test
 npm run build
 ```
 
+> **Important**: Always run `npm test` and `npm run build` before pushing changes to ensure code stability.
+> Additionally, perform a **Runtime Check** by running `npm run dev` to verify the game loads and plays correctly in the browser.
+
 ### Debug
 ```bash
 # In Browser Console:

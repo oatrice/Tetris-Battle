@@ -15,7 +15,6 @@ export interface Effect {
 
 const INITIAL_DROP_INTERVAL = 1000;
 const MIN_DROP_INTERVAL = 100;
-const SAVE_STATE_KEY = 'tetris_state';
 
 interface GameState {
     score: number;
@@ -362,11 +361,17 @@ export class Game {
         this.canHold = false;
     }
 
+    private getSaveKey(): string {
+        return this.mode === GameMode.SPECIAL ? 'tetris_state_special' : 'tetris_state';
+    }
+
     saveState(): void {
-        Logger.log(`[Game] saveState called. GameOver: ${this.gameOver}, Paused: ${this.isPaused}, Score: ${this.score}`);
+        Logger.log(`[Game] saveState called. Mode: ${this.mode}, GameOver: ${this.gameOver}, Paused: ${this.isPaused}, Score: ${this.score}`);
+        const key = this.getSaveKey();
+
         if (this.gameOver) {
-            localStorage.removeItem(SAVE_STATE_KEY);
-            Logger.log(`[Game] Game Over - State removed`);
+            localStorage.removeItem(key);
+            Logger.log(`[Game] Game Over - State removed (${key})`);
             return;
         }
 
@@ -397,18 +402,20 @@ export class Game {
 
         try {
             const serialized = JSON.stringify(state);
-            localStorage.setItem(SAVE_STATE_KEY, serialized);
-            Logger.log(`[Game] State saved(Size: ${serialized.length})`);
+            localStorage.setItem(key, serialized);
+            Logger.log(`[Game] State saved to ${key} (Size: ${serialized.length})`);
         } catch (e) {
             Logger.error('[Game] Failed to save state', e);
         }
     }
 
     loadState(): boolean {
-        Logger.log('[Game] loadState called');
-        const savedJson = localStorage.getItem(SAVE_STATE_KEY);
+        Logger.log(`[Game] loadState called. Mode: ${this.mode}`);
+        const key = this.getSaveKey();
+        const savedJson = localStorage.getItem(key);
+
         if (!savedJson) {
-            Logger.log('[Game] No saved state found');
+            Logger.log(`[Game] No saved state found in ${key}`);
             return false;
         }
 
@@ -458,7 +465,7 @@ export class Game {
             // Recalculate speed based on level
             this.dropInterval = Math.max(MIN_DROP_INTERVAL, INITIAL_DROP_INTERVAL - (this.level - 1) * 100);
 
-            Logger.log(`[Game] State loaded.Score: ${this.score}, Paused: ${this.isPaused} `);
+            Logger.log(`[Game] State loaded from ${key}. Score: ${this.score}`);
             return true;
         } catch (e) {
             Logger.error('[Game] Failed to load state', e);

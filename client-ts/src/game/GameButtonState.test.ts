@@ -46,7 +46,7 @@ describe('GameUI Button State', () => {
         // 4. Start Game again (Solo)
         ui.startGame();
 
-        // Expect button to say "Pause" because game has started fresh
-        expect(pauseBtn.textContent).toBe('Pause');
+        // Expect button to say "Resume" because we loaded a saved state which was paused
+        expect(pauseBtn.textContent).toBe('Resume');
     });
 });

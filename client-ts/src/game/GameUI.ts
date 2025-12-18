@@ -548,7 +548,7 @@ export class GameUI {
 
         if (mode) {
             this.game.mode = mode;
-            this.game.start(true);
+            this.game.start(false); // Changed from true to false: Try loading first
         } else {
             this.game.mode = GameMode.OFFLINE;
             this.game.start(false);
@@ -566,6 +566,7 @@ export class GameUI {
 
         // Ensure game is paused or stopped? 
         this.game.isPaused = true;
+        this.game.saveState();
     }
 
     promptRename() {
@@ -615,6 +616,7 @@ export class GameUI {
             this.hideMenu();
         } else {
             this.game.togglePause();
+            this.game.saveState(); // Save immediately when paused
             this.showMenu();
         }
     }
