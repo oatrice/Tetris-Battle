@@ -1,0 +1,56 @@
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, Auth, User, onAuthStateChanged } from 'firebase/auth';
+
+export class AuthService {
+    private app: FirebaseApp;
+    private auth: Auth;
+    private user: User | null = null;
+
+    constructor() {
+        const firebaseConfig = {
+            apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+            authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+            projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+            storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+            appId: import.meta.env.VITE_FIREBASE_APP_ID
+        };
+
+        this.app = initializeApp(firebaseConfig);
+        this.auth = getAuth(this.app);
+
+        onAuthStateChanged(this.auth, (user) => {
+            this.user = user;
+        });
+    }
+
+    async signInWithGoogle(): Promise<User> {
+        const provider = new GoogleAuthProvider();
+        try {
+            const result = await signInWithPopup(this.auth, provider);
+            this.user = result.user;
+            return result.user;
+        } catch (error) {
+            console.error('Error signing in with Google', error);
+            throw error;
+        }
+    }
+
+    async logout(): Promise<void> {
+        try {
+            await signOut(this.auth);
+            this.user = null;
+        } catch (error) {
+            console.error('Error signing out', error);
+            throw error;
+        }
+    }
+
+    getUser(): User | null {
+        return this.user;
+    }
+
+    getAuth(): Auth {
+        return this.auth;
+    }
+}

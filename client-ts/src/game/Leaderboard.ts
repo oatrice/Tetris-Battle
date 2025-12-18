@@ -4,6 +4,8 @@ export interface ScoreEntry {
     name: string;
     score: number;
     timestamp: number;
+    userId?: string;
+    photoUrl?: string;
 }
 
 export class Leaderboard {
@@ -12,13 +14,14 @@ export class Leaderboard {
 
     constructor() { }
 
-    addScore(name: string, score: number, mode: GameMode = GameMode.OFFLINE): void {
+    addScore(name: string, score: number, mode: GameMode = GameMode.OFFLINE, metadata?: { userId?: string, photoUrl?: string }): void {
         const scores = this.getTopScores(mode);
 
         const newEntry: ScoreEntry = {
             name,
             score,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            ...metadata
         };
 
         scores.push(newEntry);

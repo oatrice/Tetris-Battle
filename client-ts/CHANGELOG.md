@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.0] - 2025-12-18
+### Added
+- **Google Auth**: Integrated Firebase Authentication for Google Sign-In.
+- **Leaderboard**: Updated local leaderboard storage to support User ID and Photo URL for authenticated users.
+
 ## [1.0.4] - 2025-12-18
 ### Fixed
 - **Leaderboard Bugs**: Separated high scores for "Solo Mode" and "Special Mode". Each mode now maintains its own independent leaderboard to ensure fair competition.
