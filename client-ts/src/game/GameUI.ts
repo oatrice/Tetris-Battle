@@ -467,8 +467,9 @@ export class GameUI {
         overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
         overlay.style.flexDirection = 'column';
         overlay.style.alignItems = 'center';
+        overlay.style.alignItems = 'center';
         overlay.style.justifyContent = 'center';
-        overlay.style.zIndex = '200';
+        overlay.style.zIndex = '3000'; // Must be higher than HomeMenu (2000)
         overlay.style.color = 'white';
 
         this.leaderboardTitle = document.createElement('h2');
@@ -538,6 +539,7 @@ export class GameUI {
 
     startGame(mode?: GameMode) {
         if (this.homeMenu) this.homeMenu.style.display = 'none';
+        if (this.leaderboardOverlay) this.leaderboardOverlay.style.display = 'none';
         if (this.pauseBtn) this.pauseBtn.style.display = 'block';
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) modeDisplay.style.display = 'block';
