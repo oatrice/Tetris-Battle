@@ -116,16 +116,14 @@ export class Leaderboard {
         }
     }
 
-    mergeLocalScoresToUser(userId: string, photoUrl: string | null | undefined): void {
-        // Only merge offline/solo scores? Or all?
-        // Usually we only migrate "Guest" sessions which are likely Offline/Solo mode.
-        // If we had Special mode played as guest, we might want to migrate that too if stored locally.
-        // Let's migrate both just in case, or stick to Offline per requirements implying "Solo".
-        // Requirement says "Solo" and "Special" are separated.
+    async mergeLocalScoresToUser(userId: string, photoUrl: string | null | undefined): Promise<void> {
+        // Migrate "Guest" sessions to the authenticated user
+        const modes = [GameMode.OFFLINE, GameMode.SPECIAL];
 
-        [GameMode.OFFLINE, GameMode.SPECIAL].forEach(mode => {
+        for (const mode of modes) {
             const scores = this.getTopScores(mode);
             let modified = false;
+            const scoresToUpload: ScoreEntry[] = [];
 
             scores.forEach(score => {
                 // If it's an anonymous score (no userId), claim it
@@ -133,14 +131,22 @@ export class Leaderboard {
                     score.userId = userId;
                     if (photoUrl) score.photoUrl = photoUrl;
                     modified = true;
+                    scoresToUpload.push(score);
                 }
             });
 
             if (modified) {
                 this.saveScores(scores, mode);
                 console.log(`[Leaderboard] Merged anonymous scores for mode ${mode} to user ${userId}`);
+
+                // Sync to Online
+                if (this.authService && this.authService.getUser()) {
+                    for (const score of scoresToUpload) {
+                        await this.saveScoreOnline(score, mode);
+                    }
+                }
             }
-        });
+        }
     }
 
     private saveScores(scores: ScoreEntry[], mode: GameMode): void {
