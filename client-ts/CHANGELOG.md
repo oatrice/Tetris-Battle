@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.1] - 2025-12-18
+### Fixed
+- **Input Handling**: Fixed a bug where horizontal swipes could accidentally trigger vertical swipe actions (Hard Drop/Hold) due to touch drift.
+
 ## [1.2.0] - 2025-12-18
 ### Added
 - **Online Leaderboard**:
