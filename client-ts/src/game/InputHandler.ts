@@ -56,6 +56,7 @@ export class InputHandler {
             // Only handle horizontal here for DAS
             if (Math.abs(dx) > Math.abs(dy)) {
                 this.touchStartX = touch.clientX; // Reset start for next step
+                this.touchStartY = touch.clientY; // Reset Y to prevent drift accumulation
                 this.touchMoved = true;
                 return dx > 0 ? GameAction.MOVE_RIGHT : GameAction.MOVE_LEFT;
             }

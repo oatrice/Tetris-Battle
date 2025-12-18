@@ -135,5 +135,39 @@ describe('InputHandler', () => {
             // End - shouldn't trigger tap or another move if small delta remains
             expect(handler.handleTouchEnd(end)).toBeNull();
         });
+
+        it('should NOT trigger vertical swipe if moving horizontally with drift', () => {
+            const handler = new InputHandler();
+            const start = {
+                changedTouches: [{ clientX: 100, clientY: 100 }]
+            } as unknown as TouchEvent;
+
+            // Move Right +35, Drift Down +5
+            const move1 = {
+                changedTouches: [{ clientX: 135, clientY: 105 }]
+            } as unknown as TouchEvent;
+
+            // Move Right +35 (total 70), Drift Down +10 (total 15)
+            const move2 = {
+                changedTouches: [{ clientX: 170, clientY: 115 }]
+            } as unknown as TouchEvent;
+
+            // End at +5 (total 75), Drift Down +25 (total 40)
+            // Total Vertical Drift = 40 ( > Threshold 30)
+            // Last Horizontal Step = 5 ( < Threshold 30)
+            const end = {
+                changedTouches: [{ clientX: 175, clientY: 140 }]
+            } as unknown as TouchEvent;
+
+            handler.handleTouchStart(start);
+
+            // user swipes right
+            expect(handler.handleTouchMove(move1)).toBe(GameAction.MOVE_RIGHT);
+            expect(handler.handleTouchMove(move2)).toBe(GameAction.MOVE_RIGHT);
+
+            // user lifts finger, but accumulated drift (40) is > threshold (30)
+            // This should be ignored because we were moving horizontally
+            expect(handler.handleTouchEnd(end)).toBeNull();
+        });
     });
 });
