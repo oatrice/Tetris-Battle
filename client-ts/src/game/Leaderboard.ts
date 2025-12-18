@@ -1,4 +1,6 @@
 import { GameMode } from './GameMode';
+import { AuthService } from '../services/AuthService';
+import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 
 export interface ScoreEntry {
     name: string;
@@ -11,10 +13,15 @@ export interface ScoreEntry {
 export class Leaderboard {
     private readonly STORAGE_PREFIX = 'tetris_leaderboard_';
     private readonly MAX_SCORES = 10;
+    private authService: AuthService | undefined;
 
     constructor() { }
 
-    addScore(name: string, score: number, mode: GameMode = GameMode.OFFLINE, metadata?: { userId?: string, photoUrl?: string }): void {
+    setAuthService(authService: AuthService) {
+        this.authService = authService;
+    }
+
+    async addScore(name: string, score: number, mode: GameMode = GameMode.OFFLINE, metadata?: { userId?: string, photoUrl?: string }): Promise<void> {
         const scores = this.getTopScores(mode);
 
         const newEntry: ScoreEntry = {
@@ -24,15 +31,67 @@ export class Leaderboard {
             ...metadata
         };
 
+        // 1. Save Local
         scores.push(newEntry);
-
-        // Sort by score descending
         scores.sort((a, b) => b.score - a.score);
-
-        // Keep top N
         const topScores = scores.slice(0, this.MAX_SCORES);
-
         this.saveScores(topScores, mode);
+
+        // 2. Save Online (if Authenticated)
+        if (this.authService && this.authService.getUser()) {
+            console.log('[Leaderboard] User authenticated, sending score to online leaderboard...');
+            await this.saveScoreOnline(newEntry, mode);
+        }
+    }
+
+    private async saveScoreOnline(entry: ScoreEntry, mode: GameMode): Promise<void> {
+        if (!this.authService) return;
+        const app = this.authService.getApp();
+        if (!app) return;
+
+        try {
+            const db = getFirestore(app);
+            const user = this.authService.getUser();
+
+            // Ensure we use the authenticated ID if available, backing up the metadata one
+            const finalEntry = {
+                ...entry,
+                userId: user?.uid || entry.userId,
+                mode: mode // vital for querying
+            };
+
+            await addDoc(collection(db, 'leaderboard'), finalEntry);
+            console.log('[Leaderboard] Score saved to Firestore');
+        } catch (e) {
+            console.error('[Leaderboard] Failed to save score online', e);
+        }
+    }
+
+    async getOnlineScores(mode: GameMode = GameMode.OFFLINE): Promise<ScoreEntry[]> {
+        if (!this.authService) return [];
+        const app = this.authService.getApp();
+        if (!app) return [];
+
+        try {
+            const db = getFirestore(app);
+            const q = query(
+                collection(db, 'leaderboard'),
+                where('mode', '==', mode),
+                orderBy('score', 'desc'),
+                limit(this.MAX_SCORES)
+            );
+
+            const querySnapshot = await getDocs(q);
+            const scores: ScoreEntry[] = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data() as ScoreEntry;
+                scores.push(data);
+            });
+            return scores;
+        } catch (e) {
+            console.error('[Leaderboard] Failed to fetch online scores', e);
+            return [];
+        }
     }
 
     getTopScores(mode: GameMode = GameMode.OFFLINE): ScoreEntry[] {
@@ -57,16 +116,14 @@ export class Leaderboard {
         }
     }
 
-    mergeLocalScoresToUser(userId: string, photoUrl: string | null | undefined): void {
-        // Only merge offline/solo scores? Or all?
-        // Usually we only migrate "Guest" sessions which are likely Offline/Solo mode.
-        // If we had Special mode played as guest, we might want to migrate that too if stored locally.
-        // Let's migrate both just in case, or stick to Offline per requirements implying "Solo".
-        // Requirement says "Solo" and "Special" are separated.
+    async mergeLocalScoresToUser(userId: string, photoUrl: string | null | undefined): Promise<void> {
+        // Migrate "Guest" sessions to the authenticated user
+        const modes = [GameMode.OFFLINE, GameMode.SPECIAL];
 
-        [GameMode.OFFLINE, GameMode.SPECIAL].forEach(mode => {
+        for (const mode of modes) {
             const scores = this.getTopScores(mode);
             let modified = false;
+            const scoresToUpload: ScoreEntry[] = [];
 
             scores.forEach(score => {
                 // If it's an anonymous score (no userId), claim it
@@ -74,14 +131,22 @@ export class Leaderboard {
                     score.userId = userId;
                     if (photoUrl) score.photoUrl = photoUrl;
                     modified = true;
+                    scoresToUpload.push(score);
                 }
             });
 
             if (modified) {
                 this.saveScores(scores, mode);
                 console.log(`[Leaderboard] Merged anonymous scores for mode ${mode} to user ${userId}`);
+
+                // Sync to Online
+                if (this.authService && this.authService.getUser()) {
+                    for (const score of scoresToUpload) {
+                        await this.saveScoreOnline(score, mode);
+                    }
+                }
             }
-        });
+        }
     }
 
     private saveScores(scores: ScoreEntry[], mode: GameMode): void {

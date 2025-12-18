@@ -59,6 +59,10 @@ export class Game {
         this.leaderboard = new Leaderboard();
     }
 
+    setAuthService(authService: any): void {
+        this.leaderboard.setAuthService(authService);
+    }
+
     mode: GameMode = GameMode.OFFLINE;
 
     get isOffline(): boolean {
