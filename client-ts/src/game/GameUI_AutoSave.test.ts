@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Game } from './Game';
 import { GameUI } from './GameUI';
+import { AuthService } from '../services/AuthService';
+
+vi.mock('../services/AuthService');
 
 describe('GameUI Auto Save/Restore', () => {
     let game: Game;
@@ -10,6 +13,17 @@ describe('GameUI Auto Save/Restore', () => {
     beforeEach(() => {
         game = new Game();
         root = document.createElement('div');
+
+        // Setup mock AuthService
+        const mockAuth = {
+            onAuthStateChanged: vi.fn(),
+        };
+        const mockAuthService = {
+            getAuth: vi.fn().mockReturnValue(mockAuth),
+            getUser: vi.fn().mockReturnValue(null)
+        };
+        (AuthService as any).mockImplementation(() => mockAuthService);
+
         ui = new GameUI(game, root);
 
         // Mock game methods

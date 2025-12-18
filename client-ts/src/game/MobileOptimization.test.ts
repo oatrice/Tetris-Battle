@@ -1,6 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Game } from './Game';
 import { GameUI } from './GameUI';
+import { AuthService } from '../services/AuthService';
+
+vi.mock('../services/AuthService');
 
 describe('Mobile Optimization', () => {
     let game: Game;
@@ -12,6 +15,18 @@ describe('Mobile Optimization', () => {
         game = new Game();
         root = document.createElement('div');
         document.body.appendChild(root);
+        document.body.appendChild(root);
+
+        // Setup mock AuthService
+        const mockAuth = {
+            onAuthStateChanged: vi.fn(),
+        };
+        const mockAuthService = {
+            getAuth: vi.fn().mockReturnValue(mockAuth),
+            getUser: vi.fn().mockReturnValue(null)
+        };
+        (AuthService as any).mockImplementation(() => mockAuthService);
+
         ui = new GameUI(game, root);
     });
 

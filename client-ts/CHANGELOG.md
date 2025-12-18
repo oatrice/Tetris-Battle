@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0] - 2025-12-18
+### Added
+- **Google Auth**: Integrated Firebase Authentication for Google Sign-In.
+- **Auth Resilience**: Added robust fallback check for Firebase configuration. Disables Google Sign-In gracefully in offline/misconfigured environments.
+- **Leaderboard**: 
+    - Updated local leaderboard storage to support User ID and Photo URL.
+    - Implemented migration strategy for Legacy scores to "Solo" mode.
+    - Added auto-merge logic to associate anonymous "Guest" scores with User ID upon sign-in.
+- **UX**: Added placeholder avatar for users without a Google Photo URL.
+
+### Fixed
+- **Concurrency/Race Condition**: Fixed a critical bug in Special Mode where input actions (Move/Hold) were possible during "Cascade Gravity" animations. Inputs are now blocked until gravity settles.
+
 ## [1.0.4] - 2025-12-18
 ### Fixed
 - **Leaderboard Bugs**: Separated high scores for "Solo Mode" and "Special Mode". Each mode now maintains its own independent leaderboard to ensure fair competition.

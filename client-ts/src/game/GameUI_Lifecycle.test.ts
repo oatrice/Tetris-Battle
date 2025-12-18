@@ -1,6 +1,9 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameUI } from './GameUI';
+import { AuthService } from '../services/AuthService';
+
+vi.mock('../services/AuthService');
 import { Game } from './Game';
 import { GameMode } from './GameMode';
 
@@ -12,6 +15,17 @@ describe('GameUI Lifecycle', () => {
     beforeEach(() => {
         game = new Game(GameMode.OFFLINE);
         root = document.createElement('div');
+
+        // Setup mock AuthService
+        const mockAuth = {
+            onAuthStateChanged: vi.fn(),
+        };
+        const mockAuthService = {
+            getAuth: vi.fn().mockReturnValue(mockAuth),
+            getUser: vi.fn().mockReturnValue(null)
+        };
+        (AuthService as any).mockImplementation(() => mockAuthService);
+
         gameUI = new GameUI(game, root);
 
         // Mock game.saveState to track calls

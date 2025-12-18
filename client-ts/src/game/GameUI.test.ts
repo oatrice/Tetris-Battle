@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Game } from './Game';
 import { GameUI } from './GameUI';
 import { GameMode } from './GameMode';
+import { AuthService } from '../services/AuthService';
+
+vi.mock('../services/AuthService');
 
 // Mock the virtual module
 vi.mock('virtual:version-info', () => {
@@ -24,6 +27,19 @@ describe('GameUI', () => {
         document.body.innerHTML = '<div id="app"></div>';
         root = document.getElementById('app')!;
         game = new Game();
+
+        // Setup mock AuthService
+        const mockAuth = {
+            onAuthStateChanged: vi.fn(),
+        };
+        const mockAuthService = {
+            getAuth: vi.fn().mockReturnValue(mockAuth),
+            signInWithGoogle: vi.fn(),
+            logout: vi.fn(),
+            getUser: vi.fn().mockReturnValue(null)
+        };
+        (AuthService as any).mockImplementation(() => mockAuthService);
+
         ui = new GameUI(game, root);
 
         // Reset mock values to defaults

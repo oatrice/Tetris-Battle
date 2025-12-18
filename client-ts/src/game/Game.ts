@@ -69,6 +69,14 @@ export class Game {
         this.playerName = name;
     }
 
+    private userId?: string;
+    private photoUrl?: string;
+
+    setPlayerMetadata(userId?: string, photoUrl?: string): void {
+        this.userId = userId;
+        this.photoUrl = photoUrl;
+    }
+
     gameOver: boolean = false;
     nextPiece: Tetromino | null = null;
     score: number = 0;
@@ -215,7 +223,10 @@ export class Game {
         // Check collision immediately
         if (!this.board.isValidPosition(this.currentPiece, this.position.x, this.position.y)) {
             this.gameOver = true;
-            this.leaderboard.addScore(this.playerName, this.score, this.mode);
+            this.leaderboard.addScore(this.playerName, this.score, this.mode, {
+                userId: this.userId,
+                photoUrl: this.photoUrl
+            });
             this.currentPiece = null; // Clean up
         }
         // this.saveState(); // Removed per user request
@@ -268,7 +279,7 @@ export class Game {
             return;
         }
 
-        if (this.gameOver || this.isPaused || !this.currentPiece) return;
+        if (this.gameOver || this.isPaused || !this.currentPiece || this.isCascading) return;
 
         switch (action) {
             case GameAction.MOVE_LEFT:

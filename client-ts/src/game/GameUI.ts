@@ -1,6 +1,7 @@
 import { Game } from './Game';
 import { GameMode } from './GameMode';
 import { APP_VERSION, COMMIT_HASH, COMMIT_DATE } from 'virtual:version-info';
+import { AuthService } from '../services/AuthService';
 
 export class GameUI {
     private game: Game;
@@ -8,10 +9,14 @@ export class GameUI {
     private menu: HTMLElement | null = null;
     private homeMenu: HTMLElement | null = null;
     private pauseBtn: HTMLButtonElement | null = null;
+    private authService: AuthService;
+    private userProfile: HTMLElement | null = null;
+    private loginBtn: HTMLButtonElement | null = null;
 
     constructor(game: Game, root: HTMLElement) {
         this.game = game;
         this.root = root;
+        this.authService = new AuthService();
     }
 
     init() {
@@ -24,6 +29,21 @@ export class GameUI {
 
         // 1. Setup UI Elements Page
         this.createHomeMenu();
+
+        // Listen to Auth State logic
+        const auth = this.authService.getAuth();
+        if (auth) {
+            auth.onAuthStateChanged((user) => {
+                this.updateAuthUI(user);
+            });
+        } else {
+            console.warn('[GameUI] Auth not configured. UI will be in offline mode.');
+            if (this.loginBtn) {
+                this.loginBtn.style.display = 'none';
+                this.loginBtn.disabled = true;
+                this.loginBtn.textContent = 'Login Unavailable (Offline)';
+            }
+        }
 
         // 1. Setup Pause Button
         this.pauseBtn = this.root.querySelector('#pauseBtn');
@@ -96,12 +116,7 @@ export class GameUI {
         });
 
         window.addEventListener('focus', () => {
-            // Restore functionality as requested
-            // Note: If we just paused on blur, we are still paused.
-            // If the user wants to "Restore" the state from storage (e.g. if they modified it elsewhere or just to be safe)
             this.game.loadState();
-            // We do NOT auto-resume to be polite, unless requested. 
-            // loading state might overwrite isPaused if it was saved as true.
             this.updatePauseBtnText();
             if (this.game.isPaused) {
                 this.showMenu();
@@ -111,17 +126,10 @@ export class GameUI {
 
     private preventPullToRefresh() {
         document.body.style.overscrollBehaviorY = 'none';
-        // Disable touch actions like double-tap zoom or pan, but take care not to break scroll if needed.
-        // For Tetris, we generally want to disable all default touch actions on the body.
         document.body.style.touchAction = 'none';
 
-        // Add a preventative listener as backup for older browsers/contexts
         window.addEventListener('touchmove', (e) => {
-            // If we are at the top and pulling down
             if (window.scrollY === 0 && e.touches[0].clientY > 0 && e.cancelable) {
-                // Determine if it looks like a pull-to-refresh
-                // Usually handled by overscroll-behavior, but preventing default here is safe for a game
-                // unless we are in a scrollable container.
                 e.preventDefault();
             }
         }, { passive: false });
@@ -137,6 +145,60 @@ export class GameUI {
         title.textContent = 'Tetris Battle';
         title.classList.add('home-menu-title');
         this.homeMenu.appendChild(title);
+
+        // --- Auth UI Start ---
+        const authContainer = document.createElement('div');
+        authContainer.id = 'authContainer';
+        authContainer.style.marginBottom = '1rem';
+        authContainer.style.display = 'flex';
+        authContainer.style.flexDirection = 'column';
+        authContainer.style.alignItems = 'center';
+        authContainer.style.gap = '10px';
+
+        this.userProfile = document.createElement('div');
+        this.userProfile.id = 'user-profile';
+        this.userProfile.style.display = 'none'; // Hidden by default
+        this.userProfile.style.alignItems = 'center';
+        this.userProfile.style.gap = '10px';
+
+        const avatar = document.createElement('img');
+        avatar.id = 'user-avatar';
+        avatar.style.width = '40px';
+        avatar.style.height = '40px';
+        avatar.style.borderRadius = '50%';
+        this.userProfile.appendChild(avatar);
+
+        const userName = document.createElement('span');
+        userName.id = 'user-name';
+        userName.style.fontWeight = 'bold';
+        this.userProfile.appendChild(userName);
+
+        // Logout Button (Small)
+        const logoutBtn = document.createElement('button');
+        logoutBtn.textContent = 'Logout';
+        logoutBtn.style.fontSize = '0.8rem';
+        logoutBtn.style.padding = '5px 10px';
+        logoutBtn.addEventListener('click', () => {
+            this.authService.logout().catch(console.error);
+        });
+        this.userProfile.appendChild(logoutBtn);
+
+        this.loginBtn = document.createElement('button');
+        this.loginBtn.id = 'login-btn';
+        this.loginBtn.textContent = 'Login with Google';
+        this.loginBtn.className = 'menu-btn'; // Re-use style
+        this.loginBtn.style.background = '#4285F4'; // Google Blue
+        this.loginBtn.style.fontSize = '1rem';
+        this.loginBtn.addEventListener('click', () => {
+            this.authService.signInWithGoogle()
+                .then(user => this.updateAuthUI(user))
+                .catch(err => console.error("Login failed", err));
+        });
+
+        authContainer.appendChild(this.userProfile);
+        authContainer.appendChild(this.loginBtn);
+        this.homeMenu.appendChild(authContainer);
+        // --- Auth UI End ---
 
         const createBtn = (id: string, text: string, onClick: () => void) => {
             const btn = document.createElement('button');
@@ -155,16 +217,6 @@ export class GameUI {
             this.startGame(GameMode.SPECIAL);
         });
 
-        /*
-        const btnOnline = createBtn('btnOnline', 'vs Online', () => {
-             alert('Online mode coming soon!');
-        });
-
-        const btnComputer = createBtn('btnComputer', 'vs Computer', () => {
-             alert('Vs Computer coming soon!');
-        });
-        */
-
         const btnChangeName = createBtn('btnChangeName', 'Change Name', () => {
             this.promptRename();
         });
@@ -175,8 +227,6 @@ export class GameUI {
 
         this.homeMenu.appendChild(btnSolo);
         this.homeMenu.appendChild(btnSpecial);
-        // this.homeMenu.appendChild(btnOnline);
-        // this.homeMenu.appendChild(btnComputer);
         this.homeMenu.appendChild(btnChangeName);
         this.homeMenu.appendChild(btnLeaderboard);
 
@@ -198,6 +248,35 @@ export class GameUI {
         this.homeMenu.appendChild(versionInfo);
 
         this.root.appendChild(this.homeMenu);
+    }
+
+    updateAuthUI(user: any | null) {
+        if (user) {
+            if (this.loginBtn) this.loginBtn.style.display = 'none';
+            if (this.userProfile) {
+                this.userProfile.style.display = 'flex';
+                const nameEl = this.userProfile.querySelector('#user-name');
+                const avatarEl = this.userProfile.querySelector('img');
+                if (nameEl) nameEl.textContent = user.displayName || 'User';
+                // Use placeholder if photoURL is missing
+                const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiPlU8L3RleHQ+PC9zdmc+';
+                if (avatarEl) avatarEl.src = user.photoURL || defaultAvatar;
+
+                this.game.setPlayerName(user.displayName || 'Player');
+                this.game.setPlayerMetadata(user.uid, user.photoURL);
+
+                // Merge anonymous scores
+                this.game.leaderboard.mergeLocalScoresToUser(user.uid, user.photoURL);
+            }
+        } else {
+            if (this.loginBtn) this.loginBtn.style.display = 'block';
+            if (this.userProfile) this.userProfile.style.display = 'none';
+
+            // Reset game player info on logout
+            // We might want to revert to "Player" or load from LocalStorage if we supported that separately
+            this.game.setPlayerName('Player');
+            this.game.setPlayerMetadata(undefined, undefined);
+        }
     }
 
     private createPauseMenu() {
