@@ -258,12 +258,17 @@ export class GameUI {
                 if (nameEl) nameEl.textContent = user.displayName || 'User';
                 if (avatarEl && user.photoURL) avatarEl.src = user.photoURL;
 
-                // Update Game Player Name if needed, or just keep it separate
-                // this.game.setPlayerName(user.displayName || 'Player');
+                this.game.setPlayerName(user.displayName || 'Player');
+                this.game.setPlayerMetadata(user.uid, user.photoURL);
             }
         } else {
             if (this.loginBtn) this.loginBtn.style.display = 'block';
             if (this.userProfile) this.userProfile.style.display = 'none';
+
+            // Reset game player info on logout
+            // We might want to revert to "Player" or load from LocalStorage if we supported that separately
+            this.game.setPlayerName('Player');
+            this.game.setPlayerMetadata(undefined, undefined);
         }
     }
 

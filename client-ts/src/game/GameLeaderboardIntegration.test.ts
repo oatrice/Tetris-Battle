@@ -22,27 +22,42 @@ describe('Game Leaderboard Integration', () => {
     });
 
     it('should save score to leaderboard when game over', () => {
-        // Create a spy to verify the call
         const addScoreSpy = vi.spyOn(Leaderboard.prototype, 'addScore');
 
         game.start();
         game.setPlayerName('Bob');
         game.score = 500;
 
-        // Trigger game over by forcing collision on spawn
-        // We simulate the condition where a piece is spawned but collides immediately
         game.board.isValidPosition = () => false;
-
-        // We use 'any' to access private method spawnPiece or we can just call start() 
-        // but start() resets score.
-        // Let's simulate the end of a game loop.
-
-        // Actually, let's just make a public helper or expose the logic. 
-        // But for now, let's try to trigger it via update if possible, or just call spawnPiece via cast.
-        (game as any).nextPiece = null; // force generation
+        (game as any).nextPiece = null;
         (game as any).spawnPiece();
 
         expect(game.gameOver).toBe(true);
-        expect(addScoreSpy).toHaveBeenCalledWith('Bob', 500, GameMode.OFFLINE);
+        expect(addScoreSpy).toHaveBeenCalledWith(
+            'Bob',
+            500,
+            GameMode.OFFLINE,
+            expect.objectContaining({ userId: undefined, photoUrl: undefined })
+        );
+    });
+
+    it('should save score with user metadata when available', () => {
+        const addScoreSpy = vi.spyOn(Leaderboard.prototype, 'addScore');
+        const userId = 'user-123';
+        const photoUrl = 'http://example.com/photo.jpg';
+
+        game.start();
+        game.setPlayerName('Authenticated User');
+        game.score = 1000;
+
+        // New method to implement
+        game.setPlayerMetadata(userId, photoUrl);
+
+        game.board.isValidPosition = () => false;
+        (game as any).nextPiece = null;
+        (game as any).spawnPiece();
+
+        expect(game.gameOver).toBe(true);
+        expect(addScoreSpy).toHaveBeenCalledWith('Authenticated User', 1000, GameMode.OFFLINE, { userId, photoUrl });
     });
 });

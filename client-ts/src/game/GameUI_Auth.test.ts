@@ -66,4 +66,23 @@ describe('GameUI Auth Integration', () => {
 
         expect(mockAuthService.signInWithGoogle).toHaveBeenCalled();
     });
+
+    it('should update game player metadata on login', () => {
+        const mockUser = { uid: 'u1', displayName: 'Tetris Pro', photoURL: 'http://pic.jpg' };
+        const ui = new GameUI(mockGame, document.body);
+        ui.init();
+        ui.updateAuthUI(mockUser);
+
+        expect(mockGame.setPlayerName).toHaveBeenCalledWith('Tetris Pro');
+        expect(mockGame.setPlayerMetadata).toHaveBeenCalledWith('u1', 'http://pic.jpg');
+    });
+
+    it('should clear game player metadata on logout', () => {
+        const ui = new GameUI(mockGame, document.body);
+        ui.init();
+        ui.updateAuthUI(null);
+
+        expect(mockGame.setPlayerName).toHaveBeenCalledWith('Player'); // Default or stored name? logic might differ
+        expect(mockGame.setPlayerMetadata).toHaveBeenCalledWith(undefined, undefined);
+    });
 });
