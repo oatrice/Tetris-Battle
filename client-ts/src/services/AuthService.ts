@@ -19,19 +19,30 @@ export class AuthService {
         this.app = initializeApp(firebaseConfig);
         this.auth = getAuth(this.app);
 
+        console.log('[AuthService] Initialized with config check:', {
+            hasApiKey: !!firebaseConfig.apiKey,
+            hasAuthDomain: !!firebaseConfig.authDomain,
+            projectId: firebaseConfig.projectId
+        });
+
         onAuthStateChanged(this.auth, (user) => {
+            console.log('[AuthService] Auth State Changed:', user ? `User ${user.uid} logged in` : 'Logged out');
             this.user = user;
         });
     }
 
     async signInWithGoogle(): Promise<User> {
+        console.log('[AuthService] Starting Google Sign-In...');
         const provider = new GoogleAuthProvider();
         try {
             const result = await signInWithPopup(this.auth, provider);
+            console.log('[AuthService] Sign-In Successful:', result.user.uid);
             this.user = result.user;
             return result.user;
-        } catch (error) {
-            console.error('Error signing in with Google', error);
+        } catch (error: any) {
+            console.error('[AuthService] Error signing in with Google:', error);
+            console.error('[AuthService] Error Code:', error.code);
+            console.error('[AuthService] Error Message:', error.message);
             throw error;
         }
     }
