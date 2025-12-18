@@ -10,8 +10,10 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
     - **Classic Solo Mode**: Standard Tetris gameplay.
     - **Special Mode**: Features "Cascade Gravity" and **Hold Mechanic**.
     - **Offline Support**: Full gameplay, Auto-Save without internet.
-    - **Leaderboard**: Local offline leaderboard to track top scores (separate lists for Solo and Special modes).
-    - **Google Authentication**: Sign in with Google to save scores and access features across devices.
+    - **Leaderboard**: 
+        - **Local**: Offline leaderboard for personal bests.
+        - **Online (Global)**: Compete with players worldwide via Cloud Firestore (requires Google Sign-In).
+    - **Google Authentication**: Sign in with Google to save scores to the Online Leaderboard.
 - **Controls:**
     - **Keyboard:** 
         - Vectors: Arrows to move, Up to rotate.

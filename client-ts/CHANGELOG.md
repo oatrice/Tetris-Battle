@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0] - 2025-12-18
+### Added
+- **Online Leaderboard**:
+    - DualScore System: Scores are saved both locally and to Cloud Firestore.
+    - **Global Rankings**: View top 10 players worldwide in the new "Leaderboard Overlay".
+    - **Live Updates**: Fetch scores asynchronously on demand.
+- **PWA**: Custom App Icon (192x192) added for better installation experience.
+
 ## [1.1.0] - 2025-12-18
 ### Added
 - **Google Auth**: Integrated Firebase Authentication for Google Sign-In.
