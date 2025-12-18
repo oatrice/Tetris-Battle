@@ -11,6 +11,7 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
     - **Special Mode**: Features "Cascade Gravity" and **Hold Mechanic**.
     - **Offline Support**: Full gameplay, Auto-Save without internet.
     - **Leaderboard**: Local offline leaderboard to track top scores (separate lists for Solo and Special modes).
+    - **Google Authentication**: Sign in with Google to save scores and access features across devices.
 - **Controls:**
     - **Keyboard:** 
         - Vectors: Arrows to move, Up to rotate.
@@ -27,6 +28,18 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
 
 ### Prerequisites
 - Node.js v18+
+- Firebase Project (for Google Auth)
+
+### Configuration
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Fill in your Firebase configuration keys in `.env`:
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key
+   ...
+   ```
 
 ### Installation
 ```bash
@@ -50,7 +63,7 @@ npm test
 npm run build
 ```
 
-### debug
+### Debug
 ```bash
 # In Browser Console:
 enableLogs(true)  # Enable persistent logging to Local Storage
