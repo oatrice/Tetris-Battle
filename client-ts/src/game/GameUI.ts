@@ -566,6 +566,7 @@ export class GameUI {
 
         // Ensure game is paused or stopped? 
         this.game.isPaused = true;
+        this.game.saveState();
     }
 
     promptRename() {
