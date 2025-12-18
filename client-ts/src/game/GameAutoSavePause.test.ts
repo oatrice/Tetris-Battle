@@ -41,4 +41,27 @@ describe('Game AutoSave on Pause', () => {
         expect(JSON.parse(saved!).score).toBe(888);
         expect(JSON.parse(saved!).isPaused).toBe(true);
     });
+
+    it('should save game state when pausing via UI toggle in SPECIAL mode', () => {
+        // 1. Start setup
+        ui.startGame(GameMode.SPECIAL);
+        game.score = 777;
+        const saveSpy = vi.spyOn(game, 'saveState');
+
+        // 2. Trigger Pause via UI (which calls game.togglePause inside)
+        ui.toggleMenu();
+
+        // 3. Verify it is paused
+        expect(game.isPaused).toBe(true);
+
+        // 4. Verify saveState was called
+        expect(saveSpy).toHaveBeenCalled();
+
+        // 5. Verify actual storage for SPECIAL mode
+        const key = 'tetris_state_special';
+        const saved = localStorage.getItem(key);
+        expect(saved).not.toBeNull();
+        expect(JSON.parse(saved!).score).toBe(777);
+        expect(JSON.parse(saved!).isPaused).toBe(true);
+    });
 });

@@ -548,7 +548,7 @@ export class GameUI {
 
         if (mode) {
             this.game.mode = mode;
-            this.game.start(true);
+            this.game.start(false); // Changed from true to false: Try loading first
         } else {
             this.game.mode = GameMode.OFFLINE;
             this.game.start(false);
