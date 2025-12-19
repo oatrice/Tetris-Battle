@@ -170,34 +170,33 @@ canvas {
 
   /* Compact Boxes for Mobile */
   .panel-box {
-    padding: 2px 5px;
-    /* Even slimmer */
+    padding: 1px 3px;
+    /* Minimal padding */
     min-width: auto;
     flex: 0 1 auto;
     display: flex;
     flex-direction: row;
-    gap: 5px;
-    /* Tighter gap */
+    gap: 3px;
+    /* Minimal gap */
     background: transparent;
-    /* Remove background to make it less boxy? Or keep it subtle */
     border: none;
-    /* Minimalist */
   }
 
   .panel-box h3 {
-    font-size: 0.6rem;
-    /* Smaller text */
+    font-size: 0.5rem;
+    /* Tiny text */
     margin: 0;
     margin-right: 2px;
     line-height: 1;
-    opacity: 0.8;
+    opacity: 0.7;
+    margin-top: 1px;
   }
 
   /* Tiny Next/Hold Canvas */
   #nextCanvas,
   #holdCanvas {
-    width: 25px;
-    height: 25px;
+    width: 20px;
+    height: 20px;
     display: block;
   }
 
@@ -207,8 +206,8 @@ canvas {
     width: auto;
     height: auto;
     max-width: 100%;
-    /* Calculate height: 100dvh - (controls ~40px) - (next panel ~30px) - margins */
-    max-height: calc(100dvh - 85px);
+    /* Calculate height: 100dvh - (controls ~40px) - (next panel ~25px) - margins */
+    max-height: calc(100dvh - 80px);
     aspect-ratio: 300/600;
     margin: 0 auto;
     border-width: 2px;
