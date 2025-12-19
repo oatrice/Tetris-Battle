@@ -147,7 +147,7 @@ export class GameUI {
         if (piece) {
             const color = Renderer.getColor(piece.type);
             // Dynamic cell size to fit 4-block wide pieces with padding
-            const cellSize = Math.floor(canvas.width / 5);
+            const cellSize = Math.floor(canvas.width / 8);
 
             const pieceWidth = piece.shape[0].length * cellSize;
             const pieceHeight = piece.shape.length * cellSize;
