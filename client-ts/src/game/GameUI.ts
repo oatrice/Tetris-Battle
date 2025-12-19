@@ -760,12 +760,19 @@ export class GameUI {
         joinRoomBtn.textContent = 'Join Room';
         joinRoomBtn.className = 'menu-btn';
         joinRoomBtn.style.marginBottom = '1rem';
-        joinRoomBtn.addEventListener('click', () => {
+        joinRoomBtn.addEventListener('click', async () => {
             const roomId = prompt('Enter Room ID:');
-            if (roomId) {
-                this.joinCoopRoom(roomId);
+            if (roomId && roomId.trim()) {
+                try {
+                    // Remove menu first to show loading state
+                    this.root.removeChild(coopMenu);
+                    await this.joinCoopRoom(roomId.trim());
+                } catch (error) {
+                    console.error('[Coop] Join failed:', error);
+                    // Re-show menu if join failed
+                    this.showCoopMenu();
+                }
             }
-            this.root.removeChild(coopMenu);
         });
         coopMenu.appendChild(joinRoomBtn);
 
@@ -804,6 +811,7 @@ export class GameUI {
     }
 
     private async joinCoopRoom(roomId: string) {
+        console.log('[Coop] Attempting to join room:', roomId);
         try {
             const { RoomManager } = await import('../coop/RoomManager');
             const roomManager = new RoomManager();
@@ -811,17 +819,24 @@ export class GameUI {
             const playerId = this.authService.getAuth()?.currentUser?.uid ||
                 `guest_${Math.random().toString(36).substring(2, 10)}`;
 
+            console.log('[Coop] Player ID:', playerId);
+
             const room = await roomManager.joinRoom(roomId, playerId);
+            console.log('[Coop] Join result:', room);
+
             if (room) {
-                alert(`Joined Room: ${room.id}`);
+                console.log('[Coop] Successfully joined room:', room.id);
                 // Start Coop Game as Player 2
                 await this.startCoopGame(room, 2);
             } else {
-                alert('Room not found!');
+                console.error('[Coop] Room not found:', roomId);
+                alert(`Room not found!\nRoom ID: ${roomId}\n\nPlease check the Room ID and try again.`);
+                throw new Error('Room not found');
             }
         } catch (error) {
             console.error('[Coop] Failed to join room:', error);
-            alert('Failed to join room. Please check the Room ID.');
+            alert(`Failed to join room.\n\nError: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease check:\n- Room ID is correct\n- Firebase Realtime Database is configured`);
+            throw error;
         }
     }
 
