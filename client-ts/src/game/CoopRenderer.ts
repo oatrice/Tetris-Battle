@@ -115,4 +115,35 @@ export class CoopRenderer {
         this.ctx.textAlign = 'start';
         this.ctx.textBaseline = 'alphabetic';
     }
+
+    /**
+     * Helper to draw a piece on a mini canvas (for Next Piece display)
+     */
+    static drawMiniPiece(ctx: CanvasRenderingContext2D, piece: Tetromino, cellSize: number = 20): void {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        if (!piece) return;
+
+        // Calculate center offset
+        // Most pieces are 3x3 or 4x4, centering logic:
+        const rows = piece.shape.length;
+        const cols = piece.shape[0].length;
+        const offsetX = (ctx.canvas.width - cols * cellSize) / 2;
+        const offsetY = (ctx.canvas.height - rows * cellSize) / 2;
+
+        const color = Renderer.getColor(piece.type);
+
+        piece.shape.forEach((row, r) => {
+            row.forEach((cell, c) => {
+                if (cell !== 0) {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(offsetX + c * cellSize, offsetY + r * cellSize, cellSize, cellSize);
+
+                    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(offsetX + c * cellSize, offsetY + r * cellSize, cellSize, cellSize);
+                }
+            });
+        });
+    }
 }

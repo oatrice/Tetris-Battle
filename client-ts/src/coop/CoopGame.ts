@@ -203,6 +203,10 @@ export class CoopGame {
                 piece: this.controller.getPiece(2),
                 position: this.controller.getPosition(2)
             },
+            nextPieces: {
+                player1: this.controller.getNextPiece(1),
+                player2: this.controller.getNextPiece(2)
+            },
             score: this.score,
             lines: this.lines,
             level: this.level,

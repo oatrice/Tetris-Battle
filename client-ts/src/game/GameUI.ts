@@ -1029,21 +1029,102 @@ export class GameUI {
             this.game.gameOver = true; // Mark as game over to stop updates
             console.log('[Coop] Solo game stopped');
 
-            // Create or get coop canvas
+            // Create Coop UI Layout
+            let coopContainer = this.root.querySelector<HTMLElement>('#coop-ui-container');
             let canvas = this.root.querySelector<HTMLCanvasElement>('#coopCanvas');
-            if (!canvas) {
+            let p1NextCanvas: HTMLCanvasElement;
+            let p2NextCanvas: HTMLCanvasElement;
+            let coopScoreEl: HTMLElement;
+
+            if (!coopContainer) {
+                coopContainer = document.createElement('div');
+                coopContainer.id = 'coop-ui-container';
+                coopContainer.style.display = 'flex';
+                coopContainer.style.justifyContent = 'center';
+                coopContainer.style.alignItems = 'flex-start';
+                coopContainer.style.gap = '20px';
+                coopContainer.style.padding = '20px';
+                coopContainer.style.marginTop = '20px';
+
+                // Helper to create panels
+                const createPanel = (title: string, id: string): { panel: HTMLElement, canvas?: HTMLCanvasElement, value?: HTMLElement } => {
+                    const panel = document.createElement('div');
+                    panel.className = 'panel-box';
+                    panel.style.background = 'rgba(0,0,0,0.5)';
+                    panel.style.padding = '15px';
+                    panel.style.borderRadius = '8px';
+                    panel.style.textAlign = 'center';
+                    panel.style.minWidth = '120px';
+
+                    const h3 = document.createElement('h3');
+                    h3.textContent = title;
+                    h3.style.color = '#aaa';
+                    h3.style.marginBottom = '10px';
+                    h3.style.marginTop = '0';
+                    panel.appendChild(h3);
+
+                    let c, v;
+                    if (id.includes('next')) {
+                        c = document.createElement('canvas');
+                        c.id = id;
+                        c.width = 100;
+                        c.height = 100;
+                        // Initial black bg
+                        const ctx = c.getContext('2d');
+                        if (ctx) {
+                            ctx.fillStyle = '#000';
+                            ctx.fillRect(0, 0, 100, 100);
+                        }
+                        panel.appendChild(c);
+                    } else {
+                        v = document.createElement('div');
+                        v.id = id;
+                        v.className = 'stat-value';
+                        v.textContent = '0';
+                        panel.appendChild(v);
+                    }
+                    return { panel, canvas: c, value: v };
+                };
+
+                // P1 Next
+                const p1 = createPanel('P1 Next', 'p1-next-canvas');
+                p1NextCanvas = p1.canvas!;
+                coopContainer.appendChild(p1.panel);
+
+                // Center (Score + Board)
+                const center = document.createElement('div');
+                center.style.display = 'flex';
+                center.style.flexDirection = 'column';
+                center.style.alignItems = 'center';
+                center.style.gap = '15px';
+
+                // Score
+                const score = createPanel('Team Score', 'coop-score-val');
+                coopScoreEl = score.value!;
+                center.appendChild(score.panel);
+
+                // Board Canvas
                 canvas = document.createElement('canvas');
                 canvas.id = 'coopCanvas';
-                canvas.width = 24 * 30; // 24 columns * 30px
-                canvas.height = 12 * 30; // 12 rows * 30px
-                canvas.style.display = 'block';
-                canvas.style.margin = '2rem auto';
-                canvas.style.border = '2px solid #4DD0E1';
-                canvas.style.borderRadius = '8px';
-                canvas.style.boxShadow = '0 4px 20px rgba(77, 208, 225, 0.3)';
-                this.root.appendChild(canvas);
+                canvas.width = 24 * 30; // 720
+                canvas.height = 12 * 30; // 360
+                // Note: CSS handles aspect ratio and sizing
+                center.appendChild(canvas);
+
+                coopContainer.appendChild(center);
+
+                // P2 Next
+                const p2 = createPanel('P2 Next', 'p2-next-canvas');
+                p2NextCanvas = p2.canvas!;
+                coopContainer.appendChild(p2.panel);
+
+                this.root.appendChild(coopContainer);
             } else {
-                canvas.style.display = 'block';
+                canvas = this.root.querySelector<HTMLCanvasElement>('#coopCanvas')!;
+                p1NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p1-next-canvas')!;
+                p2NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p2-next-canvas')!;
+                coopScoreEl = this.root.querySelector<HTMLElement>('#coop-score-val')!;
+                coopContainer.style.display = 'flex';
             }
 
             // Initialize Coop components
@@ -1075,10 +1156,18 @@ export class GameUI {
                         state.isPaused
                     );
 
-                    // Update stats
-                    if (this.scoreVal) this.scoreVal.textContent = state.score.toString();
-                    if (this.linesVal) this.linesVal.textContent = state.lines.toString();
-                    if (this.levelVal) this.levelVal.textContent = state.level.toString();
+                    // Update Coop UI Stats
+                    if (coopScoreEl) coopScoreEl.textContent = state.score.toString();
+
+                    // Render Next Pieces
+                    // Note: casting to any because getState() return type is inferred and TS might not see nextPieces yet
+                    const nextPieces = (state as any).nextPieces;
+                    if (nextPieces) {
+                        const p1Ctx = p1NextCanvas?.getContext('2d');
+                        const p2Ctx = p2NextCanvas?.getContext('2d');
+                        if (p1Ctx) CoopRenderer.drawMiniPiece(p1Ctx, nextPieces.player1);
+                        if (p2Ctx) CoopRenderer.drawMiniPiece(p2Ctx, nextPieces.player2);
+                    }
 
                     if (state.gameOver) {
                         // Show Game Over overlay

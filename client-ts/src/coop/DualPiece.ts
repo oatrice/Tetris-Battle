@@ -28,15 +28,21 @@ type PlayerNumber = 1 | 2;
 export class DualPieceController {
     private board: CoopBoard;
     private players: Map<PlayerNumber, PlayerPiece>;
+    private nextPieces: Map<PlayerNumber, Tetromino>;
     private pieceTypes: TetrominoType[] = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
 
     constructor(board: CoopBoard) {
         this.board = board;
         this.players = new Map();
+        this.nextPieces = new Map();
 
         // Initialize empty player states
         this.players.set(1, { piece: null, position: { x: 0, y: 0 } });
         this.players.set(2, { piece: null, position: { x: 0, y: 0 } });
+
+        // Generate initial next pieces
+        this.nextPieces.set(1, this.generatePiece());
+        this.nextPieces.set(2, this.generatePiece());
     }
 
     /**
@@ -45,6 +51,18 @@ export class DualPieceController {
     private generatePiece(): Tetromino {
         const type = this.pieceTypes[Math.floor(Math.random() * this.pieceTypes.length)];
         return new Tetromino(type);
+    }
+
+    /**
+     * Get the next piece for a player
+     */
+    getNextPiece(player: PlayerNumber): Tetromino {
+        let piece = this.nextPieces.get(player);
+        if (!piece) {
+            piece = this.generatePiece();
+            this.nextPieces.set(player, piece);
+        }
+        return piece;
     }
 
     /**
@@ -63,7 +81,10 @@ export class DualPieceController {
      */
     spawnPiece(player: PlayerNumber): boolean {
         const spawnPos = this.board.getSpawnPosition(player);
-        const piece = this.generatePiece();
+
+        // Get next piece and generate new next piece
+        const piece = this.getNextPiece(player);
+        this.nextPieces.set(player, this.generatePiece());
 
         // Check if spawn position is blocked
         if (!this.board.canPlacePiece(piece, spawnPos.x, spawnPos.y)) {
