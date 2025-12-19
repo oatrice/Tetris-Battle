@@ -896,9 +896,16 @@ export class GameUI {
         createRoomBtn.textContent = 'Create Room';
         createRoomBtn.className = 'menu-btn';
         createRoomBtn.style.marginBottom = '1rem';
-        createRoomBtn.addEventListener('click', () => {
-            this.createCoopRoom();
-            this.root.removeChild(coopMenu);
+        createRoomBtn.addEventListener('click', async () => {
+            createRoomBtn.textContent = 'Creating...';
+            createRoomBtn.disabled = true;
+            const success = await this.createCoopRoom();
+            if (success) {
+                if (coopMenu.parentNode) coopMenu.parentNode.removeChild(coopMenu);
+            } else {
+                createRoomBtn.textContent = 'Create Coop Room';
+                createRoomBtn.disabled = false;
+            }
         });
         coopMenu.appendChild(createRoomBtn);
 
@@ -935,7 +942,7 @@ export class GameUI {
         this.root.appendChild(coopMenu);
     }
 
-    private async createCoopRoom() {
+    private async createCoopRoom(): Promise<boolean> {
         try {
             const { RoomManager } = await import('../coop/RoomManager');
             const roomManager = new RoomManager();
@@ -971,9 +978,11 @@ export class GameUI {
                     controls.setPlayerJoined();
                 }
             });
+            return true;
         } catch (error) {
             console.error('[Coop] Failed to create room:', error);
             alert('Failed to create room. Make sure Firebase Realtime Database is configured.');
+            return false;
         }
     }
 
