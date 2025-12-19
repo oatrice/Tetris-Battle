@@ -111,25 +111,114 @@ canvas {
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
+  #app {
+    padding: 5px;
+    justify-content: flex-start;
+    /* Align top on mobile */
+    height: 100dvh;
+    overflow: hidden;
+    /* Prevent scroll on mobile game */
+  }
+
+  h1 {
+    font-size: 1.2rem;
+    margin: 5px 0;
+    display: none;
+    /* Hide title on mobile to save space */
+  }
+
+  .ui-controls {
+    margin-bottom: 5px;
+    gap: 5px;
+  }
+
+  .ui-controls button {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
   #game-container {
-    flex-direction: column;
+    flex-direction: row;
+    /* Change to row to allow wrapping logic */
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    /* Spread Next and Score */
+    width: 100%;
+    height: 100%;
+    /* Fill available space */
+    margin-bottom: 0;
+  }
+
+  /* Arrange Panels Top Side-by-Side */
+  #left-panel {
+    order: 1;
+    width: 48%;
+    /* Roughly half */
+    min-width: auto;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 5px;
+    gap: 5px;
+  }
+
+  #right-panel {
+    order: 2;
+    width: 48%;
+    min-width: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    margin-bottom: 5px;
+  }
+
+  /* Compact Boxes */
+  .panel-box {
+    padding: 5px;
+    min-width: auto;
+    flex: 1;
+    /* Distribute space */
     align-items: center;
   }
 
-  .side-panel {
-    flex-direction: row;
-    width: 300px;
-    /* Match board width */
-    justify-content: space-between;
+  .panel-box h3 {
+    font-size: 0.7rem;
+    margin-bottom: 2px;
   }
 
-  #left-panel {
-    order: -1;
-    /* Move above board on mobile? Or maybe Next Piece moves up */
+  .stat-value {
+    font-size: 1rem;
+  }
+
+  /* Smaller Next/Hold Canvas */
+  #nextCanvas,
+  #holdCanvas {
+    width: 50px;
+    height: 50px;
+  }
+
+  /* Board - Fill Remaining Space */
+  canvas#gameCanvas {
+    order: 3;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    /* Calculate height: 100dvh - (controls + panels + margins) ~ approx 160px overhead */
+    max-height: calc(100dvh - 160px);
+    aspect-ratio: 300/600;
+    margin: 0 auto;
+    border-width: 2px;
+  }
+
+  /* Hide Instructions */
+  p {
+    display: none;
   }
 }
 
-/* Canvas styling for Next/Hold */
+/* Canvas styling for Next/Hold (Desktop Default) */
 #nextCanvas,
 #holdCanvas {
   width: 100%;
