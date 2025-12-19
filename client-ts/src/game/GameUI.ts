@@ -146,14 +146,20 @@ export class GameUI {
     }
 
     private toggleLandscapeMode(enable: boolean) {
+        const fsBtn = this.root.querySelector<HTMLElement>('#fullscreenBtn');
         if (enable) {
             document.body.classList.add('force-landscape');
+            // Hide fullscreen button as we are managing layout/fullscreen manually
+            if (fsBtn) fsBtn.style.display = 'none';
+
             // Try enabling fullscreen on mobile
             if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
                 this.enterFullscreen();
             }
         } else {
             document.body.classList.remove('force-landscape');
+            if (fsBtn) fsBtn.style.display = 'block'; // Restore button
+
             // Check if we strictly need to exit, maybe keep it if user wants?
             // Usually valid to exit if we forced it.
             this.exitFullscreen();
@@ -1113,6 +1119,7 @@ export class GameUI {
             let p1NextCanvas: HTMLCanvasElement;
             let p2NextCanvas: HTMLCanvasElement;
             let coopScoreEl: HTMLElement;
+            let coopLevelEl: HTMLElement;
 
             if (!coopContainer) {
                 coopContainer = document.createElement('div');
@@ -1164,37 +1171,46 @@ export class GameUI {
                     return { panel, canvas: c, value: v };
                 };
 
-                // P1 Next
-                const p1 = createPanel('P1 Next', 'p1-next-canvas');
-                p1NextCanvas = p1.canvas!;
-                coopContainer.appendChild(p1.panel);
+                // Left Panel (Score + P1 Next)
+                const leftCol = document.createElement('div');
+                leftCol.style.display = 'flex';
+                leftCol.style.flexDirection = 'column';
+                leftCol.style.gap = '10px';
 
-                // Center (Score + Board)
-                const center = document.createElement('div');
-                center.style.display = 'flex';
-                center.style.flexDirection = 'column';
-                center.style.alignItems = 'center';
-                center.style.gap = '15px';
-
-                // Score
                 const score = createPanel('Team Score', 'coop-score-val');
                 coopScoreEl = score.value!;
-                center.appendChild(score.panel);
+                leftCol.appendChild(score.panel);
 
-                // Board Canvas
+                const p1 = createPanel('P1 Next', 'p1-next-canvas');
+                p1NextCanvas = p1.canvas!;
+                leftCol.appendChild(p1.panel);
+
+                coopContainer.appendChild(leftCol);
+
+                // Center (Board Only)
                 canvas = document.createElement('canvas');
                 canvas.id = 'coopCanvas';
                 canvas.width = 24 * 30; // 720
                 canvas.height = 12 * 30; // 360
-                // Note: CSS handles aspect ratio and sizing
-                center.appendChild(canvas);
+                coopContainer.appendChild(canvas);
 
-                coopContainer.appendChild(center);
+                // Right Panel (Level + P2 Next)
+                const rightCol = document.createElement('div');
+                rightCol.style.display = 'flex';
+                rightCol.style.flexDirection = 'column';
+                rightCol.style.gap = '10px';
 
-                // P2 Next
+                const level = createPanel('Level', 'coop-level-val');
+                // Store level element ref if needed globally or locally
+                // For now, we need to declare let coopLevelEl above
+                coopLevelEl = level.value!;
+                rightCol.appendChild(level.panel);
+
                 const p2 = createPanel('P2 Next', 'p2-next-canvas');
                 p2NextCanvas = p2.canvas!;
-                coopContainer.appendChild(p2.panel);
+                rightCol.appendChild(p2.panel);
+
+                coopContainer.appendChild(rightCol);
 
                 this.root.appendChild(coopContainer);
             } else {
@@ -1202,6 +1218,7 @@ export class GameUI {
                 p1NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p1-next-canvas')!;
                 p2NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p2-next-canvas')!;
                 coopScoreEl = this.root.querySelector<HTMLElement>('#coop-score-val')!;
+                coopLevelEl = this.root.querySelector<HTMLElement>('#coop-level-val')!;
                 coopContainer.style.display = 'flex';
             }
 
@@ -1236,6 +1253,7 @@ export class GameUI {
 
                     // Update Coop UI Stats
                     if (coopScoreEl) coopScoreEl.textContent = state.score.toString();
+                    if (coopLevelEl) coopLevelEl.textContent = state.level.toString();
 
                     // Render Next Pieces
                     // Note: casting to any because getState() return type is inferred and TS might not see nextPieces yet
