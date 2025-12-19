@@ -905,7 +905,7 @@ export class GameUI {
 
         const title = document.createElement('h2');
         title.textContent = '🎮 Cooperative Mode';
-        title.style.marginBottom = '2rem';
+        title.style.marginBottom = '1rem';
         coopMenu.appendChild(title);
 
         const description = document.createElement('p');
@@ -914,20 +914,73 @@ export class GameUI {
         description.style.color = '#aaa';
         coopMenu.appendChild(description);
 
+        // Connection Mode Selector
+        const modeSelector = document.createElement('div');
+        modeSelector.style.marginBottom = '2rem';
+        modeSelector.style.display = 'flex';
+        modeSelector.style.gap = '1rem';
+        modeSelector.style.width = '80%';
+        modeSelector.style.maxWidth = '400px';
+
+        let selectedMode: 'online' | 'offline' = 'online';
+
+        const onlineBtn = document.createElement('button');
+        onlineBtn.textContent = '🌐 Online';
+        onlineBtn.className = 'menu-btn';
+        onlineBtn.style.flex = '1';
+        onlineBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        onlineBtn.onclick = () => {
+            selectedMode = 'online';
+            onlineBtn.style.opacity = '1';
+            offlineBtn.style.opacity = '0.5';
+            modeDescription.textContent = 'Via Firebase (requires internet)';
+        };
+        modeSelector.appendChild(onlineBtn);
+
+        const offlineBtn = document.createElement('button');
+        offlineBtn.textContent = '📡 Offline';
+        offlineBtn.className = 'menu-btn';
+        offlineBtn.style.flex = '1';
+        offlineBtn.style.opacity = '0.5';
+        offlineBtn.style.background = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)';
+        offlineBtn.onclick = () => {
+            selectedMode = 'offline';
+            offlineBtn.style.opacity = '1';
+            onlineBtn.style.opacity = '0.5';
+            modeDescription.textContent = 'P2P via WiFi (no internet needed)';
+        };
+        modeSelector.appendChild(offlineBtn);
+
+        coopMenu.appendChild(modeSelector);
+
+        const modeDescription = document.createElement('p');
+        modeDescription.textContent = 'Via Firebase (requires internet)';
+        modeDescription.style.marginBottom = '2rem';
+        modeDescription.style.color = '#888';
+        modeDescription.style.fontSize = '0.9rem';
+        coopMenu.appendChild(modeDescription);
+
         // Create Room Button
         const createRoomBtn = document.createElement('button');
         createRoomBtn.textContent = 'Create Room';
         createRoomBtn.className = 'menu-btn';
         createRoomBtn.style.marginBottom = '1rem';
         createRoomBtn.addEventListener('click', async () => {
-            createRoomBtn.textContent = 'Creating...';
-            createRoomBtn.disabled = true;
-            const success = await this.createCoopRoom();
-            if (success) {
-                if (coopMenu.parentNode) coopMenu.parentNode.removeChild(coopMenu);
+            if (selectedMode === 'offline') {
+                // P2P Offline mode
+                this.root.removeChild(coopMenu);
+                this.showP2PConnection();
             } else {
-                createRoomBtn.textContent = 'Create Coop Room';
-                createRoomBtn.disabled = false;
+                // Firebase Online mode
+                createRoomBtn.textContent = 'Creating...';
+                createRoomBtn.disabled = true;
+                const success = await this.createCoopRoom();
+                if (success) {
+                    if (coopMenu.parentNode) coopMenu.parentNode.removeChild(coopMenu);
+                } else {
+                    createRoomBtn.textContent = 'Create Room';
+                    createRoomBtn.disabled = false;
+                }
             }
         });
         coopMenu.appendChild(createRoomBtn);
@@ -938,16 +991,23 @@ export class GameUI {
         joinRoomBtn.className = 'menu-btn';
         joinRoomBtn.style.marginBottom = '1rem';
         joinRoomBtn.addEventListener('click', async () => {
-            const roomId = prompt('Enter Room ID:');
-            if (roomId && roomId.trim()) {
-                try {
-                    // Remove menu first to show loading state
-                    this.root.removeChild(coopMenu);
-                    await this.joinCoopRoom(roomId.trim());
-                } catch (error) {
-                    console.error('[Coop] Join failed:', error);
-                    // Re-show menu if join failed
-                    this.showCoopMenu();
+            if (selectedMode === 'offline') {
+                // P2P Offline mode
+                this.root.removeChild(coopMenu);
+                this.showP2PConnection(false); // Join mode
+            } else {
+                // Firebase Online mode
+                const roomId = prompt('Enter Room ID:');
+                if (roomId && roomId.trim()) {
+                    try {
+                        // Remove menu first to show loading state
+                        this.root.removeChild(coopMenu);
+                        await this.joinCoopRoom(roomId.trim());
+                    } catch (error) {
+                        console.error('[Coop] Join failed:', error);
+                        // Re-show menu if join failed
+                        this.showCoopMenu();
+                    }
                 }
             }
         });
@@ -964,6 +1024,42 @@ export class GameUI {
 
         this.root.appendChild(coopMenu);
     }
+
+    /**
+     * Show P2P Connection UI (Offline mode)
+     */
+    private showP2PConnection(_isHost: boolean = true): void {
+        import('../coop/P2PConnectionUI').then(({ P2PConnectionUI }) => {
+            const p2pUI = new P2PConnectionUI(this.root);
+
+            p2pUI.showConnectionMenu(
+                (webrtcSync, playerNumber) => {
+                    console.log(`[P2P] Connected as Player ${playerNumber}`);
+
+                    //Create a dummy room for compatibility
+                    const dummyRoom: RoomInfo = {
+                        id: 'p2p-offline',
+                        hostId: 'p2p-host',
+                        players: ['p1', 'p2'],
+                        status: 'playing',
+                        createdAt: Date.now()
+                    };
+
+                    // Start Coop game with WebRTC sync
+                    this.startCoopGameWithP2P(dummyRoom, playerNumber, webrtcSync);
+                },
+                () => {
+                    // Cancelled
+                    this.showCoopMenu();
+                }
+            );
+        }).catch(error => {
+            console.error('[P2P] Failed to load P2P UI:', error);
+            alert('Failed to load P2P connection module.');
+            this.showCoopMenu();
+        });
+    }
+
 
     private async createCoopRoom(): Promise<boolean> {
         try {
@@ -1401,6 +1497,172 @@ export class GameUI {
             alert('Failed to start Coop game.');
         }
     }
+
+    /**
+     * Start Coop Game with WebRTC P2P (Offline mode)
+     */
+    private async startCoopGameWithP2P(room: RoomInfo, playerNumber: 1 | 2, webrtcSync: any) {
+        try {
+            console.log('[P2P] Starting Coop Game with WebRTC...');
+
+            // Dynamic imports
+            const [
+                { CoopGame },
+                { CoopRenderer },
+                { CoopInputHandler }
+            ] = await Promise.all([
+                import('../coop/CoopGame'),
+                import('./CoopRenderer'),
+                import('../coop/CoopInputHandler')
+            ]);
+
+            // Hide ALL Solo UI Overlays/Menus
+            if (this.menu) this.menu.style.display = 'none';
+            if (this.gameOverMenu) this.gameOverMenu.style.display = 'none';
+            if (this.leaderboardOverlay) this.leaderboardOverlay.style.display = 'none';
+            if (this.pauseBtn) this.pauseBtn.style.display = 'block';
+
+            // Hide home menu
+            if (this.homeMenu) this.homeMenu.style.display = 'none';
+
+            // Hide solo game elements
+            const soloCanvas = this.root.querySelector<HTMLCanvasElement>('#gameCanvas');
+            const gameContainer = this.root.querySelector<HTMLElement>('#game-container');
+            const leftPanel = this.root.querySelector<HTMLElement>('#left-panel');
+            const rightPanel = this.root.querySelector<HTMLElement>('#right-panel');
+
+            // Force Landscape for Coop
+            this.toggleLandscapeMode(true);
+
+            if (soloCanvas) soloCanvas.style.display = 'none';
+            if (gameContainer) gameContainer.style.display = 'none';
+            if (leftPanel) leftPanel.style.display = 'none';
+            if (rightPanel) rightPanel.style.display = 'none';
+
+            // Stop solo game logic
+            this.game.isPaused = true;
+            this.game.gameOver = true;
+            console.log('[P2P] Solo game stopped');
+
+            // Create Coop UI Layout
+            const {
+                canvas,
+                p1NextCanvas,
+                p2NextCanvas,
+                coopScoreEl,
+                coopLevelEl
+            } = this.setupCoopLayout();
+
+            // Initialize Coop components
+            this.coopGame = new CoopGame();
+            this.coopRenderer = new CoopRenderer(canvas, 30);
+            this.coopInputHandler = new CoopInputHandler();
+
+            // Setup input handling
+            const keyHandler = (e: KeyboardEvent) => {
+                const input = this.coopInputHandler?.handleInput(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+
+                    // Send input to peer via WebRTC
+                    webrtcSync.sendInput(input.action).catch((err: Error) => {
+                        console.error('[P2P] Failed to send input:', err);
+                    });
+
+                    e.preventDefault();
+                }
+            };
+            document.addEventListener('keydown', keyHandler);
+
+            // Setup touch input handling for mobile
+            const touchStartHandler = (e: TouchEvent) => {
+                this.coopInputHandler?.handleTouchStart(e);
+            };
+
+            const touchMoveHandler = (e: TouchEvent) => {
+                // Prevent scrolling on canvas
+                if (e.target === canvas) {
+                    e.preventDefault();
+                }
+                const input = this.coopInputHandler?.handleTouchMove(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+                    webrtcSync.sendInput(input.action).catch((err: Error) => {
+                        console.error('[P2P] Failed to send input:', err);
+                    });
+                }
+            };
+
+            const touchEndHandler = (e: TouchEvent) => {
+                // Skip if touching a button
+                if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+                const input = this.coopInputHandler?.handleTouchEnd(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+                    webrtcSync.sendInput(input.action).catch((err: Error) => {
+                        console.error('[P2P] Failed to send input:', err);
+                    });
+                }
+            };
+
+
+            window.addEventListener('touchstart', touchStartHandler, { passive: false });
+            window.addEventListener('touchmove', touchMoveHandler, { passive: false });
+            window.addEventListener('touchend', touchEndHandler);
+
+            // Replace CoopGame's sync with WebRTC sync
+            (this.coopGame as any).sync = webrtcSync;
+
+            // Start game with WebRTC sync
+            webrtcSync.start(room, this.coopGame, playerNumber);
+            this.coopGame.start(room, playerNumber);
+
+            console.log('[P2P] WebRTC Sync attached to CoopGame');
+
+            // Render loop
+            const renderLoop = () => {
+                if (this.coopGame && this.coopRenderer) {
+                    const state = this.coopGame.getState();
+                    this.coopRenderer.render(
+                        state.board,
+                        state.player1,
+                        state.player2,
+                        state.isPaused,
+                        webrtcSync.latency || 0
+                    );
+
+                    // Update Coop UI Stats
+                    if (coopScoreEl) coopScoreEl.textContent = state.score.toString();
+                    if (coopLevelEl) coopLevelEl.textContent = state.level.toString();
+                    this.updatePauseBtnText();
+
+                    // Render Next Pieces
+                    const nextPieces = (state as any).nextPieces;
+                    if (nextPieces) {
+                        const p1Ctx = p1NextCanvas?.getContext('2d');
+                        const p2Ctx = p2NextCanvas?.getContext('2d');
+                        if (p1Ctx) CoopRenderer.drawMiniPiece(p1Ctx, nextPieces.player1);
+                        if (p2Ctx) CoopRenderer.drawMiniPiece(p2Ctx, nextPieces.player2);
+                    }
+
+                    if (state.gameOver) {
+                        console.log('[P2P] Game Over!');
+                        this.showCoopGameOver(state.score, state.lines, state.level);
+                        return;
+                    }
+
+                    requestAnimationFrame(renderLoop);
+                }
+            };
+            renderLoop();
+
+            console.log(`[P2P] Game started as Player ${playerNumber}`);
+        } catch (error) {
+            console.error('[P2P] Failed to start game:', error);
+            alert('Failed to start P2P Coop game.');
+        }
+    }
+
 
     updatePauseBtnText() {
         if (this.pauseBtn) {
