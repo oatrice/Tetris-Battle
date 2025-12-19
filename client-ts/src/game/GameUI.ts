@@ -87,7 +87,7 @@ export class GameUI {
         if (!modeDisplay) {
             modeDisplay = document.createElement('div');
             modeDisplay.id = 'modeDisplay';
-            modeDisplay.style.marginTop = '0';
+            modeDisplay.style.marginTop = '1rem';
             modeDisplay.style.display = 'none';
             modeDisplay.style.marginBottom = '0.5rem';
             const descriptionRef = this.root.querySelector('p');

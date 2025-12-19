@@ -257,6 +257,7 @@ describe('GameUI', () => {
         expect(modeDisplay?.textContent).toContain('Unknown Date');
     });
 
+
     it('should not prevent default touchmove on scrollable leaderboard', () => {
         ui.init();
         ui.showLeaderboard();
@@ -283,5 +284,12 @@ describe('GameUI', () => {
         scrollableList.dispatchEvent(event);
 
         expect(preventDefaultSpy).not.toHaveBeenCalled();
+    });
+
+    it('should have margin-top for the player name section (modeDisplay)', () => {
+        ui.init();
+        const modeDisplay = root.querySelector('#modeDisplay') as HTMLElement;
+        expect(modeDisplay).not.toBeNull();
+        expect(modeDisplay.style.marginTop).toBe('1rem');
     });
 });
