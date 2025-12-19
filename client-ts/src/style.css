@@ -63,6 +63,17 @@ canvas {
   background-color: #000;
 }
 
+#coopCanvas {
+  aspect-ratio: 2/1;
+  /* Horizontal 2:1 */
+  max-width: 90vw;
+  /* Make it wider */
+  max-height: 80vh;
+  height: auto;
+  border-color: #4DD0E1;
+  /* Cyan border for coop */
+}
+
 #game-container {
   display: flex;
   flex-direction: row;
