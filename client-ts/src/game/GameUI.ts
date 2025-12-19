@@ -1119,7 +1119,7 @@ export class GameUI {
             // Hide home menu
             if (this.homeMenu) this.homeMenu.style.display = 'none';
 
-            // Hide solo game elements (canvas and panels)
+            // Hide solo game elements
             const soloCanvas = this.root.querySelector<HTMLCanvasElement>('#gameCanvas');
             const gameContainer = this.root.querySelector<HTMLElement>('#game-container');
             const leftPanel = this.root.querySelector<HTMLElement>('#left-panel');
@@ -1134,118 +1134,18 @@ export class GameUI {
             if (rightPanel) rightPanel.style.display = 'none';
 
             // Stop solo game logic
-            this.game.isPaused = true; // Pause the game
-            this.game.gameOver = true; // Mark as game over to stop updates
+            this.game.isPaused = true;
+            this.game.gameOver = true;
             console.log('[Coop] Solo game stopped');
 
             // Create Coop UI Layout
-            let coopContainer = this.root.querySelector<HTMLElement>('#coop-ui-container');
-            let canvas = this.root.querySelector<HTMLCanvasElement>('#coopCanvas');
-            let p1NextCanvas: HTMLCanvasElement;
-            let p2NextCanvas: HTMLCanvasElement;
-            let coopScoreEl: HTMLElement;
-            let coopLevelEl: HTMLElement;
-
-            if (!coopContainer) {
-                coopContainer = document.createElement('div');
-                coopContainer.id = 'coop-ui-container';
-                coopContainer.style.display = 'flex';
-                coopContainer.style.justifyContent = 'center';
-                coopContainer.style.alignItems = 'center';
-                coopContainer.style.gap = '20px';
-                coopContainer.style.padding = '20px';
-                coopContainer.style.marginTop = '20px';
-
-                // Helper to create panels
-                const createPanel = (title: string, id: string): { panel: HTMLElement, canvas?: HTMLCanvasElement, value?: HTMLElement } => {
-                    const panel = document.createElement('div');
-                    panel.className = 'panel-box';
-                    panel.style.background = 'rgba(0,0,0,0.5)';
-                    panel.style.padding = '15px';
-                    panel.style.borderRadius = '8px';
-                    panel.style.textAlign = 'center';
-                    panel.style.minWidth = '120px';
-
-                    const h3 = document.createElement('h3');
-                    h3.textContent = title;
-                    h3.style.color = '#aaa';
-                    h3.style.marginBottom = '10px';
-                    h3.style.marginTop = '0';
-                    panel.appendChild(h3);
-
-                    let c, v;
-                    if (id.includes('next')) {
-                        c = document.createElement('canvas');
-                        c.id = id;
-                        c.width = 100;
-                        c.height = 100;
-                        // Initial black bg
-                        const ctx = c.getContext('2d');
-                        if (ctx) {
-                            ctx.fillStyle = '#000';
-                            ctx.fillRect(0, 0, 100, 100);
-                        }
-                        panel.appendChild(c);
-                    } else {
-                        v = document.createElement('div');
-                        v.id = id;
-                        v.className = 'stat-value';
-                        v.textContent = '0';
-                        panel.appendChild(v);
-                    }
-                    return { panel, canvas: c, value: v };
-                };
-
-                // Left Panel (Score + P1 Next)
-                const leftCol = document.createElement('div');
-                leftCol.style.display = 'flex';
-                leftCol.style.flexDirection = 'column';
-                leftCol.style.gap = '10px';
-
-                const score = createPanel('Team Score', 'coop-score-val');
-                coopScoreEl = score.value!;
-                leftCol.appendChild(score.panel);
-
-                const p1 = createPanel('P1 Next', 'p1-next-canvas');
-                p1NextCanvas = p1.canvas!;
-                leftCol.appendChild(p1.panel);
-
-                coopContainer.appendChild(leftCol);
-
-                // Center (Board Only)
-                canvas = document.createElement('canvas');
-                canvas.id = 'coopCanvas';
-                canvas.width = 24 * 30; // 720
-                canvas.height = 12 * 30; // 360
-                coopContainer.appendChild(canvas);
-
-                // Right Panel (Level + P2 Next)
-                const rightCol = document.createElement('div');
-                rightCol.style.display = 'flex';
-                rightCol.style.flexDirection = 'column';
-                rightCol.style.gap = '10px';
-
-                const level = createPanel('Level', 'coop-level-val');
-                // Store level element ref if needed globally or locally
-                // For now, we need to declare let coopLevelEl above
-                coopLevelEl = level.value!;
-                rightCol.appendChild(level.panel);
-
-                const p2 = createPanel('P2 Next', 'p2-next-canvas');
-                p2NextCanvas = p2.canvas!;
-                rightCol.appendChild(p2.panel);
-
-                coopContainer.appendChild(rightCol);
-
-                this.root.appendChild(coopContainer);
-            } else {
-                canvas = this.root.querySelector<HTMLCanvasElement>('#coopCanvas')!;
-                p1NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p1-next-canvas')!;
-                p2NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p2-next-canvas')!;
-                coopScoreEl = this.root.querySelector<HTMLElement>('#coop-score-val')!;
-                coopLevelEl = this.root.querySelector<HTMLElement>('#coop-level-val')!;
-                coopContainer.style.display = 'flex';
-            }
+            const {
+                canvas,
+                p1NextCanvas,
+                p2NextCanvas,
+                coopScoreEl,
+                coopLevelEl
+            } = this.setupCoopLayout();
 
             // Initialize Coop components
             this.coopGame = new CoopGame();
@@ -1281,7 +1181,6 @@ export class GameUI {
                     if (coopLevelEl) coopLevelEl.textContent = state.level.toString();
 
                     // Render Next Pieces
-                    // Note: casting to any because getState() return type is inferred and TS might not see nextPieces yet
                     const nextPieces = (state as any).nextPieces;
                     if (nextPieces) {
                         const p1Ctx = p1NextCanvas?.getContext('2d');
@@ -1291,10 +1190,8 @@ export class GameUI {
                     }
 
                     if (state.gameOver) {
-                        // Show Game Over overlay
                         console.log('[Coop] Game Over!');
                         this.showCoopGameOver(state.score, state.lines, state.level);
-                        // Stop render loop
                         return;
                     }
 
@@ -1314,5 +1211,113 @@ export class GameUI {
         if (this.pauseBtn) {
             this.pauseBtn.textContent = this.game.isPaused ? 'Resume' : 'Pause';
         }
+    }
+
+    private setupCoopLayout() {
+        let coopContainer = this.root.querySelector<HTMLElement>('#coop-ui-container');
+        let canvas: HTMLCanvasElement;
+        let p1NextCanvas: HTMLCanvasElement;
+        let p2NextCanvas: HTMLCanvasElement;
+        let coopScoreEl: HTMLElement;
+        let coopLevelEl: HTMLElement;
+
+        if (!coopContainer) {
+            coopContainer = document.createElement('div');
+            coopContainer.id = 'coop-ui-container';
+            coopContainer.style.display = 'flex';
+            coopContainer.style.justifyContent = 'center';
+            coopContainer.style.alignItems = 'center';
+            coopContainer.style.gap = '20px';
+            coopContainer.style.padding = '20px';
+            coopContainer.style.marginTop = '20px';
+
+            // Left Panel (Score + P1 Next)
+            const leftCol = document.createElement('div');
+            leftCol.style.display = 'flex';
+            leftCol.style.flexDirection = 'column';
+            leftCol.style.gap = '10px';
+
+            const score = this.createCoopPanel('Team Score', 'coop-score-val');
+            coopScoreEl = score.value!;
+            leftCol.appendChild(score.panel);
+
+            const p1 = this.createCoopPanel('P1 Next', 'p1-next-canvas');
+            p1NextCanvas = p1.canvas!;
+            leftCol.appendChild(p1.panel);
+
+            coopContainer.appendChild(leftCol);
+
+            // Center (Board Only)
+            canvas = document.createElement('canvas');
+            canvas.id = 'coopCanvas';
+            canvas.width = 24 * 30; // 720
+            canvas.height = 12 * 30; // 360
+            coopContainer.appendChild(canvas);
+
+            // Right Panel (Level + P2 Next)
+            const rightCol = document.createElement('div');
+            rightCol.style.display = 'flex';
+            rightCol.style.flexDirection = 'column';
+            rightCol.style.gap = '10px';
+
+            const level = this.createCoopPanel('Level', 'coop-level-val');
+            coopLevelEl = level.value!;
+            rightCol.appendChild(level.panel);
+
+            const p2 = this.createCoopPanel('P2 Next', 'p2-next-canvas');
+            p2NextCanvas = p2.canvas!;
+            rightCol.appendChild(p2.panel);
+
+            coopContainer.appendChild(rightCol);
+
+            this.root.appendChild(coopContainer);
+        } else {
+            canvas = this.root.querySelector<HTMLCanvasElement>('#coopCanvas')!;
+            p1NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p1-next-canvas')!;
+            p2NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p2-next-canvas')!;
+            coopScoreEl = this.root.querySelector<HTMLElement>('#coop-score-val')!;
+            coopLevelEl = this.root.querySelector<HTMLElement>('#coop-level-val')!;
+            coopContainer.style.display = 'flex';
+        }
+
+        return { canvas, p1NextCanvas, p2NextCanvas, coopScoreEl, coopLevelEl };
+    }
+
+    private createCoopPanel(title: string, id: string): { panel: HTMLElement, canvas?: HTMLCanvasElement, value?: HTMLElement } {
+        const panel = document.createElement('div');
+        panel.className = 'panel-box';
+        panel.style.background = 'rgba(0,0,0,0.5)';
+        panel.style.padding = '15px';
+        panel.style.borderRadius = '8px';
+        panel.style.textAlign = 'center';
+        panel.style.minWidth = '120px';
+
+        const h3 = document.createElement('h3');
+        h3.textContent = title;
+        h3.style.color = '#aaa';
+        h3.style.marginBottom = '10px';
+        h3.style.marginTop = '0';
+        panel.appendChild(h3);
+
+        let c, v;
+        if (id.includes('next')) {
+            c = document.createElement('canvas');
+            c.id = id;
+            c.width = 100;
+            c.height = 100;
+            const ctx = c.getContext('2d');
+            if (ctx) {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, 100, 100);
+            }
+            panel.appendChild(c);
+        } else {
+            v = document.createElement('div');
+            v.id = id;
+            v.className = 'stat-value';
+            v.textContent = '0';
+            panel.appendChild(v);
+        }
+        return { panel, canvas: c, value: v };
     }
 }
