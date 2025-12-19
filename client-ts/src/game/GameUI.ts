@@ -139,7 +139,7 @@ export class GameUI {
         warning.addEventListener('click', () => {
             this.enterFullscreen();
         });
-        this.root.appendChild(warning);
+        document.body.appendChild(warning);
 
         // Initial Stats Render
         this.updateStats();

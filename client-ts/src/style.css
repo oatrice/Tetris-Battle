@@ -377,10 +377,13 @@ canvas {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
   background: #000;
-  z-index: 9999;
+  z-index: 2147483647;
+  /* Max Z-Index */
   display: none;
   /* Hidden by default */
   flex-direction: column;
@@ -443,6 +446,11 @@ body.force-landscape #app {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* Hide Title in Coop Mode to save space */
+body.force-landscape h1 {
+  display: none !important;
 }
 
 body.force-landscape #coop-ui-container {
