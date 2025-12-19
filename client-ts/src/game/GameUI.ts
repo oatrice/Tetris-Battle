@@ -536,6 +536,39 @@ export class GameUI {
         if (this.pauseBtn) this.pauseBtn.style.display = 'none';
     }
 
+    /**
+     * Show Coop Game Over overlay
+     */
+    showCoopGameOver(score: number, lines: number, level: number) {
+        if (this.gameOverMenu) {
+            const nameEl = this.gameOverMenu.querySelector('#gameOverPlayerName');
+            const scoreEl = this.gameOverMenu.querySelector('#gameOverScore');
+            const bestScoreEl = this.gameOverMenu.querySelector('#gameOverBestScore');
+            const titleEl = this.gameOverMenu.querySelector('h2');
+            const restartBtn = this.gameOverMenu.querySelector('#restartBtn');
+
+            // Customize for Coop
+            if (titleEl) titleEl.textContent = 'Coop Game Over';
+            if (nameEl) nameEl.textContent = 'Team Score';
+            if (scoreEl) scoreEl.innerHTML = `Score: ${score}<br>Lines: ${lines}<br>Level: ${level}`;
+            if (bestScoreEl) (bestScoreEl as HTMLElement).style.display = 'none'; // Hide best score for now
+
+            // Update restart button to go back to lobby/menu
+            if (restartBtn) {
+                const newBtn = restartBtn.cloneNode(true);
+                if (restartBtn.parentNode) {
+                    restartBtn.parentNode.replaceChild(newBtn, restartBtn);
+                }
+                newBtn.addEventListener('click', () => {
+                    window.location.reload(); // Simple reload to reset
+                });
+                (newBtn as HTMLElement).textContent = 'Back to Menu';
+            }
+
+            this.gameOverMenu.style.display = 'flex';
+        }
+    }
+
     hideGameOver() {
         if (this.gameOverMenu) {
             this.gameOverMenu.style.display = 'none';
@@ -1040,9 +1073,9 @@ export class GameUI {
                     if (this.levelVal) this.levelVal.textContent = state.level.toString();
 
                     if (state.gameOver) {
-                        // Show Game Over message
+                        // Show Game Over overlay
                         console.log('[Coop] Game Over!');
-                        alert(`Game Over!\n\nFinal Score: ${state.score}\nLines: ${state.lines}\nLevel: ${state.level}`);
+                        this.showCoopGameOver(state.score, state.lines, state.level);
                         // Stop render loop
                         return;
                     }
