@@ -222,4 +222,19 @@ describe('DualPieceController', () => {
             expect(true).toBe(true);
         });
     });
+    describe('Synchronization', () => {
+        it('should allow setting next piece manually', () => {
+            controller.setNextPiece(1, 'T');
+            expect(controller.getNextPiece(1).type).toBe('T');
+        });
+
+        it('should use synced next piece when spawning', () => {
+            controller.spawnPieces(); // Clear initial state
+
+            controller.setNextPiece(2, 'I');
+            controller.spawnPiece(2);
+
+            expect(controller.getPiece(2)?.type).toBe('I');
+        });
+    });
 });
