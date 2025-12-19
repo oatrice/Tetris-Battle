@@ -922,20 +922,36 @@ export class GameUI {
         modeSelector.style.width = '80%';
         modeSelector.style.maxWidth = '400px';
 
-        let selectedMode: 'online' | 'offline' = 'online';
+        let selectedMode: 'online' | 'hybrid' | 'offline' = 'hybrid';
 
         const onlineBtn = document.createElement('button');
         onlineBtn.textContent = '🌐 Online';
         onlineBtn.className = 'menu-btn';
         onlineBtn.style.flex = '1';
+        onlineBtn.style.opacity = '0.5';
         onlineBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         onlineBtn.onclick = () => {
             selectedMode = 'online';
             onlineBtn.style.opacity = '1';
+            hybridBtn.style.opacity = '0.5';
             offlineBtn.style.opacity = '0.5';
             modeDescription.textContent = 'Via Firebase (requires internet)';
         };
         modeSelector.appendChild(onlineBtn);
+
+        const hybridBtn = document.createElement('button');
+        hybridBtn.textContent = '⚡ Hybrid';
+        hybridBtn.className = 'menu-btn';
+        hybridBtn.style.flex = '1';
+        hybridBtn.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+        hybridBtn.onclick = () => {
+            selectedMode = 'hybrid';
+            hybridBtn.style.opacity = '1';
+            onlineBtn.style.opacity = '0.5';
+            offlineBtn.style.opacity = '0.5';
+            modeDescription.textContent = '🚀 Best of both: Firebase setup + P2P gaming';
+        };
+        modeSelector.appendChild(hybridBtn);
 
         const offlineBtn = document.createElement('button');
         offlineBtn.textContent = '📡 Offline';
@@ -947,6 +963,7 @@ export class GameUI {
             selectedMode = 'offline';
             offlineBtn.style.opacity = '1';
             onlineBtn.style.opacity = '0.5';
+            hybridBtn.style.opacity = '0.5';
             modeDescription.textContent = 'P2P via WiFi (no internet needed)';
         };
         modeSelector.appendChild(offlineBtn);
@@ -954,7 +971,7 @@ export class GameUI {
         coopMenu.appendChild(modeSelector);
 
         const modeDescription = document.createElement('p');
-        modeDescription.textContent = 'Via Firebase (requires internet)';
+        modeDescription.textContent = '🚀 Best of both: Firebase setup + P2P gaming';
         modeDescription.style.marginBottom = '2rem';
         modeDescription.style.color = '#888';
         modeDescription.style.fontSize = '0.9rem';
@@ -967,11 +984,22 @@ export class GameUI {
         createRoomBtn.style.marginBottom = '1rem';
         createRoomBtn.addEventListener('click', async () => {
             if (selectedMode === 'offline') {
-                // P2P Offline mode
+                // P2P Offline mode (Manual signaling)
                 this.root.removeChild(coopMenu);
                 this.showP2PConnection();
+            } else if (selectedMode === 'hybrid') {
+                // Hybrid mode (Firebase signaling + P2P gaming)
+                createRoomBtn.textContent = 'Creating...';
+                createRoomBtn.disabled = true;
+                const success = await this.createCoopRoomHybrid();
+                if (success) {
+                    if (coopMenu.parentNode) coopMenu.parentNode.removeChild(coopMenu);
+                } else {
+                    createRoomBtn.textContent = 'Create Room';
+                    createRoomBtn.disabled = false;
+                }
             } else {
-                // Firebase Online mode
+                // Firebase Online mode (Pure Firebase)
                 createRoomBtn.textContent = 'Creating...';
                 createRoomBtn.disabled = true;
                 const success = await this.createCoopRoom();
@@ -995,6 +1023,18 @@ export class GameUI {
                 // P2P Offline mode
                 this.root.removeChild(coopMenu);
                 this.showP2PConnection(false); // Join mode
+            } else if (selectedMode === 'hybrid') {
+                // Hybrid mode
+                const roomId = prompt('Enter Room ID:');
+                if (roomId && roomId.trim()) {
+                    try {
+                        this.root.removeChild(coopMenu);
+                        await this.joinCoopRoomHybrid(roomId.trim());
+                    } catch (error) {
+                        console.error('[Coop] Join failed:', error);
+                        this.showCoopMenu();
+                    }
+                }
             } else {
                 // Firebase Online mode
                 const roomId = prompt('Enter Room ID:');
@@ -1143,6 +1183,168 @@ export class GameUI {
             console.error('[Coop] Failed to join room:', error);
             alert(`Failed to join room.\n\nError: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease check:\n- Room ID is correct\n- Firebase Realtime Database is configured`);
             throw error;
+        }
+    }
+
+    /**
+     * Create Coop Room with Hybrid Mode (Firebase signaling + WebRTC P2P)
+     */
+    private async createCoopRoomHybrid(): Promise<boolean> {
+        try {
+            const { RoomManager } = await import('../coop/RoomManager');
+            const roomManager = new RoomManager();
+            const playerId = 'player-' + Math.random().toString(36).substr(2, 9);
+            const room = await roomManager.createRoom(playerId);
+            console.log('[HybridSync] Room created:', room.id);
+
+            const controls = this.showRoomIdModal(room.id, async () => {
+                if (unsub) unsub();
+                await this.startCoopGameWithHybrid(room, 1);
+            }, () => {
+                if (unsub) unsub();
+                roomManager.deleteRoom(room.id);
+            });
+
+            let unsub: (() => void) | undefined;
+            unsub = roomManager.onRoomUpdate(room.id, (updatedRoom) => {
+                if (updatedRoom && updatedRoom.players.length >= 2) {
+                    console.log('[HybridSync] Player 2 joined!');
+                    controls.setPlayerJoined();
+                }
+            });
+            return true;
+        } catch (error) {
+            console.error('[HybridSync] Failed to create room:', error);
+            alert('Failed to create room.');
+            return false;
+        }
+    }
+
+    /**
+     * Join Coop Room with Hybrid Mode
+     */
+    private async joinCoopRoomHybrid(roomId: string) {
+        console.log('[HybridSync] Joining room:', roomId);
+        try {
+            const { RoomManager } = await import('../coop/RoomManager');
+            const roomManager = new RoomManager();
+            const playerId = 'player-' + Math.random().toString(36).substr(2, 9);
+            const room = await roomManager.joinRoom(roomId, playerId);
+
+            if (room) {
+                await this.startCoopGameWithHybrid(room, 2);
+            } else {
+                throw new Error('Room not found');
+            }
+        } catch (error) {
+            console.error('[HybridSync] Failed to join:', error);
+            alert('Failed to join room.');
+            throw error;
+        }
+    }
+
+    /**
+     * Start Coop Game with Hybrid Sync
+     */
+    private async startCoopGameWithHybrid(room: RoomInfo, playerNumber: 1 | 2) {
+        try {
+            const [{ CoopGame }, { CoopRenderer }, { CoopInputHandler }, { HybridSync }] =
+                await Promise.all([
+                    import('../coop/CoopGame'),
+                    import('./CoopRenderer'),
+                    import('../coop/CoopInputHandler'),
+                    import('../coop/HybridSync')
+                ]);
+
+            if (this.menu) this.menu.style.display = 'none';
+            if (this.gameOverMenu) this.gameOverMenu.style.display = 'none';
+            if (this.pauseBtn) this.pauseBtn.style.display = 'block';
+            if (this.homeMenu) this.homeMenu.style.display = 'none';
+
+            const soloCanvas = this.root.querySelector<HTMLCanvasElement>('#gameCanvas');
+            const gameContainer = this.root.querySelector<HTMLElement>('#game-container');
+            const leftPanel = this.root.querySelector<HTMLElement>('#left-panel');
+            const rightPanel = this.root.querySelector<HTMLElement>('#right-panel');
+
+            this.toggleLandscapeMode(true);
+            if (soloCanvas) soloCanvas.style.display = 'none';
+            if (gameContainer) gameContainer.style.display = 'none';
+            if (leftPanel) leftPanel.style.display = 'none';
+            if (rightPanel) rightPanel.style.display = 'none';
+
+            this.game.isPaused = true;
+            this.game.gameOver = true;
+
+            const { canvas, p1NextCanvas, p2NextCanvas, coopScoreEl, coopLevelEl } = this.setupCoopLayout();
+            this.coopGame = new CoopGame();
+            this.coopRenderer = new CoopRenderer(canvas, 30);
+            this.coopInputHandler = new CoopInputHandler();
+
+            const hybridSync = new HybridSync(room.id);
+
+            const keyHandler = (e: KeyboardEvent) => {
+                const input = this.coopInputHandler?.handleInput(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+                    hybridSync.sendInput(input.action).catch(() => { });
+                    e.preventDefault();
+                }
+            };
+            document.addEventListener('keydown', keyHandler);
+
+            const touchStartHandler = (e: TouchEvent) => this.coopInputHandler?.handleTouchStart(e);
+            const touchMoveHandler = (e: TouchEvent) => {
+                if (e.target === canvas) e.preventDefault();
+                const input = this.coopInputHandler?.handleTouchMove(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+                    hybridSync.sendInput(input.action).catch(() => { });
+                }
+            };
+            const touchEndHandler = (e: TouchEvent) => {
+                if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+                const input = this.coopInputHandler?.handleTouchEnd(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+                    hybridSync.sendInput(input.action).catch(() => { });
+                }
+            };
+
+            window.addEventListener('touchstart', touchStartHandler, { passive: false });
+            window.addEventListener('touchmove', touchMoveHandler, { passive: false });
+            window.addEventListener('touchend', touchEndHandler);
+
+            (this.coopGame as any).sync = hybridSync;
+            hybridSync.start(room, this.coopGame, playerNumber);
+            this.coopGame.start(room, playerNumber);
+
+            const renderLoop = () => {
+                if (this.coopGame && this.coopRenderer) {
+                    const state = this.coopGame.getState();
+                    this.coopRenderer.render(state.board, state.player1, state.player2, state.isPaused, hybridSync.latency || 0);
+                    if (coopScoreEl) coopScoreEl.textContent = state.score.toString();
+                    if (coopLevelEl) coopLevelEl.textContent = state.level.toString();
+                    this.updatePauseBtnText();
+
+                    const nextPieces = (state as any).nextPieces;
+                    if (nextPieces) {
+                        const p1Ctx = p1NextCanvas?.getContext('2d');
+                        const p2Ctx = p2NextCanvas?.getContext('2d');
+                        if (p1Ctx) CoopRenderer.drawMiniPiece(p1Ctx, nextPieces.player1);
+                        if (p2Ctx) CoopRenderer.drawMiniPiece(p2Ctx, nextPieces.player2);
+                    }
+
+                    if (state.gameOver) {
+                        this.showCoopGameOver(state.score, state.lines, state.level);
+                        return;
+                    }
+                    requestAnimationFrame(renderLoop);
+                }
+            };
+            renderLoop();
+        } catch (error) {
+            console.error('[HybridSync] Failed:', error);
+            alert('Failed to start Hybrid game.');
         }
     }
 
