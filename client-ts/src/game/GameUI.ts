@@ -555,14 +555,22 @@ export class GameUI {
 
             // Update restart button to go back to lobby/menu
             if (restartBtn) {
+                // Clone to remove old listeners
                 const newBtn = restartBtn.cloneNode(true);
                 if (restartBtn.parentNode) {
                     restartBtn.parentNode.replaceChild(newBtn, restartBtn);
                 }
+
+                // Add new listener
                 newBtn.addEventListener('click', () => {
-                    window.location.reload(); // Simple reload to reset
+                    console.log('[Coop] Back to menu clicked');
+                    window.location.href = '/'; // Redirect to root
                 });
+
                 (newBtn as HTMLElement).textContent = 'Back to Menu';
+                // Ensure button is clickable
+                (newBtn as HTMLElement).style.pointerEvents = 'auto';
+                (newBtn as HTMLElement).style.cursor = 'pointer';
             }
 
             this.gameOverMenu.style.display = 'flex';
