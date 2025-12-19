@@ -269,6 +269,9 @@ export class DualPieceController {
     setPiece(player: PlayerNumber, pieceInfo: any, position: { x: number, y: number }): void {
         const piece = new Tetromino(pieceInfo.type);
         piece.rotationIndex = pieceInfo.rotationIndex;
+        if (pieceInfo.shape) {
+            piece.setShape(pieceInfo.shape);
+        }
 
         this.players.set(player, {
             piece,

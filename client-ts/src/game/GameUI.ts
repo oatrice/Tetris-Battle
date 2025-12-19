@@ -156,9 +156,9 @@ export class GameUI {
             window.addEventListener('resize', this.boundCheckOrientation);
             window.addEventListener('orientationchange', this.boundCheckOrientation);
 
-            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                this.enterFullscreen();
-            }
+            // if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            //     this.enterFullscreen();
+            // }
         } else {
             document.body.classList.remove('force-landscape');
             if (fsBtn) fsBtn.style.display = 'block';
@@ -267,7 +267,7 @@ export class GameUI {
             if (!this.game.gameOver && !this.game.isPaused) {
                 this.game.isPaused = true;
                 this.updatePauseBtnText();
-                this.showMenu();
+                // this.showMenu();
             }
             this.game.saveState();
         });
@@ -283,7 +283,7 @@ export class GameUI {
             this.game.loadState();
             this.updatePauseBtnText();
             if (this.game.isPaused) {
-                this.showMenu();
+                // this.showMenu();
             }
         });
     }

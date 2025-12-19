@@ -122,16 +122,30 @@ export class CoopSync {
             const controller = this.coopGame.controller;
             const currentPiece = controller.getPiece(otherPlayer);
 
-            // Update piece if it changed
+            // Update piece if it changed or doesn't exist loclly
             if (currentPiece && otherPlayerState.piece.type === currentPiece.type) {
                 // Just update position if same piece
                 const currentPos = controller.getPosition(otherPlayer);
                 if (currentPos.x !== otherPlayerState.position.x ||
                     currentPos.y !== otherPlayerState.position.y) {
-                    // Position updated remotely - this is handled by DualPieceController
-                    // We don't force update to avoid conflicts
+                    // Force update position to match remote
+                    this.coopGame.controller.setPiece(otherPlayer, otherPlayerState.piece, otherPlayerState.position);
+                } else if (otherPlayerState.piece.rotationIndex !== currentPiece.rotationIndex) {
+                    // Rotation changed
+                    this.coopGame.controller.setPiece(otherPlayer, otherPlayerState.piece, otherPlayerState.position);
                 }
+            } else {
+                // Piece changed or we don't have it yet - Force Sync
+                console.log(`[CoopSync] Syncing piece for Player ${otherPlayer} (Type: ${otherPlayerState.piece.type})`);
+                this.coopGame.controller.setPiece(otherPlayer, otherPlayerState.piece, otherPlayerState.position);
             }
+        } else {
+            // Remote player has no piece (e.g. just locked it, or game over)
+            // We should probably clear it locally too if we want perfect sync,
+            // but DualPieceController might handle locking on its own. 
+            // For visualization, if they don't have a piece, we shouldn't show one?
+            // But existing logic spawns strictly on lock.
+            // Let's leave this for now to avoid flickering.
         }
 
         // Sync score/lines/level (use max values to avoid conflicts)

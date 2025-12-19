@@ -238,7 +238,8 @@ describe('DualPieceController', () => {
         });
 
         it('should allow setting current piece state (sync)', () => {
-            const mockPiece = { type: 'L', rotationIndex: 1, shape: [] };
+            const mockShape = [[1, 1], [1, 1]]; // O-piece shape
+            const mockPiece = { type: 'L', rotationIndex: 1, shape: mockShape };
             const mockPos = { x: 10, y: 10 };
 
             controller.setPiece(1, mockPiece, mockPos);
@@ -246,6 +247,9 @@ describe('DualPieceController', () => {
             const piece = controller.getPiece(1)!;
             expect(piece.type).toBe('L');
             expect(piece.rotationIndex).toBe(1);
+            // Verify shape is updated
+            expect(piece.shape).toEqual(mockShape);
+
             const pos = controller.getPosition(1);
             expect(pos.x).toBe(10);
             expect(pos.y).toBe(10);
