@@ -1116,6 +1116,12 @@ export class GameUI {
                 import('../coop/CoopInputHandler')
             ]);
 
+            // Hide ALL Solo UI Overlays/Menus
+            if (this.menu) this.menu.style.display = 'none';
+            if (this.gameOverMenu) this.gameOverMenu.style.display = 'none';
+            if (this.leaderboardOverlay) this.leaderboardOverlay.style.display = 'none';
+            if (this.pauseBtn) this.pauseBtn.style.display = 'none';
+
             // Hide home menu
             if (this.homeMenu) this.homeMenu.style.display = 'none';
 
