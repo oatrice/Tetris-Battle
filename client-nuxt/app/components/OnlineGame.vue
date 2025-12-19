@@ -69,22 +69,28 @@
           <span v-else class="result-text lose">GAME OVER</span>
           
           <div v-if="onlineGame.isWinner && onlineGame.winScore !== null" class="win-score">
-              Score: {{ onlineGame.winScore }}
+              Win Score: {{ onlineGame.winScore }}
           </div>
+          <div v-if="onlineGame.isWinner && !onlineGame.isPaused" class="max-score">
+              Max Score: {{ onlineGame.score }}
+          </div>
+          
+          <div v-if="matchSaved" class="save-status">✅ Match Saved!</div>
           
           <div class="button-row">
               <button v-if="onlineGame.isWinner && onlineGame.isPaused" @click="onlineGame.continueAfterWin()" class="continue-btn">
                   ▶️ Continue Playing
               </button>
-              <button @click="emit('back')" class="back-btn">Exit</button>
+              <button v-if="!matchSaved" @click="saveAndExit" class="save-btn">💾 Save & Exit</button>
+              <button v-else @click="emit('back')" class="back-btn">Exit</button>
           </div>
       </div>
 
-     <button v-if="!onlineGame.isGameOver && !showNameInput" @click="onlineGame.togglePause()" class="back-btn small">
+     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !showNameInput" @click="onlineGame.togglePause()" class="back-btn small">
         {{ onlineGame.isPaused ? 'Resume' : 'Pause' }}
      </button>
      
-     <button v-if="!onlineGame.isGameOver && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
+     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
     </div>
 
     <!-- Remote Player (Opponent) -->
@@ -111,6 +117,7 @@ import { ref, onMounted, onUnmounted, defineAsyncComponent, computed } from 'vue
 import { OnlineGame } from '~/game/OnlineGame'
 import { COLORS } from '~/game/shapes'
 import { useTouchControls } from '~/composables/useTouchControls'
+import { LeaderboardService } from '~/services/LeaderboardService'
 
 const PlayerBoard = defineAsyncComponent(() => import('./PlayerBoard.vue'))
 
@@ -123,8 +130,23 @@ const emit = defineEmits(['back'])
 // Name Input State
 const showNameInput = ref(true)
 const playerName = ref('')
+const matchSaved = ref(false)
+
 // Computed state for waiting for opponent
 const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected)
+
+const saveAndExit = () => {
+    LeaderboardService.addOnlineMatch({
+        date: new Date().toISOString(),
+        isWinner: props.onlineGame.isWinner,
+        playerName: playerName.value || 'Player',
+        opponentName: props.onlineGame.opponentName || 'Opponent',
+        winScore: props.onlineGame.winScore,
+        maxScore: props.onlineGame.score,
+        opponentScore: props.onlineGame.opponentScore
+    })
+    matchSaved.value = true
+}
 
 const joinGame = () => {
     if (!playerName.value.trim()) return
@@ -437,7 +459,34 @@ onUnmounted(() => {
 .win-score {
     font-size: 1.2rem;
     color: #ffd700;
+    margin: 0.3rem 0;
+}
+
+.max-score {
+    font-size: 1rem;
+    color: #00ff88;
+    margin: 0.3rem 0;
+}
+
+.save-status {
+    font-size: 0.9rem;
+    color: #00ff88;
     margin: 0.5rem 0;
+}
+
+.save-btn {
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    color: #4a3000;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.save-btn:hover {
+    transform: scale(1.02);
 }
 
 .button-row {
