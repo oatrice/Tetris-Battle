@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0] - 2025-12-19
+### Changed
+- **Visuals**:
+    - **Pastel Theme**: Updated all Tetromino colors to vivid saturated pastel tones for a modern, cleaner look.
+    - **Locked Blocks**: Changed locked block color from generic gray to "Pastel Blue-Grey" (#546E7A) to fit the new theme.
+    - **Effects**: Updated Line Clear visual effects to match the specific color of the cleared lines (cyan, green, orange, yellow).
+
 ## [1.2.2] - 2025-12-18
 ### Added
 - **Auto Save Enhancements**:

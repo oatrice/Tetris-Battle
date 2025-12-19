@@ -181,7 +181,9 @@ export class GameUI {
         logoutBtn.style.fontSize = '0.8rem';
         logoutBtn.style.padding = '5px 10px';
         logoutBtn.addEventListener('click', () => {
-            this.authService.logout().catch(console.error);
+            if (confirm('Are you sure you want to logout?')) {
+                this.authService.logout().catch(console.error);
+            }
         });
         this.userProfile.appendChild(logoutBtn);
 
@@ -191,6 +193,7 @@ export class GameUI {
         this.loginBtn.className = 'menu-btn'; // Re-use style
         this.loginBtn.style.background = '#4285F4'; // Google Blue
         this.loginBtn.style.fontSize = '1rem';
+        this.loginBtn.style.display = 'none'; // Initially hidden until auth state resolves
         this.loginBtn.addEventListener('click', () => {
             this.authService.signInWithGoogle()
                 .then(user => this.updateAuthUI(user))

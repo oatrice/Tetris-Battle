@@ -20,8 +20,8 @@ describe('GameUI Auth Integration', () => {
         };
 
         mockAuthService = {
-            signInWithGoogle: vi.fn(),
-            logout: vi.fn(),
+            signInWithGoogle: vi.fn().mockResolvedValue({}),
+            logout: vi.fn().mockResolvedValue(undefined),
             getUser: vi.fn().mockReturnValue(null),
             getAuth: vi.fn().mockReturnValue(mockAuth)
         };
@@ -90,5 +90,68 @@ describe('GameUI Auth Integration', () => {
 
         expect(mockGame.setPlayerName).toHaveBeenCalledWith('Player'); // Default or stored name? logic might differ
         expect(mockGame.setPlayerMetadata).toHaveBeenCalledWith(undefined, undefined);
+    });
+    it('should initially hide login button while waiting for auth state (loading)', () => {
+        // Override mock to simulate delay
+        const delayedAuth = {
+            onAuthStateChanged: vi.fn(), // No immediate callback
+        };
+        (mockAuthService.getAuth as any).mockReturnValue(delayedAuth);
+
+        const ui = new GameUI(mockGame, document.body);
+        ui.init();
+
+        const loginBtn = document.getElementById('login-btn');
+        // valid check: initially hidden
+        expect(loginBtn?.style.display).toBe('none');
+    });
+
+    it('should show login button if auth resolves to null (no user)', () => {
+        // Override mock to callback with null
+        const authWithNull = {
+            onAuthStateChanged: vi.fn((cb) => cb(null)),
+        };
+        (mockAuthService.getAuth as any).mockReturnValue(authWithNull);
+
+        const ui = new GameUI(mockGame, document.body);
+        ui.init();
+
+        const loginBtn = document.getElementById('login-btn');
+        expect(loginBtn?.style.display).not.toBe('none');
+    });
+
+    it('should confirm before logging out', () => {
+        // Mock window.confirm
+        const confirmSpy = vi.spyOn(window, 'confirm');
+        const ui = new GameUI(mockGame, document.body);
+        ui.init();
+
+        // Simulate logged in state so we have a logout button
+        const mockUser = { displayName: 'User', photoURL: 'pic.jpg' };
+        ui.updateAuthUI(mockUser);
+
+        // Find logout button (it is a button inside #user-profile that says "Logout")
+        const profile = document.getElementById('user-profile');
+        const buttons = profile?.querySelectorAll('button');
+        const logoutBtn = Array.from(buttons || []).find(b => b.textContent === 'Logout');
+
+        expect(logoutBtn).toBeTruthy();
+
+        // Case 1: Cancel logout
+        confirmSpy.mockReturnValue(false);
+        logoutBtn?.click();
+        expect(confirmSpy).toHaveBeenCalled();
+        expect(mockAuthService.logout).not.toHaveBeenCalled();
+
+        confirmSpy.mockClear();
+        (mockAuthService.logout as any).mockClear();
+
+        // Case 2: Confirm logout
+        confirmSpy.mockReturnValue(true);
+        logoutBtn?.click();
+        expect(confirmSpy).toHaveBeenCalled();
+        expect(mockAuthService.logout).toHaveBeenCalled();
+
+        confirmSpy.mockRestore();
     });
 });
