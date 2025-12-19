@@ -1,5 +1,4 @@
 import { Game } from './Game';
-import { GameMode } from './GameMode';
 
 export class Renderer {
     canvas: HTMLCanvasElement;
@@ -14,21 +13,9 @@ export class Renderer {
 
     render(game: Game): void {
         // Clear & Backgrounds
-        // Board Area (0-10 columns)
+        // Board Area Only
         this.ctx.fillStyle = '#1a1a1a';
-        this.ctx.fillRect(0, 0, 10 * this.cellSize, this.canvas.height);
-
-        // UI Area (10+ columns)
-        this.ctx.fillStyle = '#222'; // Slightly lighter or different tone
-        this.ctx.fillRect(10 * this.cellSize, 0, this.canvas.width - (10 * this.cellSize), this.canvas.height);
-
-        // Separator Line
-        this.ctx.strokeStyle = '#444';
-        this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        this.ctx.moveTo(10 * this.cellSize, 0);
-        this.ctx.lineTo(10 * this.cellSize, this.canvas.height);
-        this.ctx.stroke();
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw Board Grid
         game.board.grid.forEach((row, y) => {
@@ -56,7 +43,7 @@ export class Renderer {
             game.currentPiece.shape.forEach((row, r) => {
                 row.forEach((cell, c) => {
                     if (cell !== 0) {
-                        this.drawBlock(game.position.x + c, game.position.y + r, this.getColor(game.currentPiece!.type));
+                        this.drawBlock(game.position.x + c, game.position.y + r, Renderer.getColor(game.currentPiece!.type));
                     }
                 });
             });
@@ -74,18 +61,7 @@ export class Renderer {
             }
         });
 
-        // Draw Next Piece Preview
-        this.drawPreviewPiece('NEXT', game.nextPiece, 11, 1);
-
-        // Draw Hold Piece Preview (Special Mode Only)
-        if (game.mode === GameMode.SPECIAL) {
-            this.drawPreviewPiece('HOLD', game.holdPiece, 11, 6, !game.canHold);
-        }
-
-        // Draw Stats
-        this.drawStats(game, 11, 11);
-
-        // Draw Pause Overlay
+        // Draw Pause Overlay (Centered on Board)
         if (game.isPaused) {
             this.drawOverlay('PAUSED');
         }
@@ -93,54 +69,21 @@ export class Renderer {
 
     private drawOverlay(text: string): void {
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(0, 0, 10 * this.cellSize, this.canvas.height);
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.ctx.fillStyle = '#ffffff';
         this.ctx.font = 'bold 32px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
 
-        const boardWidth = 10 * this.cellSize;
-        this.ctx.fillText(text, boardWidth / 2, this.canvas.height / 2);
+        this.ctx.fillText(text, this.canvas.width / 2, this.canvas.height / 2);
 
         // Reset
         this.ctx.textAlign = 'start';
         this.ctx.textBaseline = 'alphabetic';
     }
 
-    private drawStats(game: Game, offsetX: number, offsetY: number): void {
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = '20px Arial';
-
-        const x = offsetX * this.cellSize;
-        const yLine = this.cellSize;
-
-        this.ctx.fillText(`SCORE`, x, offsetY * yLine);
-        this.ctx.fillText(`${game.score}`, x, offsetY * yLine + 30);
-
-        this.ctx.fillText(`LEVEL`, x, offsetY * yLine + 80);
-        this.ctx.fillText(`${game.level}`, x, offsetY * yLine + 110);
-
-        this.ctx.fillText(`LINES`, x, offsetY * yLine + 160);
-        this.ctx.fillText(`${game.lines}`, x, offsetY * yLine + 190);
-    }
-
-    private drawPreviewPiece(label: string, piece: any, offsetX: number, offsetY: number, isDimmed: boolean = false): void {
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = '16px Arial';
-        this.ctx.fillText(label, offsetX * this.cellSize, offsetY * this.cellSize - 5);
-
-        if (piece) {
-            const previewColor = this.getColor(piece.type);
-            piece.shape.forEach((row: number[], r: number) => {
-                row.forEach((cell: number, c: number) => {
-                    if (cell !== 0) {
-                        this.drawBlock(offsetX + c, offsetY + r, isDimmed ? '#555' : previewColor);
-                    }
-                });
-            });
-        }
-    }
+    // Removed drawStats and drawPreviewPiece as they are now handled by DOM/GameUI
 
     private drawBlock(x: number, y: number, color: string): void {
         this.ctx.fillStyle = color;
@@ -151,7 +94,7 @@ export class Renderer {
         this.ctx.strokeRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
     }
 
-    private getColor(type: string): string {
+    public static getColor(type: string): string {
         const colors: Record<string, string> = {
             I: '#4DD0E1', // Cyan (Darker Pastel)
             J: '#7986CB', // Indigo (Darker Pastel)
