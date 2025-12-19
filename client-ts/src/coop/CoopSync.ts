@@ -118,7 +118,11 @@ export class CoopSync {
                 position: state.player2.position
             },
             score: state.score,
+            scoreP1: state.scoreP1,
+            scoreP2: state.scoreP2,
             lines: state.lines,
+            linesP1: state.linesP1,
+            linesP2: state.linesP2,
             level: state.level,
             isPaused: state.isPaused,
             gameOver: state.gameOver
@@ -134,6 +138,45 @@ export class CoopSync {
             });
         } catch (error) {
             console.error('[CoopSync] Failed to push state:', error);
+        }
+    }
+
+    /**
+     * Reconcile State (Task 2)
+     * Resolves discrepancies after network jitter or reconnection.
+     */
+    public reconcileState(localState: any, remoteState: any) {
+        if (!this.coopGame) return;
+        console.log('[CoopSync] Reconciling State...');
+
+        // 1. Pause game to prevent further drift
+        this.coopGame.setPaused(true);
+
+        // 2. Trust remote board (authoritative)
+        if (remoteState.board) {
+            this.coopGame.board.grid = remoteState.board;
+        }
+
+        // 3. Aggregate scores
+        if (remoteState.scoreP1 !== undefined) {
+            this.coopGame.scoreP1 = remoteState.scoreP1;
+            this.coopGame.scoreP2 = remoteState.scoreP2;
+            this.coopGame.linesP1 = remoteState.linesP1;
+            this.coopGame.linesP2 = remoteState.linesP2;
+        } else {
+            this.coopGame.score = remoteState.score || localState.score;
+            this.coopGame.lines = remoteState.lines || localState.lines;
+        }
+
+        // 4. Force Piece Sync
+        this.applyRemoteState(remoteState, this.remoteSequence);
+
+        // 5. Resume if remote says so (or keep paused if remote is paused)
+        if (remoteState.isPaused === false) {
+            // Optional: visual delay before resume?
+            setTimeout(() => {
+                this.coopGame?.setPaused(false);
+            }, 500);
         }
     }
 
@@ -157,12 +200,34 @@ export class CoopSync {
             this.coopGame.board.grid = remoteState.board;
         }
 
-        // 2. Overwrite Score/Lines (Authoritative)
-        if (remoteState.score !== undefined) {
-            this.coopGame.score = remoteState.score; // Force overwrite
-        }
-        if (remoteState.lines !== undefined) {
-            this.coopGame.lines = remoteState.lines; // Force overwrite
+        // 2. Aggregate Score/Lines (Task 2: State Aggregation)
+        // We only accept valid numbers
+        if (typeof remoteState.scoreP1 === 'number' && typeof remoteState.scoreP2 === 'number') {
+            // Map remote specific scores to local specific scores based on player index
+            // If I am P1, I trust my scoreP1, and take scoreP2 from remote.
+            // If I am P2, I trust my scoreP2, and take scoreP1 from remote.
+
+            if (this.playerNumber === 1) {
+                // I am P1: Sync P2 data
+                this.coopGame.scoreP2 = remoteState.scoreP2;
+                this.coopGame.linesP2 = remoteState.linesP2;
+            } else {
+                // I am P2: Sync P1 data
+                this.coopGame.scoreP1 = remoteState.scoreP1;
+                this.coopGame.linesP1 = remoteState.linesP1;
+            }
+
+            // Backward compatibility for full overwrite (in case of total desync or snapshot)
+            if (isSnapshot) {
+                this.coopGame.scoreP1 = remoteState.scoreP1;
+                this.coopGame.scoreP2 = remoteState.scoreP2;
+                this.coopGame.linesP1 = remoteState.linesP1;
+                this.coopGame.linesP2 = remoteState.linesP2;
+            }
+        } else if (remoteState.score !== undefined) {
+            // Legacy/Fallback: If remote is old version sending just 'score'
+            this.coopGame.score = remoteState.score;
+            this.coopGame.lines = remoteState.lines;
         }
 
         // 4. Sync Pause State

@@ -176,6 +176,12 @@ export class DualPieceController {
         const playerState = this.players.get(player);
         if (!playerState || !playerState.piece) return false;
 
+        // Strict Boundary Check (Task 1)
+        const zone = this.board.getPlayerZone(player);
+        if (!this.isWithinZone(playerState.piece, newX, zone)) {
+            return false;
+        }
+
         if (this.board.isValidPosition(playerState.piece, newX, newY)) {
             playerState.position = { x: newX, y: newY };
             return true;
@@ -192,6 +198,7 @@ export class DualPieceController {
 
         const piece = playerState.piece;
         const { x, y } = playerState.position;
+        const zone = this.board.getPlayerZone(player);
 
         // Save current state
         const originalShape = piece.shape.map(row => [...row]);
@@ -201,15 +208,18 @@ export class DualPieceController {
         piece.rotate();
 
         // Check if valid
-        if (this.board.isValidPosition(piece, x, y)) {
+        if (this.isWithinZone(piece, x, zone) && this.board.isValidPosition(piece, x, y)) {
             return true;
         }
 
         // Try wall kicks
         const kicks = piece.getWallKicks(piece.rotationIndex);
         for (const kick of kicks) {
-            if (this.board.isValidPosition(piece, x + kick.x, y + kick.y)) {
-                playerState.position = { x: x + kick.x, y: y + kick.y };
+            const testX = x + kick.x;
+            if (this.isWithinZone(piece, testX, zone) &&
+                this.board.isValidPosition(piece, testX, y + kick.y)) {
+
+                playerState.position = { x: testX, y: y + kick.y };
                 return true;
             }
         }
@@ -218,6 +228,23 @@ export class DualPieceController {
         piece.setShape(originalShape);
         piece.rotationIndex = originalRotation;
         return false;
+    }
+
+    /**
+     * Helper to check if piece is strictly within player zone
+     */
+    private isWithinZone(piece: Tetromino, x: number, zone: { startX: number; endX: number }): boolean {
+        for (let r = 0; r < piece.shape.length; r++) {
+            for (let c = 0; c < piece.shape[r].length; c++) {
+                if (piece.shape[r][c]) {
+                    const blockX = x + c;
+                    if (blockX < zone.startX || blockX > zone.endX) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**
