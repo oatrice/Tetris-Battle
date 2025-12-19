@@ -13,6 +13,7 @@ export class OnlineGame extends Game {
     opponentName: string | null = null
     opponentGameOver = false  // True when opponent lost
     isWinner = false          // True when we won (opponent game over)
+    isDraw = false            // True when both players game over at same time
     winScore: number | null = null  // Score at time of winning (for leaderboard)
 
     // Countdown Logic
@@ -84,14 +85,21 @@ export class OnlineGame extends Game {
         })
 
         socketService.on('game_over', () => {
-            // Guard: only process once, and can't win if already lost
-            if (this.isWinner || this.opponentGameOver || this.isGameOver) return
+            // Guard: only process once
+            if (this.isWinner || this.opponentGameOver || this.isDraw) return
 
-            console.log('Opponent lost! You win!')
             this.opponentGameOver = true
-            this.isWinner = true
-            this.isPaused = true  // Pause to show win message
-            this.winScore = this.score  // Record score at win time
+
+            // Check if both game over at same time = Draw
+            if (this.isGameOver) {
+                console.log('Both players game over! Draw!')
+                this.isDraw = true
+            } else {
+                console.log('Opponent lost! You win!')
+                this.isWinner = true
+                this.isPaused = true  // Pause to show win message
+                this.winScore = this.score  // Record score at win time
+            }
         })
     }
 

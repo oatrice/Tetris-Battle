@@ -340,4 +340,117 @@ describe('LeaderboardService', () => {
             expect(history[1].p1.name).toBe('Old')
         })
     })
+
+    describe('Online Match Methods', () => {
+        beforeEach(() => {
+            LeaderboardService.clearOnlineMatches()
+        })
+
+        it('should add and retrieve online match (winner)', () => {
+            const result = LeaderboardService.addOnlineMatch({
+                date: '2024-01-01',
+                isWinner: true,
+                playerName: 'Oatrice',
+                opponentName: 'Eve',
+                winScore: 1500,
+                maxScore: 2300,
+                opponentScore: 800
+            })
+
+            expect(result.id).toBeTruthy()
+            expect(result.isWinner).toBe(true)
+
+            const history = LeaderboardService.getOnlineLeaderboard()
+            expect(history).toHaveLength(1)
+            expect(history[0].playerName).toBe('Oatrice')
+            expect(history[0].winScore).toBe(1500)
+            expect(history[0].maxScore).toBe(2300)
+        })
+
+        it('should add online match (loser)', () => {
+            const result = LeaderboardService.addOnlineMatch({
+                date: '2024-01-01',
+                isWinner: false,
+                playerName: 'Eve',
+                opponentName: 'Oatrice',
+                winScore: null,
+                maxScore: 800,
+                opponentScore: 1500
+            })
+
+            expect(result.isWinner).toBe(false)
+            expect(result.winScore).toBeNull()
+
+            const history = LeaderboardService.getOnlineLeaderboard()
+            expect(history[0].maxScore).toBe(800)
+        })
+
+        it('should keep history sorted by newest first (unshift)', () => {
+            LeaderboardService.addOnlineMatch({
+                date: '2024-01-01',
+                isWinner: true,
+                playerName: 'OldMatch',
+                opponentName: 'Opponent',
+                winScore: 1000,
+                maxScore: 1000,
+                opponentScore: 500
+            })
+
+            LeaderboardService.addOnlineMatch({
+                date: '2024-01-02',
+                isWinner: false,
+                playerName: 'NewMatch',
+                opponentName: 'Opponent',
+                winScore: null,
+                maxScore: 2000,
+                opponentScore: 2500
+            })
+
+            const history = LeaderboardService.getOnlineLeaderboard()
+            expect(history).toHaveLength(2)
+            expect(history[0].playerName).toBe('NewMatch') // Newest first
+            expect(history[1].playerName).toBe('OldMatch')
+        })
+
+        it('should limit to 50 matches', () => {
+            // Add 51 matches
+            for (let i = 0; i < 51; i++) {
+                LeaderboardService.addOnlineMatch({
+                    date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+                    isWinner: i % 2 === 0,
+                    playerName: `Player${i}`,
+                    opponentName: 'Opponent',
+                    winScore: i % 2 === 0 ? i * 100 : null,
+                    maxScore: i * 100,
+                    opponentScore: 500
+                })
+            }
+
+            const history = LeaderboardService.getOnlineLeaderboard()
+            expect(history).toHaveLength(50)
+            expect(history[0].playerName).toBe('Player50') // Newest (51st = index 50)
+        })
+
+        it('should clear online matches', () => {
+            LeaderboardService.addOnlineMatch({
+                date: '2024-01-01',
+                isWinner: true,
+                playerName: 'Oatrice',
+                opponentName: 'Eve',
+                winScore: 1500,
+                maxScore: 1500,
+                opponentScore: 800
+            })
+
+            LeaderboardService.clearOnlineMatches()
+
+            const history = LeaderboardService.getOnlineLeaderboard()
+            expect(history).toEqual([])
+        })
+
+        it('should return empty list for online mode in standard getLeaderboard', () => {
+            const leaderboard = LeaderboardService.getLeaderboard('online')
+            expect(leaderboard).toEqual([])
+        })
+    })
 })

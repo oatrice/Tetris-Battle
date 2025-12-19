@@ -64,8 +64,9 @@
           <span>🟢 Connected</span>
       </div>
       
-      <div v-if="onlineGame.isGameOver || onlineGame.isWinner" class="game-over-box">
-          <span v-if="onlineGame.isWinner" class="result-text win">🏆 YOU WIN!</span>
+      <div v-if="onlineGame.isGameOver || onlineGame.isWinner || onlineGame.isDraw" class="game-over-box">
+          <span v-if="onlineGame.isDraw" class="result-text draw">🤝 DRAW!</span>
+          <span v-else-if="onlineGame.isWinner" class="result-text win">🏆 YOU WIN!</span>
           <span v-else class="result-text lose">GAME OVER</span>
           
           <div v-if="onlineGame.isWinner && onlineGame.winScore !== null" class="win-score">
@@ -86,11 +87,11 @@
           </div>
       </div>
 
-     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !showNameInput" @click="onlineGame.togglePause()" class="back-btn small">
+     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput" @click="onlineGame.togglePause()" class="back-btn small">
         {{ onlineGame.isPaused ? 'Resume' : 'Pause' }}
      </button>
      
-     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
+     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
     </div>
 
     <!-- Remote Player (Opponent) -->
@@ -449,6 +450,11 @@ onUnmounted(() => {
 
 .result-text.lose {
     color: #ff6b6b;
+}
+
+.result-text.draw {
+    color: #00d4ff;
+    animation: pulse 0.5s ease-in-out infinite alternate;
 }
 
 @keyframes pulse {
