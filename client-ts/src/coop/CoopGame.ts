@@ -116,6 +116,12 @@ export class CoopGame {
                         return;
                     }
                 }
+
+                // Master (Player 1) broadcasts authoritative snapshot on any lock event
+                // This ensures all clients have exact same board and next pieces
+                if (this.playerNumber === 1 && this.sync) {
+                    this.sync.sendLockSnapshot();
+                }
             }
 
             // Check for line clears

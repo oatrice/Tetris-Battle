@@ -43,14 +43,28 @@ export class CoopSync {
         }, 100);
     }
 
+    /**
+     * Broadcast a full State Snapshot immediately (e.g., on Piece Lock).
+     * This acts as an authoritative sync from Master.
+     */
+    async sendLockSnapshot() {
+        if (!this.coopGame) return;
+        const path = `${this.gameStatePath}/${this.coopGame.room?.id}`;
+        console.log('[CoopSync] sending LOCK SNAPSHOT');
+
+        // Force immediate push with snapshot flag
+        await this.pushState(path, true);
+    }
+
     /** Push current local game state to the DB */
-    private async pushState(path: string) {
+    private async pushState(path: string, isSnapshot: boolean = false) {
         if (!this.coopGame) return;
 
         const state = this.coopGame.getState();
 
         // Serialize state
         const syncState = {
+            isSnapshot, // Flag to indicate this is a critical snapshot
             board: state.board.grid,
             nextPieces: {
                 player1: state.nextPieces.player1.type,
@@ -95,15 +109,29 @@ export class CoopSync {
     private applyRemoteState(remoteState: any): void {
         if (!remoteState || !this.coopGame) return;
 
-        // Only sync board state (both players contribute to the same board)
+        const isSnapshot = remoteState.isSnapshot === true;
+
+        // 1. Overwrite Board (Always authoritative from Host/Remote update)
         if (remoteState.board) {
             this.coopGame.board.grid = remoteState.board;
         }
 
-        // Sync next pieces if available (Host authority - Player 2 accepts Player 1's rng)
-        if (remoteState.nextPieces && this.playerNumber === 2) {
-            this.coopGame.controller.setNextPiece(1, remoteState.nextPieces.player1);
-            this.coopGame.controller.setNextPiece(2, remoteState.nextPieces.player2);
+        // 2. Overwrite Score/Lines (Authoritative)
+        if (remoteState.score !== undefined) {
+            this.coopGame.score = remoteState.score; // Force overwrite
+        }
+        if (remoteState.lines !== undefined) {
+            this.coopGame.lines = remoteState.lines; // Force overwrite
+        }
+
+        // 3. Overwrite Next Pieces (Critical for "Snapshot" behavior)
+        if (remoteState.nextPieces) {
+            // If we are P2, we MUST accept P1's next pieces
+            // If snapshot, we force it unconditionally
+            if (this.playerNumber === 2 || isSnapshot) {
+                this.coopGame.controller.setNextPiece(1, remoteState.nextPieces.player1);
+                this.coopGame.controller.setNextPiece(2, remoteState.nextPieces.player2);
+            }
         }
 
         // Initial Sync: If I am Guest and have no piece, take it from Host
@@ -120,24 +148,31 @@ export class CoopSync {
 
         if (otherPlayerState?.piece) {
             const controller = this.coopGame.controller;
-            const currentPiece = controller.getPiece(otherPlayer);
+            // Force sync if it is a snapshot to correct desync
+            if (isSnapshot) {
+                console.log(`[CoopSync] Snapshot received: Forcing position for Player ${otherPlayer}`);
+                this.coopGame.controller.setPiece(otherPlayer, otherPlayerState.piece, otherPlayerState.position);
+            } else {
+                // Standard interpolation/update logic
+                const currentPiece = controller.getPiece(otherPlayer);
 
-            // Update piece if it changed or doesn't exist loclly
-            if (currentPiece && otherPlayerState.piece.type === currentPiece.type) {
-                // Just update position if same piece
-                const currentPos = controller.getPosition(otherPlayer);
-                if (currentPos.x !== otherPlayerState.position.x ||
-                    currentPos.y !== otherPlayerState.position.y) {
-                    // Force update position to match remote
-                    this.coopGame.controller.setPiece(otherPlayer, otherPlayerState.piece, otherPlayerState.position);
-                } else if (otherPlayerState.piece.rotationIndex !== currentPiece.rotationIndex) {
-                    // Rotation changed
+                // Update piece if it changed or doesn't exist loclly
+                if (currentPiece && otherPlayerState.piece.type === currentPiece.type) {
+                    // Just update position if same piece
+                    const currentPos = controller.getPosition(otherPlayer);
+                    if (currentPos.x !== otherPlayerState.position.x ||
+                        currentPos.y !== otherPlayerState.position.y) {
+                        // Force update position to match remote
+                        this.coopGame.controller.setPiece(otherPlayer, otherPlayerState.piece, otherPlayerState.position);
+                    } else if (otherPlayerState.piece.rotationIndex !== currentPiece.rotationIndex) {
+                        // Rotation changed
+                        this.coopGame.controller.setPiece(otherPlayer, otherPlayerState.piece, otherPlayerState.position);
+                    }
+                } else {
+                    // Piece changed or we don't have it yet - Force Sync
+                    console.log(`[CoopSync] Syncing piece for Player ${otherPlayer} (Type: ${otherPlayerState.piece.type})`);
                     this.coopGame.controller.setPiece(otherPlayer, otherPlayerState.piece, otherPlayerState.position);
                 }
-            } else {
-                // Piece changed or we don't have it yet - Force Sync
-                console.log(`[CoopSync] Syncing piece for Player ${otherPlayer} (Type: ${otherPlayerState.piece.type})`);
-                this.coopGame.controller.setPiece(otherPlayer, otherPlayerState.piece, otherPlayerState.position);
             }
         } else {
             // Remote player has no piece (e.g. just locked it, or game over)
@@ -148,16 +183,6 @@ export class CoopSync {
             // Let's leave this for now to avoid flickering.
         }
 
-        // Sync score/lines/level (use max values to avoid conflicts)
-        if (remoteState.score !== undefined) {
-            this.coopGame.score = Math.max(this.coopGame.score, remoteState.score);
-        }
-        if (remoteState.lines !== undefined) {
-            this.coopGame.lines = Math.max(this.coopGame.lines, remoteState.lines);
-        }
-        if (remoteState.level !== undefined) {
-            this.coopGame.level = Math.max(this.coopGame.level, remoteState.level);
-        }
     }
 
     /** Helper to obtain a stable local player identifier */
