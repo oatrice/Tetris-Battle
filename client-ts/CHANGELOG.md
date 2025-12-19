@@ -8,6 +8,8 @@
         - `CoopBoard`: Horizontal board with defined player zones (P1: columns 0-11, P2: columns 12-23).
         - `DualPieceController`: Manages two independent falling pieces with simultaneous player control.
         - `CoopRenderer`: Custom renderer for the wider board with zone divider visualization.
+        - `CoopGame`: Game controller with game loop, scoring, and level progression.
+        - `CoopInputHandler`: Dual keyboard support (Player 1: WASD+Q/E, Player 2: Arrows+Space/Shift).
     - **Networking**:
         - `RoomManager`: Create, join, and manage multiplayer rooms via Firebase Realtime Database.
         - `CoopSync`: Real-time game state synchronization between players.
@@ -16,6 +18,7 @@
         - Added "Coop Mode" button in Home Menu.
         - Room creation and joining flow with Room ID sharing.
         - Dynamic import for Coop components (code-splitting).
+        - Full game integration with canvas rendering and stats display.
     - **Testing**: Comprehensive TDD tests for `CoopBoard` (17 tests) and `DualPieceController` (18 tests).
 
 ### Changed

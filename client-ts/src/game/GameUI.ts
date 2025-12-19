@@ -3,6 +3,10 @@ import { GameMode } from './GameMode';
 import { Renderer } from './Renderer';
 import { APP_VERSION, COMMIT_HASH, COMMIT_DATE } from 'virtual:version-info';
 import { AuthService } from '../services/AuthService';
+import type { CoopGame } from '../coop/CoopGame';
+import type { CoopRenderer } from './CoopRenderer';
+import type { CoopInputHandler } from '../coop/CoopInputHandler';
+import type { RoomInfo } from '../coop/RoomManager';
 
 export class GameUI {
     private game: Game;
@@ -24,6 +28,11 @@ export class GameUI {
     private scoreVal: HTMLElement | null = null;
     private linesVal: HTMLElement | null = null;
     private levelVal: HTMLElement | null = null;
+
+    // Coop Mode
+    private coopGame: CoopGame | null = null;
+    private coopRenderer: CoopRenderer | null = null;
+    private coopInputHandler: CoopInputHandler | null = null;
 
     constructor(game: Game, root: HTMLElement) {
         this.game = game;
@@ -784,8 +793,8 @@ export class GameUI {
             const room = await roomManager.createRoom(playerId);
             alert(`Room Created!\nRoom ID: ${room.id}\nShare this ID with your friend!`);
 
-            // TODO: Start Coop Game with this room
-            console.log('[Coop] Room created:', room);
+            // Start Coop Game as Player 1 (host)
+            await this.startCoopGame(room, 1);
         } catch (error) {
             console.error('[Coop] Failed to create room:', error);
             alert('Failed to create room. Make sure Firebase Realtime Database is configured.');
@@ -803,14 +812,90 @@ export class GameUI {
             const room = await roomManager.joinRoom(roomId, playerId);
             if (room) {
                 alert(`Joined Room: ${room.id}`);
-                // TODO: Start Coop Game with this room
-                console.log('[Coop] Joined room:', room);
+                // Start Coop Game as Player 2
+                await this.startCoopGame(room, 2);
             } else {
                 alert('Room not found!');
             }
         } catch (error) {
             console.error('[Coop] Failed to join room:', error);
             alert('Failed to join room. Please check the Room ID.');
+        }
+    }
+
+    private async startCoopGame(room: RoomInfo, playerNumber: 1 | 2) {
+        try {
+            // Dynamic imports
+            const [
+                { CoopGame },
+                { CoopRenderer },
+                { CoopInputHandler }
+            ] = await Promise.all([
+                import('../coop/CoopGame'),
+                import('./CoopRenderer'),
+                import('../coop/CoopInputHandler')
+            ]);
+
+            // Hide home menu
+            if (this.homeMenu) this.homeMenu.style.display = 'none';
+
+            // Create or get coop canvas
+            let canvas = this.root.querySelector<HTMLCanvasElement>('#coopCanvas');
+            if (!canvas) {
+                canvas = document.createElement('canvas');
+                canvas.id = 'coopCanvas';
+                canvas.width = 24 * 30; // 24 columns * 30px
+                canvas.height = 12 * 30; // 12 rows * 30px
+                canvas.style.display = 'block';
+                canvas.style.margin = '0 auto';
+                this.root.appendChild(canvas);
+            }
+
+            // Initialize Coop components
+            this.coopGame = new CoopGame();
+            this.coopRenderer = new CoopRenderer(canvas, 30);
+            this.coopInputHandler = new CoopInputHandler();
+
+            // Setup input handling
+            const keyHandler = (e: KeyboardEvent) => {
+                const input = this.coopInputHandler?.handleInput(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+                    e.preventDefault();
+                }
+            };
+            document.addEventListener('keydown', keyHandler);
+
+            // Start game
+            this.coopGame.start(room, playerNumber);
+
+            // Render loop
+            const renderLoop = () => {
+                if (this.coopGame && this.coopRenderer) {
+                    const state = this.coopGame.getState();
+                    this.coopRenderer.render(
+                        state.board,
+                        state.player1,
+                        state.player2,
+                        state.isPaused
+                    );
+
+                    // Update stats
+                    if (this.scoreVal) this.scoreVal.textContent = state.score.toString();
+                    if (this.linesVal) this.linesVal.textContent = state.lines.toString();
+                    if (this.levelVal) this.levelVal.textContent = state.level.toString();
+
+                    if (!state.gameOver) {
+                        requestAnimationFrame(renderLoop);
+                    }
+                }
+            };
+            renderLoop();
+
+            console.log(`[Coop] Game started as Player ${playerNumber}`);
+        } catch (error) {
+            console.error('[Coop] Failed to start game:', error);
+            alert('Failed to start Coop game.');
         }
     }
 
