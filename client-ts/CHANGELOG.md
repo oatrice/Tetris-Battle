@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.5.0] - 2025-12-19
+### Changed
+- **Refined Coop Sync**:
+    - Increased `CoopSync` synchronization interval to 200ms for potentially smoother network performance.
+    - Improved robustness of `CoopSync` packet handling and state reconciliation.
+- **Enhanced Coop Input**:
+    - `CoopInputHandler` now supports more flexible keybindings for both players.
+- **Optimized Coop Rendering**:
+    - `CoopRenderer` optimizations for a more efficient display of the wider coop board.
+- **Improved Room Management**:
+    - `RoomManager` now provides clearer feedback on room creation and joining status.
+- **Deterministic Pieces**:
+    - `DeterministicPieces` now generates sequences with greater seed integrity for consistent coop gameplay.
+### Fixed
+- Addressed a rare race condition in `CoopGame` that could occur during rapid piece drops.
+- Fixed a visual glitch in `CoopRenderer` when displaying the zone divider at certain board states.
+- Resolved an issue with `CoopSync` not correctly handling rapid changes in player input.
+
 ## [1.4.0] - 2025-12-19
 ### Added
 - **🎮 Coop Mode (2 Players)**: 
