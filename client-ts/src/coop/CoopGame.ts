@@ -41,7 +41,12 @@ export class CoopGame {
         this.playerNumber = playerNumber;
 
         // Spawn initial pieces
-        this.controller.spawnPieces();
+        const spawned = this.controller.spawnPieces();
+        if (!spawned) {
+            console.error('[CoopGame] Cannot spawn initial pieces - Game Over immediately!');
+            this.gameOver = true;
+            return; // Don't start game loop
+        }
 
         // Start game loop
         this.isPaused = false;

@@ -49,10 +49,12 @@ export class DualPieceController {
 
     /**
      * Spawn pieces for both players
+     * Returns false if either player cannot spawn (game over)
      */
-    spawnPieces(): void {
-        this.spawnPiece(1);
-        this.spawnPiece(2);
+    spawnPieces(): boolean {
+        const p1Spawned = this.spawnPiece(1);
+        const p2Spawned = this.spawnPiece(2);
+        return p1Spawned && p2Spawned; // Both must succeed
     }
 
     /**

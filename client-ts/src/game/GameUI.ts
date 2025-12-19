@@ -1039,9 +1039,15 @@ export class GameUI {
                     if (this.linesVal) this.linesVal.textContent = state.lines.toString();
                     if (this.levelVal) this.levelVal.textContent = state.level.toString();
 
-                    if (!state.gameOver) {
-                        requestAnimationFrame(renderLoop);
+                    if (state.gameOver) {
+                        // Show Game Over message
+                        console.log('[Coop] Game Over!');
+                        alert(`Game Over!\n\nFinal Score: ${state.score}\nLines: ${state.lines}\nLevel: ${state.level}`);
+                        // Stop render loop
+                        return;
                     }
+
+                    requestAnimationFrame(renderLoop);
                 }
             };
             renderLoop();
