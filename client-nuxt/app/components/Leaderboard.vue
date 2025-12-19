@@ -319,6 +319,12 @@ h2 {
 
 .match-number {
     color: #fff;
+    font-weight: bold;
+}
+
+.match-id {
+    color: #fff;
+    font-weight: bold;
 }
 
 .match-date {
