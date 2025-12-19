@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.6.0] - 2025-12-19
+### Added
+- **Cooperative Multiplayer Mode**: Introduced a new cooperative multiplayer mode allowing two players to play together on a single board.
+    - Implemented `CoopGame` for managing game state and logic in cooperative mode.
+    - Developed `CoopBoard` to represent the shared game board for two players.
+    - Created `CoopInputHandler` to manage input for both players simultaneously.
+    - Introduced `CoopSync` for real-time synchronization of game state between players.
+    - Added `RoomManager` to facilitate the creation and joining of cooperative game rooms.
+    - Integrated `CoopRenderer` to visually represent the cooperative gameplay.
+    - Introduced `DualPiece` to handle pieces that can be controlled by either player.
+    - Implemented `DeterministicPieces` for consistent piece generation in cooperative games.
+    - Extended `RealtimeService` to support cooperative game synchronization.
+    - Updated `GameMode` to include a cooperative game mode option.
+    - Added new UI elements for cooperative gameplay in `GameUI`.
+### Changed
+- **Enhanced `SeededRandom`**: Improved the `SeededRandom` utility for more reliable random number generation, crucial for deterministic gameplay.
+- **Updated `GameUI`**: Minor adjustments to the game UI to accommodate the new cooperative mode.
+### Fixed
+- Resolved an issue where certain piece placements could lead to unexpected behavior in `DeterministicPieces`.
+- Fixed a minor rendering artifact in `CoopRenderer` related to piece collision detection.
+
 ## [1.5.0] - 2025-12-19
 ### Changed
 - **Refined Coop Sync**:
