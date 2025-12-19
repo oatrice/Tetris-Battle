@@ -34,7 +34,7 @@ export class Renderer {
         game.board.grid.forEach((row, y) => {
             row.forEach((cell, x) => {
                 if (cell !== 0) {
-                    this.drawBlock(x, y, '#888'); // Gray for locked blocks
+                    this.drawBlock(x, y, '#546E7A'); // Darker Blue-Grey for locked blocks
                 }
             });
         });
@@ -153,13 +153,13 @@ export class Renderer {
 
     private getColor(type: string): string {
         const colors: Record<string, string> = {
-            I: '#00f0f0',
-            J: '#0000f0',
-            L: '#f0a000',
-            O: '#f0f000',
-            S: '#00f000',
-            T: '#a000f0',
-            Z: '#f00000',
+            I: '#4DD0E1', // Cyan (Darker Pastel)
+            J: '#7986CB', // Indigo (Darker Pastel)
+            L: '#FFB74D', // Orange (Darker Pastel)
+            O: '#FFF176', // Yellow (Darker Pastel)
+            S: '#81C784', // Green (Darker Pastel)
+            T: '#BA68C8', // Purple (Darker Pastel)
+            Z: '#E57373', // Red (Darker Pastel)
         };
         return colors[type] || '#fff';
     }

@@ -179,10 +179,10 @@ export class Game {
         // Select color based on number of lines cleared
         let effectColor = '#ffffff'; // Default white
         switch (count) {
-            case 1: effectColor = '#00f0f0'; break; // Cyan (Single)
-            case 2: effectColor = '#00f000'; break; // Green (Double)
-            case 3: effectColor = '#f0a000'; break; // Orange (Triple)
-            case 4: effectColor = '#f0f000'; break; // Yellow (Tetris)
+            case 1: effectColor = '#4DD0E1'; break; // Cyan
+            case 2: effectColor = '#81C784'; break; // Green
+            case 3: effectColor = '#FFB74D'; break; // Orange
+            case 4: effectColor = '#FFF176'; break; // Yellow
         }
 
         // Add effects
