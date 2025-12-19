@@ -1,77 +1,41 @@
 # Changelog
 
-## [1.6.0] - 2025-12-19
+## [2.0.0] - 2025-12-19
 ### Added
-- **Cooperative Multiplayer Mode**: Introduced a new cooperative multiplayer mode allowing two players to play together on a single board.
-    - Implemented `CoopGame` for managing game state and logic in cooperative mode.
-    - Developed `CoopBoard` to represent the shared game board for two players.
-    - Created `CoopInputHandler` to manage input for both players simultaneously.
-    - Introduced `CoopSync` for real-time synchronization of game state between players.
-    - Added `RoomManager` to facilitate the creation and joining of cooperative game rooms.
-    - Integrated `CoopRenderer` to visually represent the cooperative gameplay.
-    - Introduced `DualPiece` to handle pieces that can be controlled by either player.
-    - Implemented `DeterministicPieces` for consistent piece generation in cooperative games.
-    - Extended `RealtimeService` to support cooperative game synchronization.
-    - Updated `GameMode` to include a cooperative game mode option.
-    - Added new UI elements for cooperative gameplay in `GameUI`.
-### Changed
-- **Enhanced `SeededRandom`**: Improved the `SeededRandom` utility for more reliable random number generation, crucial for deterministic gameplay.
-- **Updated `GameUI`**: Minor adjustments to the game UI to accommodate the new cooperative mode.
-### Fixed
-- Resolved an issue where certain piece placements could lead to unexpected behavior in `DeterministicPieces`.
-- Fixed a minor rendering artifact in `CoopRenderer` related to piece collision detection.
-
-## [1.5.0] - 2025-12-19
-### Changed
-- **Refined Coop Sync**:
-    - Increased `CoopSync` synchronization interval to 200ms for potentially smoother network performance.
-    - Improved robustness of `CoopSync` packet handling and state reconciliation.
-- **Enhanced Coop Input**:
-    - `CoopInputHandler` now supports more flexible keybindings for both players.
-- **Optimized Coop Rendering**:
-    - `CoopRenderer` optimizations for a more efficient display of the wider coop board.
-- **Improved Room Management**:
-    - `RoomManager` now provides clearer feedback on room creation and joining status.
-- **Deterministic Pieces**:
-    - `DeterministicPieces` now generates sequences with greater seed integrity for consistent coop gameplay.
-### Fixed
-- Addressed a rare race condition in `CoopGame` that could occur during rapid piece drops.
-- Fixed a visual glitch in `CoopRenderer` when displaying the zone divider at certain board states.
-- Resolved an issue with `CoopSync` not correctly handling rapid changes in player input.
-
-## [1.4.0] - 2025-12-19
-### Added
-- **🎮 Coop Mode (2 Players)**: 
-    - Cooperative multiplayer gameplay on a shared 24x12 horizontal board.
-    - **Core Components**:
-        - `CoopBoard`: Horizontal board with defined player zones (P1: columns 0-11, P2: columns 12-23).
-        - `DualPieceController`: Manages two independent falling pieces with simultaneous player control.
-        - `CoopRenderer`: Custom renderer for the wider board with zone divider visualization.
-        - `CoopGame`: Game controller with game loop, scoring, and level progression.
-        - `CoopInputHandler`: Dual keyboard support (Player 1: WASD+Q/E, Player 2: Arrows+Space/Shift).
-    - **Networking**:
-        - `RoomManager`: Create, join, and manage multiplayer rooms via Firebase Realtime Database.
-        - `CoopSync`: **Real-time game state synchronization** between players (100ms sync interval).
-            - Syncs board state, both players' pieces, positions, score, lines, and level.
-            - Conflict resolution using max values for score/lines/level.
-            - Automatic player ID detection (Firebase Auth or guest ID).
-        - `RealtimeService`: Firebase Realtime Database wrapper with graceful error handling.
-    - **UI**:
-        - Added "Coop Mode" button in Home Menu.
-        - Room creation and joining flow with Room ID sharing.
-        - Dynamic import for Coop components (code-splitting).
-        - Full game integration with canvas rendering and stats display.
-    - **Testing**: Comprehensive TDD tests for `CoopBoard` (17 tests) and `DualPieceController` (18 tests).
+- **🎮 Coop Mode (2 Players)**: Complete implementation of Cooperative Multiplayer on a shared board.
+    - **Core Gameplay**:
+        - Shared 24x12 horizontal board (P1: Left, P2: Right).
+        - Dual independent falling pieces with simultaneous control.
+        - `CoopGame` controller for loop, scoring, and level progression.
+        - `CoopInputHandler` for managing input for both players.
+    - **Networking & Synchronization**:
+        - **Real-time Sync**: `CoopSync` ensures state consistency between players (utilizing Firebase Realtime Database).
+        - **Pause/Resume Sync**: Robust synchronization of pause states between clients.
+        - **Room Management**: Create and join rooms easily with `RoomManager`.
+    - **Rendering**: `CoopRenderer` for the wider board and zone visualization.
+    - **Deterministic Gameplay**: `DeterministicPieces` and enhanced `SeededRandom` for consistent piece sequences.
+- **UI Refinements**:
+    - **Next Piece Panel**: Improved styling and visual hierarchy.
+    - **Login Flow**: Optimized visibility of login elements.
+- **Testing**: Comprehensive TDD tests for Coop components (`CoopBoard`, `DualPieceController`).
 
 ### Changed
-- **GameMode**: Added `COOP` enum value.
-- **Environment**: Added `VITE_FIREBASE_DATABASE_URL` requirement for Coop Mode.
-- **Documentation**: Updated README with Coop Mode features and Firebase Realtime Database setup instructions.
-- **CoopSync**: Refactored to support `CoopGame` instead of `Game`, with proper dual-piece synchronization.
+- **Documentation**: Updated README and CHANGELOG to reflect the major version milestone.
+- **Mobile UI**: Adjusted margins and layout for player names and login addresses to ensure visibility on small screens.
+- **Coop Optimizations**:
+    - Increased sync interval to 200ms for smoother performance.
+    - Improved robustness of packet handling and state reconciliation.
+    - `CoopInputHandler` supports flexible keybindings.
+- **Environment**: Added `VITE_FIREBASE_DATABASE_URL` requirement.
 
 ### Fixed
-- **RealtimeService**: Fixed `process.env` to `import.meta.env` for Vite compatibility.
-- **CoopSync**: Fixed `getCurrentUser()` method call to use `getAuth()?.currentUser` for proper Firebase Auth integration.
+- **Coop Sync Issues**:
+    - Resolved critical issue where P1's piece wasn't rendering for P2.
+    - Fixed race conditions in rapid piece drops and input handling.
+    - Adjusted `CoopSync` to correctly use Firebase Auth current user.
+- **Rendering Artifacts**: Fixed visual glitches in `CoopRenderer` (collision detection, zone divider).
+- **Service & Environment**: Fixed `process.env` usage for Vite compatibility.
+- **Auth UI**: Fixed login UI discrepancies on mobile.
 
 ## [1.3.5] - 2025-12-19
 ### Changed
