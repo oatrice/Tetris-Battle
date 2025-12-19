@@ -52,6 +52,10 @@ export class CoopSync {
         // Serialize state
         const syncState = {
             board: state.board.grid,
+            nextPieces: {
+                player1: state.nextPieces.player1.type,
+                player2: state.nextPieces.player2.type
+            },
             player1: {
                 piece: state.player1.piece ? {
                     type: state.player1.piece.type,
@@ -94,6 +98,12 @@ export class CoopSync {
         // Only sync board state (both players contribute to the same board)
         if (remoteState.board) {
             this.coopGame.board.grid = remoteState.board;
+        }
+
+        // Sync next pieces if available (Host authority - Player 2 accepts Player 1's rng)
+        if (remoteState.nextPieces && this.playerNumber === 2) {
+            this.coopGame.controller.setNextPiece(1, remoteState.nextPieces.player1);
+            this.coopGame.controller.setNextPiece(2, remoteState.nextPieces.player2);
         }
 
         // Sync the OTHER player's piece (not our own)

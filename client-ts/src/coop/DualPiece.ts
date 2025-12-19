@@ -255,4 +255,11 @@ export class DualPieceController {
         const result = this.board.clearLines();
         return { linesCleared: result.count };
     }
+
+    /**
+     * Force set the next piece type (for synchronization)
+     */
+    setNextPiece(player: PlayerNumber, type: TetrominoType): void {
+        this.nextPieces.set(player, new Tetromino(type));
+    }
 }
