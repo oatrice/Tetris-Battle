@@ -152,21 +152,36 @@ canvas {
     /* Removing inherited 20px gap from desktop */
   }
 
-  /* Hide Right Panel (Score) on Mobile */
-  #right-panel {
-    display: none !important;
-  }
-
-  /* Show Left Panel (Next Piece) - Center top */
+  /* Show Left Panel (Next Piece) */
   #left-panel {
     display: flex !important;
     order: 1;
-    width: 100%;
+    width: auto;
+    /* Allow sharing row */
     flex-direction: row;
     justify-content: center;
     align-items: center;
     margin-bottom: 10px;
     gap: 5px;
+  }
+
+  /* Show Right Panel (Score) next to layout */
+  #right-panel {
+    display: flex !important;
+    order: 2;
+    width: auto;
+    /* Share row */
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 5px;
+  }
+
+  /* Hide Lines & Level on mobile, keep Score */
+  #right-panel .panel-box:nth-child(2),
+  #right-panel .panel-box:nth-child(3) {
+    display: none;
   }
 
   .panel-box {
@@ -179,6 +194,7 @@ canvas {
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
     width: 65px;
+    height: 75px;
     box-sizing: border-box;
     gap: 2px;
   }
