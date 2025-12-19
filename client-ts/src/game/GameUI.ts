@@ -1,5 +1,6 @@
 import { Game } from './Game';
 import { GameMode } from './GameMode';
+import { Renderer } from './Renderer';
 import { APP_VERSION, COMMIT_HASH, COMMIT_DATE } from 'virtual:version-info';
 import { AuthService } from '../services/AuthService';
 
@@ -8,10 +9,21 @@ export class GameUI {
     private root: HTMLElement;
     private menu: HTMLElement | null = null;
     private homeMenu: HTMLElement | null = null;
-    private pauseBtn: HTMLButtonElement | null = null;
+
+    // Auth & Profile
     private authService: AuthService;
     private userProfile: HTMLElement | null = null;
     private loginBtn: HTMLButtonElement | null = null;
+
+    // Controls
+    private pauseBtn: HTMLButtonElement | null = null;
+
+    // New UI Elements
+    private nextCanvas: HTMLCanvasElement | null = null;
+    private holdCanvas: HTMLCanvasElement | null = null;
+    private scoreVal: HTMLElement | null = null;
+    private linesVal: HTMLElement | null = null;
+    private levelVal: HTMLElement | null = null;
 
     constructor(game: Game, root: HTMLElement) {
         this.game = game;
@@ -28,10 +40,17 @@ export class GameUI {
             date: COMMIT_DATE
         });
 
-        // 1. Setup UI Elements Page
+        // 1. Setup UI Elements Binding (New Panels)
+        this.nextCanvas = this.root.querySelector('#nextCanvas');
+        this.holdCanvas = this.root.querySelector('#holdCanvas');
+        this.scoreVal = this.root.querySelector('#score-value');
+        this.linesVal = this.root.querySelector('#lines-value');
+        this.levelVal = this.root.querySelector('#level-value');
+
+        // 2. Setup Home Menu
         this.createHomeMenu();
 
-        // Listen to Auth State logic
+        // 3. Auth Listener
         const auth = this.authService.getAuth();
         if (auth) {
             auth.onAuthStateChanged((user) => {
@@ -46,13 +65,13 @@ export class GameUI {
             }
         }
 
-        // 1. Setup Pause Button
+        // 4. Setup Pause Button
         this.pauseBtn = this.root.querySelector('#pauseBtn');
         if (!this.pauseBtn) {
             this.pauseBtn = document.createElement('button');
             this.pauseBtn.id = 'pauseBtn';
             this.pauseBtn.textContent = 'Pause';
-            this.pauseBtn.style.display = 'none'; // Initially hidden on home screen
+            this.pauseBtn.style.display = 'none';
             const controls = this.root.querySelector('.ui-controls');
             if (controls) {
                 controls.appendChild(this.pauseBtn);
@@ -63,16 +82,14 @@ export class GameUI {
             this.pauseBtn.style.display = 'none';
         }
 
-        // 1.5 Setup Mode Display
+        // 5. Setup Mode Display
         let modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (!modeDisplay) {
             modeDisplay = document.createElement('div');
             modeDisplay.id = 'modeDisplay';
-            modeDisplay.style.marginTop = '0'; // Adjusted for placement
-            modeDisplay.style.display = 'none'; // Initially hidden
+            modeDisplay.style.marginTop = '0';
+            modeDisplay.style.display = 'none';
             modeDisplay.style.marginBottom = '0.5rem';
-
-            // Insert before the description paragraph (usually the last p element)
             const descriptionRef = this.root.querySelector('p');
             if (descriptionRef && descriptionRef.parentNode) {
                 descriptionRef.parentNode.insertBefore(modeDisplay, descriptionRef);
@@ -82,22 +99,73 @@ export class GameUI {
         }
         this.updateModeDisplay();
 
-        // 2. Create Pause Menu
+        // 6. Create Menus
         this.createPauseMenu();
         this.createGameOverMenu();
         this.createLeaderboardOverlay();
 
-        // 3. Bind Events
+        // 7. Bind Events
         this.pauseBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
             this.toggleMenu();
             this.pauseBtn?.blur();
         });
-        // 4. Mobile Enhancements
+
+        // 8. Mobile Enhancements
         this.preventPullToRefresh();
 
-        // 5. Auto Save/Restore on Focus/Blur
+        // 9. Auto Save
         this.setupAutoSave();
+
+        // Initial Stats Render
+        this.updateStats();
+    }
+
+    public updateStats() {
+        if (this.scoreVal) this.scoreVal.textContent = this.game.score.toString();
+        if (this.linesVal) this.linesVal.textContent = this.game.lines.toString();
+        if (this.levelVal) this.levelVal.textContent = this.game.level.toString();
+
+        this.drawPieceToCanvas(this.nextCanvas, this.game.nextPiece);
+
+        const holdPanel = this.root.querySelector<HTMLElement>('#hold-panel');
+        if (this.game.mode === GameMode.SPECIAL) {
+            if (holdPanel) holdPanel.style.display = 'flex';
+            this.drawPieceToCanvas(this.holdCanvas, this.game.holdPiece, !this.game.canHold);
+        } else {
+            if (holdPanel) holdPanel.style.display = 'none';
+        }
+    }
+
+    private drawPieceToCanvas(canvas: HTMLCanvasElement | null, piece: any, isDimmed: boolean = false) {
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (piece) {
+            const color = Renderer.getColor(piece.type);
+            const cellSize = 20; // Smaller size for preview
+            // Calculate centering offset
+            // piece.shape is typically 3x3 or 4x4
+            const pieceWidth = piece.shape[0].length * cellSize;
+            const pieceHeight = piece.shape.length * cellSize;
+            const offsetX = (canvas.width - pieceWidth) / 2;
+            const offsetY = (canvas.height - pieceHeight) / 2;
+
+            piece.shape.forEach((row: number[], r: number) => {
+                row.forEach((cell: number, c: number) => {
+                    if (cell !== 0) {
+                        ctx.fillStyle = isDimmed ? '#555' : color;
+                        ctx.fillRect(offsetX + c * cellSize, offsetY + r * cellSize, cellSize, cellSize);
+                        // Optional border for clarity
+                        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                        ctx.strokeRect(offsetX + c * cellSize, offsetY + r * cellSize, cellSize, cellSize);
+                    }
+                });
+            });
+        }
     }
 
     private setupAutoSave() {
@@ -141,7 +209,6 @@ export class GameUI {
         this.homeMenu = document.createElement('div');
         this.homeMenu.id = 'homeMenu';
         this.homeMenu.classList.add('home-menu');
-        // Styles are now in style.css
 
         const title = document.createElement('h1');
         title.textContent = 'Tetris Battle';
@@ -159,7 +226,7 @@ export class GameUI {
 
         this.userProfile = document.createElement('div');
         this.userProfile.id = 'user-profile';
-        this.userProfile.style.display = 'none'; // Hidden by default
+        this.userProfile.style.display = 'none';
         this.userProfile.style.alignItems = 'center';
         this.userProfile.style.gap = '10px';
 
@@ -175,7 +242,6 @@ export class GameUI {
         userName.style.fontWeight = 'bold';
         this.userProfile.appendChild(userName);
 
-        // Logout Button (Small)
         const logoutBtn = document.createElement('button');
         logoutBtn.textContent = 'Logout';
         logoutBtn.style.fontSize = '0.8rem';
@@ -190,10 +256,10 @@ export class GameUI {
         this.loginBtn = document.createElement('button');
         this.loginBtn.id = 'login-btn';
         this.loginBtn.textContent = 'Login with Google';
-        this.loginBtn.className = 'menu-btn'; // Re-use style
-        this.loginBtn.style.background = '#4285F4'; // Google Blue
+        this.loginBtn.className = 'menu-btn';
+        this.loginBtn.style.background = '#4285F4';
         this.loginBtn.style.fontSize = '1rem';
-        this.loginBtn.style.display = 'none'; // Initially hidden until auth state resolves
+        this.loginBtn.style.display = 'none';
         this.loginBtn.addEventListener('click', () => {
             this.authService.signInWithGoogle()
                 .then(user => this.updateAuthUI(user))
@@ -209,7 +275,7 @@ export class GameUI {
             const btn = document.createElement('button');
             btn.id = id;
             btn.textContent = text;
-            btn.className = 'menu-btn'; // For CSS styling
+            btn.className = 'menu-btn';
             btn.addEventListener('click', onClick);
             return btn;
         };
@@ -243,12 +309,12 @@ export class GameUI {
         if (import.meta.env.PROD) {
             versionInfo.textContent = `v${APP_VERSION}`;
         } else {
-            // In DEV, show build date/hash from Vite Config
             const dateStr = new Date(COMMIT_DATE).toLocaleString();
             const now = new Date().toLocaleString();
-            const hashDisplay = COMMIT_HASH === 'now' ? 'Dev Changes (HMR)' : COMMIT_HASH;
-            const datetime = COMMIT_HASH === 'now' ? now : dateStr;
-            versionInfo.innerHTML = `v${APP_VERSION} (${hashDisplay})<br>Last Update: ${datetime}`;
+            const cleanHash = String(COMMIT_HASH).trim();
+            const hashDisplay = cleanHash === 'now' ? 'Dev Changes (HMR)' : cleanHash;
+            const dateDisplay = cleanHash === 'now' ? now : dateStr;
+            versionInfo.innerHTML = `v${APP_VERSION} (${hashDisplay})<br>Last Update: ${dateDisplay}`;
         }
         this.homeMenu.appendChild(versionInfo);
 
@@ -263,22 +329,16 @@ export class GameUI {
                 const nameEl = this.userProfile.querySelector('#user-name');
                 const avatarEl = this.userProfile.querySelector('img');
                 if (nameEl) nameEl.textContent = user.displayName || 'User';
-                // Use placeholder if photoURL is missing
                 const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiPlU8L3RleHQ+PC9zdmc+';
                 if (avatarEl) avatarEl.src = user.photoURL || defaultAvatar;
 
                 this.game.setPlayerName(user.displayName || 'Player');
                 this.game.setPlayerMetadata(user.uid, user.photoURL);
-
-                // Merge anonymous scores
                 this.game.leaderboard.mergeLocalScoresToUser(user.uid, user.photoURL);
             }
         } else {
             if (this.loginBtn) this.loginBtn.style.display = 'block';
             if (this.userProfile) this.userProfile.style.display = 'none';
-
-            // Reset game player info on logout
-            // We might want to revert to "Player" or load from LocalStorage if we supported that separately
             this.game.setPlayerName('Player');
             this.game.setPlayerMetadata(undefined, undefined);
         }
@@ -322,7 +382,6 @@ export class GameUI {
             this.toggleMenu();
         });
 
-        // Add Quit to Home
         const homeBtn = createMenuItem('menuHomeBtn', 'Quit to Home', () => {
             this.hideMenu();
             this.showHome();
@@ -342,10 +401,8 @@ export class GameUI {
         const menu = document.createElement('div');
         menu.id = 'gameOverMenu';
         menu.style.display = 'none';
-        menu.classList.add('game-over-menu'); // Re-use or add new class
+        menu.classList.add('game-over-menu');
 
-        // Inline styles for now to match Pause Menu usually, or use CSS class
-        // Making it overlay
         menu.style.position = 'absolute';
         menu.style.top = '0';
         menu.style.left = '0';
@@ -355,7 +412,7 @@ export class GameUI {
         menu.style.flexDirection = 'column';
         menu.style.justifyContent = 'center';
         menu.style.alignItems = 'center';
-        menu.style.zIndex = '100'; // above everything
+        menu.style.zIndex = '100';
 
         const title = document.createElement('h1');
         title.textContent = 'GAME OVER';
@@ -391,7 +448,7 @@ export class GameUI {
         const restartBtn = document.createElement('button');
         restartBtn.id = 'gameOverRestartBtn';
         restartBtn.textContent = 'Restart';
-        restartBtn.className = 'menu-btn'; // Use shared class
+        restartBtn.className = 'menu-btn';
         restartBtn.style.fontSize = '1.5rem';
         restartBtn.style.padding = '15px 40px';
         restartBtn.style.border = 'none';
@@ -402,7 +459,6 @@ export class GameUI {
         restartBtn.style.boxShadow = '0 10px 20px rgba(0,0,0,0.3)';
         restartBtn.style.transition = 'transform 0.2s, box-shadow 0.2s';
 
-        // Add simple hover effect via JS since inline
         restartBtn.onmouseenter = () => {
             restartBtn.style.transform = 'translateY(-2px)';
             restartBtn.style.boxShadow = '0 15px 25px rgba(0,0,0,0.4)';
@@ -423,6 +479,9 @@ export class GameUI {
     }
 
     private gameOverMenu: HTMLElement | null = null;
+    private leaderboardOverlay: HTMLElement | null = null;
+    private leaderboardList: HTMLElement | null = null;
+    private leaderboardTitle: HTMLElement | null = null;
 
     showGameOver() {
         if (this.gameOverMenu) {
@@ -447,16 +506,10 @@ export class GameUI {
             this.gameOverMenu.style.display = 'none';
         }
         this.updatePauseBtnText();
-        // Since restart shows pause button handled in startGame usually, checking display is tricky
-        // Logic: if not home menu, should show pause button
         if (this.homeMenu && this.homeMenu.style.display === 'none') {
             if (this.pauseBtn) this.pauseBtn.style.display = 'block';
         }
     }
-
-    private leaderboardOverlay: HTMLElement | null = null;
-    private leaderboardList: HTMLElement | null = null;
-    private leaderboardTitle: HTMLElement | null = null;
 
     private createLeaderboardOverlay() {
         const overlay = document.createElement('div');
@@ -472,7 +525,7 @@ export class GameUI {
         overlay.style.alignItems = 'center';
         overlay.style.alignItems = 'center';
         overlay.style.justifyContent = 'center';
-        overlay.style.zIndex = '3000'; // Must be higher than HomeMenu (2000)
+        overlay.style.zIndex = '3000';
         overlay.style.color = 'white';
 
         this.leaderboardTitle = document.createElement('h2');
@@ -510,13 +563,11 @@ export class GameUI {
         const modeName = this.game.mode === GameMode.SPECIAL ? 'Special' : 'Normal';
         if (this.leaderboardTitle) this.leaderboardTitle.textContent = `Leaderboard (${modeName})`;
 
-        // Fetch Data
         const localScores = this.game.leaderboard.getTopScores(this.game.mode);
         const onlineScores = await this.game.leaderboard.getOnlineScores(this.game.mode);
 
         this.leaderboardList.innerHTML = '';
 
-        // Render Local
         const createSection = (title: string, scores: any[]) => {
             const section = document.createElement('div');
             section.style.marginBottom = '20px';
@@ -547,11 +598,11 @@ export class GameUI {
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) modeDisplay.style.display = 'block';
 
-        this.hideGameOver(); // Ensure overlay is gone
+        this.hideGameOver();
 
         if (mode) {
             this.game.mode = mode;
-            this.game.start(false); // Changed from true to false: Try loading first
+            this.game.start(false);
         } else {
             this.game.mode = GameMode.OFFLINE;
             this.game.start(false);
@@ -559,6 +610,7 @@ export class GameUI {
 
         this.updateModeDisplay();
         this.updatePauseBtnText();
+        this.updateStats();
     }
 
     showHome() {
@@ -566,8 +618,6 @@ export class GameUI {
         if (this.pauseBtn) this.pauseBtn.style.display = 'none';
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) modeDisplay.style.display = 'none';
-
-        // Ensure game is paused or stopped? 
         this.game.isPaused = true;
         this.game.saveState();
     }
@@ -581,12 +631,9 @@ export class GameUI {
         }
     }
 
-    // showLeaderboard replaced by async version above
-
     updateModeDisplay() {
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) {
-            console.log('[GameUI] Version Check:', { version: APP_VERSION, hash: COMMIT_HASH, date: COMMIT_DATE });
             const modeText = this.game.mode === GameMode.SPECIAL ? 'Special' : 'Normal';
             modeDisplay.textContent = `Player: ${this.game.playerName} | Mode: ${modeText}`;
 
@@ -598,7 +645,6 @@ export class GameUI {
                 span.style.fontSize = '0.8em';
                 span.style.color = '#888';
 
-                // Use the date provided by Vite Config (which is already "now" or "git timestamp")
                 const d = new Date(COMMIT_DATE);
                 const dateStr = isNaN(d.getTime()) ? 'Unknown Date' : d.toLocaleString();
                 const now = new Date().toLocaleString();
@@ -619,7 +665,7 @@ export class GameUI {
             this.hideMenu();
         } else {
             this.game.togglePause();
-            this.game.saveState(); // Save immediately when paused
+            this.game.saveState();
             this.showMenu();
         }
     }

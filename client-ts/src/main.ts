@@ -13,7 +13,37 @@ app.innerHTML = `
       <button id="fullscreenBtn">Full Screen</button>
       <button id="installBtn">Install App</button>
   </div>
-  <canvas id="gameCanvas" width="480" height="600"></canvas>
+  
+  <div id="game-container">
+      <div id="left-panel" class="side-panel">
+          <div class="panel-box">
+            <h3>Next</h3>
+            <canvas id="nextCanvas" width="120" height="120"></canvas>
+          </div>
+          <div id="hold-panel" class="panel-box" style="display:none;">
+            <h3>Hold</h3>
+            <canvas id="holdCanvas" width="120" height="120"></canvas>
+          </div>
+      </div>
+
+      <canvas id="gameCanvas" width="300" height="600"></canvas>
+
+      <div id="right-panel" class="side-panel">
+          <div class="panel-box">
+            <h3>Score</h3>
+            <div id="score-value" class="stat-value">0</div>
+          </div>
+          <div class="panel-box">
+            <h3>Lines</h3>
+            <div id="lines-value" class="stat-value">0</div>
+          </div>
+          <div class="panel-box">
+            <h3>Level</h3>
+            <div id="level-value" class="stat-value">1</div>
+          </div>
+      </div>
+  </div>
+  
   <p>Arrows to Move/Rotate | Space to Hard Drop | P to Pause</p>
 `;
 
@@ -124,6 +154,7 @@ function loop(timestamp: number) {
     ui.showGameOver();
   }
 
+  ui.updateStats();
   renderer.render(game);
 
   requestAnimationFrame(loop);
