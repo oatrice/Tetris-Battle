@@ -190,7 +190,9 @@ export class GameUI {
     }
 
     private enterFullscreen() {
-        const elem = document.documentElement;
+        // Use body instead of documentElement for better mobile compatibility
+        const elem = document.body;
+        console.log('[UI] Requesting Fullscreen on body');
         if (elem.requestFullscreen) {
             elem.requestFullscreen().catch(err => console.warn('[UI] Fullscreen blocked:', err));
         } else if ((elem as any).webkitRequestFullscreen) { /* Safari */
