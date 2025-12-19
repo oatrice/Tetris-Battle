@@ -123,8 +123,6 @@ canvas {
   h1 {
     font-size: 1.2rem;
     margin: 5px 0;
-    display: none;
-    /* Hide title on mobile to save space */
   }
 
   .ui-controls {
