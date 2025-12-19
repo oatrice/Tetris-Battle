@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.2] - 2025-12-19
+### Changed
+- **CSS Styling**: Updated `style.css` to refine visual elements and ensure consistency with the new pastel theme.
+
 ## [1.3.1] - 2025-12-19
 ### Added
 - **Layout Persistence**: Implemented functionality to save and load custom UI layouts, allowing players to retain their preferred arrangements of game elements.
