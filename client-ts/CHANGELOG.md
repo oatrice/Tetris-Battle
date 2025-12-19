@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.4] - 2025-12-19
+### Changed
+- **Margin Top**: Adjusted CSS to correctly set the `margin-top` property for elements within the game UI, ensuring proper spacing and alignment.
+
 ## [1.3.3] - 2025-12-19
 ### Fixed
 - **Touch Scrolling**: Resolved an issue where touch scrolling was not functioning correctly in the game UI, improving mobile and touch-based gameplay.
