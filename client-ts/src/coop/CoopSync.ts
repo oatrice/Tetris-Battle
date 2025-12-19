@@ -6,11 +6,14 @@
 import { RealtimeService } from '../services/RealtimeService';
 import { RoomInfo } from './RoomManager';
 import type { CoopGame } from './CoopGame';
+import { PlayerAction } from './DualPiece';
 
 export class CoopSync {
     private realtime = new RealtimeService();
     private readonly gameStatePath = 'tetrisCoop/gameState';
+    private readonly inputPath = 'tetrisCoop/inputs';
     private unsubscribe?: () => void;
+    private unsubscribeInput?: () => void;
     private coopGame?: CoopGame;
     private playerNumber: 1 | 2 = 1;
     private syncInterval?: number;
@@ -32,6 +35,15 @@ export class CoopSync {
         this.unsubscribe = this.realtime.onValue<any>(path, (remote) => {
             if (remote && remote.playerId !== this.getLocalPlayerId()) {
                 this.applyRemoteState(remote.state);
+            }
+        });
+
+        // Listen for remote inputs
+        const roomInputPath = `${this.inputPath}/${room.id}`;
+        this.lastInputTimestamp = Date.now(); // Ignore old inputs
+        this.unsubscribeInput = this.realtime.onValue<Record<string, any>>(roomInputPath, (inputs) => {
+            if (inputs) {
+                this.handleRemoteInputs(inputs);
             }
         });
 
@@ -207,9 +219,63 @@ export class CoopSync {
         if (this.unsubscribe) {
             this.unsubscribe();
         }
+        if (this.unsubscribeInput) {
+            this.unsubscribeInput();
+        }
         if (this.syncInterval) {
             clearInterval(this.syncInterval);
         }
         console.log('[CoopSync] Sync stopped');
+    }
+
+    // Input Synchronization Logic
+    private lastInputTimestamp: number = 0;
+
+    /**
+     * Send a lightweight input packet
+     */
+    async sendInput(action: PlayerAction) {
+        if (!this.coopGame?.room) return;
+
+        const packet = {
+            action,
+            playerNumber: this.playerNumber,
+            playerId: this.getLocalPlayerId(),
+            timestamp: Date.now()
+        };
+
+        const path = `${this.inputPath}/${this.coopGame.room.id}`;
+        // Use push to append to the list
+        await this.realtime.push(path, packet);
+    }
+
+    /**
+     * Handle incoming input packets
+     */
+    private handleRemoteInputs(inputs: Record<string, any>) {
+        if (!this.coopGame) return;
+
+        const entries = Object.entries(inputs);
+        // Sort by timestamp to ensure correct order
+        entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+
+        for (const [, packet] of entries) {
+            // content validation
+            if (!packet || typeof packet.timestamp !== 'number') continue;
+
+            // processing check
+            if (packet.timestamp <= this.lastInputTimestamp) continue;
+            if (packet.playerId === this.getLocalPlayerId()) continue; // Ignore own inputs
+
+            // Apply input
+            this.lastInputTimestamp = packet.timestamp;
+
+            // Only apply for the OTHER player
+            const expectedOtherPlayer = this.playerNumber === 1 ? 2 : 1;
+            if (packet.playerNumber === expectedOtherPlayer) {
+                // console.log(`[CoopSync] Applying remote input: ${packet.action}`);
+                this.coopGame.controller.handleAction(expectedOtherPlayer, packet.action);
+            }
+        }
     }
 }

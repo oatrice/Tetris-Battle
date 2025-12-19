@@ -140,6 +140,11 @@ export class CoopGame {
     handleInput(action: PlayerAction) {
         if (this.isPaused || this.gameOver) return;
         this.controller.handleAction(this.playerNumber, action);
+
+        // Broadcast input (Phase 2)
+        if (this.sync) {
+            this.sync.sendInput(action);
+        }
     }
 
     /**
