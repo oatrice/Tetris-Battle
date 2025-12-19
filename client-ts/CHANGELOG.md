@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.0] - 2025-12-19
+### Added
+- **🌐 P2P Offline Cooperative Mode**: Enables local multiplayer sessions where two players can play cooperatively on a shared board without an internet connection. This feature utilizes local network discovery and connection for peer-to-peer communication.
+- **📊 Network Statistics Display**: Introduced a new overlay that displays P2P network statistics, including ping, packet loss, and bandwidth usage, to aid in debugging and performance monitoring of the offline cooperative mode.
+
 ## [2.1.0] - 2025-12-19
 ### Added
 - **📱 Mobile Touch Controls for Coop Mode**: Full gesture support for mobile players in Cooperative Mode.
