@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.4.0] - 2025-12-19
+### Added
+- **🎮 Coop Mode (2 Players)**: 
+    - Cooperative multiplayer gameplay on a shared 24x12 horizontal board.
+    - **Core Components**:
+        - `CoopBoard`: Horizontal board with defined player zones (P1: columns 0-11, P2: columns 12-23).
+        - `DualPieceController`: Manages two independent falling pieces with simultaneous player control.
+        - `CoopRenderer`: Custom renderer for the wider board with zone divider visualization.
+    - **Networking**:
+        - `RoomManager`: Create, join, and manage multiplayer rooms via Firebase Realtime Database.
+        - `CoopSync`: Real-time game state synchronization between players.
+        - `RealtimeService`: Firebase Realtime Database wrapper with graceful error handling.
+    - **UI**:
+        - Added "Coop Mode" button in Home Menu.
+        - Room creation and joining flow with Room ID sharing.
+        - Dynamic import for Coop components (code-splitting).
+    - **Testing**: Comprehensive TDD tests for `CoopBoard` (17 tests) and `DualPieceController` (18 tests).
+
+### Changed
+- **GameMode**: Added `COOP` enum value.
+- **Environment**: Added `VITE_FIREBASE_DATABASE_URL` requirement for Coop Mode.
+- **Documentation**: Updated README with Coop Mode features and Firebase Realtime Database setup instructions.
+
+### Fixed
+- **RealtimeService**: Fixed `process.env` to `import.meta.env` for Vite compatibility.
+- **CoopSync**: Fixed `getCurrentUser()` method call to use `getAuth()?.currentUser` for proper Firebase Auth integration.
+
 ## [1.3.5] - 2025-12-19
 ### Changed
 - **Mobile Styling**: Refined mobile styling to improve layout consistency and responsiveness across different devices.

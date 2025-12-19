@@ -309,6 +309,10 @@ export class GameUI {
             this.startGame(GameMode.SPECIAL);
         });
 
+        const btnCoop = createBtn('btnCoop', '🎮 Coop Mode (2 Players)', () => {
+            this.showCoopMenu();
+        });
+
         const btnChangeName = createBtn('btnChangeName', 'Change Name', () => {
             this.promptRename();
         });
@@ -319,6 +323,7 @@ export class GameUI {
 
         this.homeMenu.appendChild(btnSolo);
         this.homeMenu.appendChild(btnSpecial);
+        this.homeMenu.appendChild(btnCoop);
         this.homeMenu.appendChild(btnChangeName);
         this.homeMenu.appendChild(btnLeaderboard);
 
@@ -700,6 +705,113 @@ export class GameUI {
     hideMenu() {
         if (this.menu) this.menu.style.display = 'none';
         this.updatePauseBtnText();
+    }
+
+    showCoopMenu() {
+        // Create Coop Menu Overlay
+        const coopMenu = document.createElement('div');
+        coopMenu.id = 'coopMenu';
+        coopMenu.style.position = 'absolute';
+        coopMenu.style.top = '0';
+        coopMenu.style.left = '0';
+        coopMenu.style.width = '100%';
+        coopMenu.style.height = '100%';
+        coopMenu.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        coopMenu.style.display = 'flex';
+        coopMenu.style.flexDirection = 'column';
+        coopMenu.style.alignItems = 'center';
+        coopMenu.style.justifyContent = 'center';
+        coopMenu.style.zIndex = '2000';
+        coopMenu.style.color = 'white';
+
+        const title = document.createElement('h2');
+        title.textContent = '🎮 Cooperative Mode';
+        title.style.marginBottom = '2rem';
+        coopMenu.appendChild(title);
+
+        const description = document.createElement('p');
+        description.textContent = 'Play together on a shared 24x12 board!';
+        description.style.marginBottom = '2rem';
+        description.style.color = '#aaa';
+        coopMenu.appendChild(description);
+
+        // Create Room Button
+        const createRoomBtn = document.createElement('button');
+        createRoomBtn.textContent = 'Create Room';
+        createRoomBtn.className = 'menu-btn';
+        createRoomBtn.style.marginBottom = '1rem';
+        createRoomBtn.addEventListener('click', () => {
+            this.createCoopRoom();
+            this.root.removeChild(coopMenu);
+        });
+        coopMenu.appendChild(createRoomBtn);
+
+        // Join Room Button
+        const joinRoomBtn = document.createElement('button');
+        joinRoomBtn.textContent = 'Join Room';
+        joinRoomBtn.className = 'menu-btn';
+        joinRoomBtn.style.marginBottom = '1rem';
+        joinRoomBtn.addEventListener('click', () => {
+            const roomId = prompt('Enter Room ID:');
+            if (roomId) {
+                this.joinCoopRoom(roomId);
+            }
+            this.root.removeChild(coopMenu);
+        });
+        coopMenu.appendChild(joinRoomBtn);
+
+        // Back Button
+        const backBtn = document.createElement('button');
+        backBtn.textContent = 'Back';
+        backBtn.className = 'menu-btn';
+        backBtn.addEventListener('click', () => {
+            this.root.removeChild(coopMenu);
+        });
+        coopMenu.appendChild(backBtn);
+
+        this.root.appendChild(coopMenu);
+    }
+
+    private async createCoopRoom() {
+        try {
+            const { RoomManager } = await import('../coop/RoomManager');
+            const roomManager = new RoomManager();
+
+            // Get player ID (use auth or generate guest ID)
+            const playerId = this.authService.getAuth()?.currentUser?.uid ||
+                `guest_${Math.random().toString(36).substring(2, 10)}`;
+
+            const room = await roomManager.createRoom(playerId);
+            alert(`Room Created!\nRoom ID: ${room.id}\nShare this ID with your friend!`);
+
+            // TODO: Start Coop Game with this room
+            console.log('[Coop] Room created:', room);
+        } catch (error) {
+            console.error('[Coop] Failed to create room:', error);
+            alert('Failed to create room. Make sure Firebase Realtime Database is configured.');
+        }
+    }
+
+    private async joinCoopRoom(roomId: string) {
+        try {
+            const { RoomManager } = await import('../coop/RoomManager');
+            const roomManager = new RoomManager();
+
+            const playerId = this.authService.getAuth()?.currentUser?.uid ||
+                `guest_${Math.random().toString(36).substring(2, 10)}`;
+
+            const room = await roomManager.joinRoom(roomId, playerId);
+            if (room) {
+                alert(`Joined Room: ${room.id}`);
+                // TODO: Start Coop Game with this room
+                console.log('[Coop] Joined room:', room);
+            } else {
+                alert('Room not found!');
+            }
+        } catch (error) {
+            console.error('[Coop] Failed to join room:', error);
+            alert('Failed to join room. Please check the Room ID.');
+        }
     }
 
     updatePauseBtnText() {

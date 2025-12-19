@@ -84,8 +84,9 @@ export class CoopSync {
     private getLocalPlayerId(): string {
         // Use Firebase auth UID if available, otherwise fallback to a random session id
         const authService = (window as any).authService as any; // will be set by GameUI
-        if (authService && authService.getCurrentUser && authService.getCurrentUser()) {
-            return authService.getCurrentUser().uid;
+        const currentUser = authService?.getAuth?.()?.currentUser;
+        if (currentUser) {
+            return currentUser.uid;
         }
         // Simple fallback stored in sessionStorage
         let id = sessionStorage.getItem('coopPlayerId');
