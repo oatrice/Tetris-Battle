@@ -11,7 +11,6 @@ app.innerHTML = `
   <div class="ui-controls">
       <button id="pauseBtn">Pause</button>
       <button id="fullscreenBtn">Full Screen</button>
-      <button id="installBtn">Install App</button>
   </div>
   
   <div id="game-container">
@@ -49,7 +48,7 @@ app.innerHTML = `
 
 const canvas = document.querySelector<HTMLCanvasElement>('#gameCanvas')!;
 const fullscreenBtn = document.querySelector<HTMLButtonElement>('#fullscreenBtn');
-const installBtn = document.querySelector<HTMLButtonElement>('#installBtn');
+
 
 if (fullscreenBtn) {
   fullscreenBtn.addEventListener('click', () => {
@@ -63,29 +62,7 @@ if (fullscreenBtn) {
   });
 }
 
-// PWA Install Logic
-let deferredPrompt: any;
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevent the mini-infobar from appearing on mobile
-  e.preventDefault();
-  // Stash the event so it can be triggered later.
-  deferredPrompt = e;
-  console.log('beforeinstallprompt fired');
-});
-
-if (installBtn) {
-  installBtn.addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log(`User response to the install prompt: ${outcome}`);
-      deferredPrompt = null;
-    } else {
-      alert('To install, please use your browser menu (Add to Home Screen).');
-    }
-  });
-}
 
 
 const game = new Game();
@@ -148,14 +125,17 @@ function loop(timestamp: number) {
   const deltaTime = timestamp - lastTime;
   lastTime = timestamp;
 
-  game.update(deltaTime);
+  // Skip solo game logic if paused (e.g., in Coop Mode)
+  if (!game.isPaused) {
+    game.update(deltaTime);
 
-  if (game.gameOver) {
-    ui.showGameOver();
+    if (game.gameOver) {
+      ui.showGameOver();
+    }
+
+    ui.updateStats();
+    renderer.render(game);
   }
-
-  ui.updateStats();
-  renderer.render(game);
 
   requestAnimationFrame(loop);
 }

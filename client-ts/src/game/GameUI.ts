@@ -3,6 +3,10 @@ import { GameMode } from './GameMode';
 import { Renderer } from './Renderer';
 import { APP_VERSION, COMMIT_HASH, COMMIT_DATE } from 'virtual:version-info';
 import { AuthService } from '../services/AuthService';
+import type { CoopGame } from '../coop/CoopGame';
+import type { CoopRenderer } from './CoopRenderer';
+import type { CoopInputHandler } from '../coop/CoopInputHandler';
+import type { RoomInfo } from '../coop/RoomManager';
 
 export class GameUI {
     private game: Game;
@@ -24,6 +28,14 @@ export class GameUI {
     private scoreVal: HTMLElement | null = null;
     private linesVal: HTMLElement | null = null;
     private levelVal: HTMLElement | null = null;
+
+    // Coop Mode
+    private coopGame: CoopGame | null = null;
+    private coopRenderer: CoopRenderer | null = null;
+    private coopInputHandler: CoopInputHandler | null = null;
+
+    // PWA
+    private deferredPrompt: any = null;
 
     constructor(game: Game, root: HTMLElement) {
         this.game = game;
@@ -117,8 +129,87 @@ export class GameUI {
         // 9. Auto Save
         this.setupAutoSave();
 
+        // Create Landscape Warning Overlay
+        const warning = document.createElement('div');
+        warning.id = 'landscape-warning';
+        warning.innerHTML = `
+            <p>Coop Mode requires landscape view for best experience.</p>
+            <p style="font-size:0.8rem; margin-top:10px; opacity:0.7;">(Tap to Fullscreen)</p>
+        `;
+        warning.addEventListener('click', () => {
+            this.enterFullscreen();
+        });
+        document.body.appendChild(warning);
+
         // Initial Stats Render
         this.updateStats();
+    }
+
+    private toggleLandscapeMode(enable: boolean) {
+        const fsBtn = this.root.querySelector<HTMLElement>('#fullscreenBtn');
+        if (enable) {
+            document.body.classList.add('force-landscape');
+            if (fsBtn) fsBtn.style.display = 'none';
+
+            // JS Check Orientation
+            this.checkOrientation();
+            window.addEventListener('resize', this.boundCheckOrientation);
+            window.addEventListener('orientationchange', this.boundCheckOrientation);
+
+            // if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            //     this.enterFullscreen();
+            // }
+        } else {
+            document.body.classList.remove('force-landscape');
+            if (fsBtn) fsBtn.style.display = 'block';
+
+            window.removeEventListener('resize', this.boundCheckOrientation);
+            window.removeEventListener('orientationchange', this.boundCheckOrientation);
+
+            const warning = document.querySelector('#landscape-warning');
+            if (warning) warning.classList.remove('show');
+
+            this.exitFullscreen();
+        }
+    }
+
+    private boundCheckOrientation = () => this.checkOrientation();
+
+    private checkOrientation() {
+        const warning = document.querySelector('#landscape-warning');
+        if (!warning) return;
+
+        // Check dimensions directly
+        const isPortrait = window.innerHeight > window.innerWidth;
+
+        if (document.body.classList.contains('force-landscape') && isPortrait) {
+            warning.classList.add('show');
+        } else {
+            warning.classList.remove('show');
+        }
+    }
+
+    private enterFullscreen() {
+        // Use body instead of documentElement for better mobile compatibility
+        const elem = document.body;
+        console.log('[UI] Requesting Fullscreen on body');
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => console.warn('[UI] Fullscreen blocked:', err));
+        } else if ((elem as any).webkitRequestFullscreen) { /* Safari */
+            (elem as any).webkitRequestFullscreen();
+        } else if ((elem as any).msRequestFullscreen) { /* IE11 */
+            (elem as any).msRequestFullscreen();
+        }
+    }
+
+    private exitFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => { });
+        } else if ((document as any).webkitExitFullscreen) { /* Safari */
+            (document as any).webkitExitFullscreen();
+        } else if ((document as any).msExitFullscreen) { /* IE11 */
+            (document as any).msExitFullscreen();
+        }
     }
 
     public updateStats() {
@@ -176,9 +267,15 @@ export class GameUI {
             if (!this.game.gameOver && !this.game.isPaused) {
                 this.game.isPaused = true;
                 this.updatePauseBtnText();
-                this.showMenu();
+                // this.showMenu();
             }
             this.game.saveState();
+
+            // Coop Pause on Tab Out
+            if (this.coopGame && !this.coopGame.gameOver && !this.coopGame.isPaused) {
+                console.log('[GameUI] Tab unfocused -> Pausing Coop Game');
+                this.coopGame.setPaused(true);
+            }
         });
 
         window.addEventListener('beforeunload', () => {
@@ -189,10 +286,17 @@ export class GameUI {
         });
 
         window.addEventListener('focus', () => {
+            // Solo Game Resume
             this.game.loadState();
             this.updatePauseBtnText();
             if (this.game.isPaused) {
-                this.showMenu();
+                // this.showMenu();
+            }
+
+            // Coop Game Resume on Tab In
+            if (this.coopGame && !this.coopGame.gameOver && this.coopGame.isPaused) {
+                console.log('[GameUI] Tab focused -> Resuming Coop Game');
+                this.coopGame.setPaused(false);
             }
         });
     }
@@ -309,6 +413,10 @@ export class GameUI {
             this.startGame(GameMode.SPECIAL);
         });
 
+        const btnCoop = createBtn('btnCoop', '🎮 Coop Mode (2 Players)', () => {
+            this.showCoopMenu();
+        });
+
         const btnChangeName = createBtn('btnChangeName', 'Change Name', () => {
             this.promptRename();
         });
@@ -317,10 +425,35 @@ export class GameUI {
             this.showLeaderboard();
         });
 
+        // Install App Button (PWA)
+        const btnInstall = createBtn('btnInstall', '📲 Install App', async () => {
+            if (this.deferredPrompt) {
+                this.deferredPrompt.prompt();
+                const { outcome } = await this.deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                this.deferredPrompt = null;
+                btnInstall.style.display = 'none';
+            }
+        });
+        btnInstall.style.display = 'none'; // Hidden by default
+
+        // Listen for PWA install event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            this.deferredPrompt = e;
+            // Update UI notify the user they can install the PWA
+            btnInstall.style.display = 'block';
+            console.log('beforeinstallprompt fired, install button shown');
+        });
+
         this.homeMenu.appendChild(btnSolo);
         this.homeMenu.appendChild(btnSpecial);
-        this.homeMenu.appendChild(btnChangeName);
+        this.homeMenu.appendChild(btnCoop);
         this.homeMenu.appendChild(btnLeaderboard);
+        this.homeMenu.appendChild(btnChangeName);
+        this.homeMenu.appendChild(btnInstall);
 
         const versionInfo = document.createElement('div');
         versionInfo.style.marginTop = '1rem';
@@ -522,6 +655,47 @@ export class GameUI {
         if (this.pauseBtn) this.pauseBtn.style.display = 'none';
     }
 
+    /**
+     * Show Coop Game Over overlay
+     */
+    showCoopGameOver(score: number, lines: number, level: number) {
+        if (this.gameOverMenu) {
+            const nameEl = this.gameOverMenu.querySelector('#gameOverPlayerName');
+            const scoreEl = this.gameOverMenu.querySelector('#gameOverScore');
+            const bestScoreEl = this.gameOverMenu.querySelector('#gameOverBestScore');
+            const titleEl = this.gameOverMenu.querySelector('h2');
+            const restartBtn = this.gameOverMenu.querySelector('#gameOverRestartBtn');
+
+            // Customize for Coop
+            if (titleEl) titleEl.textContent = 'Coop Game Over';
+            if (nameEl) nameEl.textContent = 'Team Score';
+            if (scoreEl) scoreEl.innerHTML = `Score: ${score}<br>Lines: ${lines}<br>Level: ${level}`;
+            if (bestScoreEl) (bestScoreEl as HTMLElement).style.display = 'none'; // Hide best score for now
+
+            // Update restart button to go back to lobby/menu
+            if (restartBtn) {
+                // Clone to remove old listeners
+                const newBtn = restartBtn.cloneNode(true);
+                if (restartBtn.parentNode) {
+                    restartBtn.parentNode.replaceChild(newBtn, restartBtn);
+                }
+
+                // Add new listener
+                newBtn.addEventListener('click', () => {
+                    console.log('[Coop] Back to menu clicked');
+                    window.location.href = '/'; // Redirect to root
+                });
+
+                (newBtn as HTMLElement).textContent = 'Back to Menu';
+                // Ensure button is clickable
+                (newBtn as HTMLElement).style.pointerEvents = 'auto';
+                (newBtn as HTMLElement).style.cursor = 'pointer';
+            }
+
+            this.gameOverMenu.style.display = 'flex';
+        }
+    }
+
     hideGameOver() {
         if (this.gameOverMenu) {
             this.gameOverMenu.style.display = 'none';
@@ -541,7 +715,7 @@ export class GameUI {
         overlay.style.left = '0';
         overlay.style.width = '100%';
         overlay.style.height = '100%';
-        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        overlay.style.backgroundColor = '#242424';
         overlay.style.flexDirection = 'column';
         overlay.style.alignItems = 'center';
         overlay.style.alignItems = 'center';
@@ -682,6 +856,16 @@ export class GameUI {
     }
 
     toggleMenu() {
+        // Handle Coop Game Pause (Toggle ONLY, no Menu Overlay)
+        if (this.coopGame && !this.coopGame.gameOver) {
+            this.coopGame.togglePause();
+            this.updatePauseBtnText();
+            // Ensure solo menu is hidden
+            this.hideMenu();
+            return;
+        }
+
+        // Handle Solo Game Pause
         if (this.game.isPaused) {
             this.game.togglePause();
             this.hideMenu();
@@ -702,9 +886,636 @@ export class GameUI {
         this.updatePauseBtnText();
     }
 
+    showCoopMenu() {
+        // Create Coop Menu Overlay
+        const coopMenu = document.createElement('div');
+        coopMenu.id = 'coopMenu';
+        coopMenu.style.position = 'absolute';
+        coopMenu.style.top = '0';
+        coopMenu.style.left = '0';
+        coopMenu.style.width = '100%';
+        coopMenu.style.height = '100%';
+        coopMenu.style.backgroundColor = '#242424';
+        coopMenu.style.display = 'flex';
+        coopMenu.style.flexDirection = 'column';
+        coopMenu.style.alignItems = 'center';
+        coopMenu.style.justifyContent = 'center';
+        coopMenu.style.zIndex = '2000';
+        coopMenu.style.color = 'white';
+
+        const title = document.createElement('h2');
+        title.textContent = '🎮 Cooperative Mode';
+        title.style.marginBottom = '2rem';
+        coopMenu.appendChild(title);
+
+        const description = document.createElement('p');
+        description.textContent = 'Play together on a shared 24x12 board!';
+        description.style.marginBottom = '2rem';
+        description.style.color = '#aaa';
+        coopMenu.appendChild(description);
+
+        // Create Room Button
+        const createRoomBtn = document.createElement('button');
+        createRoomBtn.textContent = 'Create Room';
+        createRoomBtn.className = 'menu-btn';
+        createRoomBtn.style.marginBottom = '1rem';
+        createRoomBtn.addEventListener('click', async () => {
+            createRoomBtn.textContent = 'Creating...';
+            createRoomBtn.disabled = true;
+            const success = await this.createCoopRoom();
+            if (success) {
+                if (coopMenu.parentNode) coopMenu.parentNode.removeChild(coopMenu);
+            } else {
+                createRoomBtn.textContent = 'Create Coop Room';
+                createRoomBtn.disabled = false;
+            }
+        });
+        coopMenu.appendChild(createRoomBtn);
+
+        // Join Room Button
+        const joinRoomBtn = document.createElement('button');
+        joinRoomBtn.textContent = 'Join Room';
+        joinRoomBtn.className = 'menu-btn';
+        joinRoomBtn.style.marginBottom = '1rem';
+        joinRoomBtn.addEventListener('click', async () => {
+            const roomId = prompt('Enter Room ID:');
+            if (roomId && roomId.trim()) {
+                try {
+                    // Remove menu first to show loading state
+                    this.root.removeChild(coopMenu);
+                    await this.joinCoopRoom(roomId.trim());
+                } catch (error) {
+                    console.error('[Coop] Join failed:', error);
+                    // Re-show menu if join failed
+                    this.showCoopMenu();
+                }
+            }
+        });
+        coopMenu.appendChild(joinRoomBtn);
+
+        // Back Button
+        const backBtn = document.createElement('button');
+        backBtn.textContent = 'Back';
+        backBtn.className = 'menu-btn';
+        backBtn.addEventListener('click', () => {
+            this.root.removeChild(coopMenu);
+        });
+        coopMenu.appendChild(backBtn);
+
+        this.root.appendChild(coopMenu);
+    }
+
+    private async createCoopRoom(): Promise<boolean> {
+        try {
+            const { RoomManager } = await import('../coop/RoomManager');
+            const roomManager = new RoomManager();
+
+            // Get player ID (use auth or generate guest ID)
+            const playerId = this.authService.getAuth()?.currentUser?.uid ||
+                `guest_${Math.random().toString(36).substring(2, 10)}`;
+
+            const room = await roomManager.createRoom(playerId);
+            let unsub: (() => void) | null = null;
+
+            // Show Room ID with Copy button
+            const controls = this.showRoomIdModal(room.id, async () => {
+                // Start game when user clicks "Start Game"
+                if (unsub) unsub();
+                try {
+                    await roomManager.updateStatus(room.id, 'playing');
+                    this.startCoopGame(room, 1);
+                } catch (e) {
+                    console.error('[Coop] Failed to start game:', e);
+                }
+            }, () => {
+                // Cancelled
+                if (unsub) unsub();
+                // Optional: roomManager.deleteRoom(room.id);
+            });
+
+            // Listen for P2
+            unsub = roomManager.onRoomUpdate(room.id, (updatedRoom) => {
+                console.log('[Coop] Room update received:', updatedRoom);
+                if (updatedRoom && updatedRoom.players.length >= 2) {
+                    console.log('[Coop] P2 joined detected, updating UI...');
+                    controls.setPlayerJoined();
+                }
+            });
+            return true;
+        } catch (error) {
+            console.error('[Coop] Failed to create room:', error);
+            alert('Failed to create room. Make sure Firebase Realtime Database is configured.');
+            return false;
+        }
+    }
+
+    private async joinCoopRoom(roomId: string) {
+        console.log('[Coop] Attempting to join room:', roomId);
+        try {
+            const { RoomManager } = await import('../coop/RoomManager');
+            const roomManager = new RoomManager();
+
+            const playerId = this.authService.getAuth()?.currentUser?.uid ||
+                `guest_${Math.random().toString(36).substring(2, 10)}`;
+
+            console.log('[Coop] Player ID:', playerId);
+
+            const room = await roomManager.joinRoom(roomId, playerId);
+            console.log('[Coop] Join result:', room);
+
+            if (room) {
+                console.log('[Coop] Successfully joined room:', room.id);
+
+                let unsub: (() => void) | null = null;
+                const modal = this.showWaitingHostModal(room.id, () => {
+                    if (unsub) unsub();
+                });
+
+                unsub = roomManager.onRoomUpdate(room.id, (updatedRoom) => {
+                    if (updatedRoom && updatedRoom.status === 'playing') {
+                        if (unsub) unsub();
+                        if (modal.parentNode) modal.parentNode.removeChild(modal);
+                        this.startCoopGame(updatedRoom, 2);
+                    }
+                });
+            } else {
+                console.error('[Coop] Room not found:', roomId);
+                alert(`Room not found!\nRoom ID: ${roomId}\n\nPlease check the Room ID and try again.`);
+                throw new Error('Room not found');
+            }
+        } catch (error) {
+            console.error('[Coop] Failed to join room:', error);
+            alert(`Failed to join room.\n\nError: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease check:\n- Room ID is correct\n- Firebase Realtime Database is configured`);
+            throw error;
+        }
+    }
+
+    private showWaitingHostModal(roomId: string, onCancel: () => void): HTMLElement {
+        const modal = document.createElement('div');
+        modal.id = 'waitingHostModal';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = '#242424';
+        modal.style.display = 'flex';
+        modal.style.flexDirection = 'column';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '3000';
+        modal.style.color = 'white';
+
+        const title = document.createElement('h2');
+        title.textContent = '✅ Joined Room';
+        title.style.marginBottom = '1rem';
+        modal.appendChild(title);
+
+        const desc = document.createElement('p');
+        desc.textContent = `Room ID: ${roomId}`;
+        desc.style.marginBottom = '2rem';
+        desc.style.color = '#4DD0E1';
+        desc.style.fontFamily = 'monospace';
+        desc.style.fontSize = '1.2rem';
+        modal.appendChild(desc);
+
+        const loader = document.createElement('div');
+        loader.textContent = 'Waiting for Host to start...';
+        loader.style.fontSize = '1.2rem';
+        loader.style.color = '#FFB74D';
+
+        if (!document.getElementById('pulse-anim')) {
+            const style = document.createElement('style');
+            style.id = 'pulse-anim';
+            style.textContent = `@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }`;
+            document.head.appendChild(style);
+        }
+        loader.style.animation = 'pulse 1.5s infinite';
+        modal.appendChild(loader);
+
+        const leaveBtn = document.createElement('button');
+        leaveBtn.textContent = 'Leave';
+        leaveBtn.className = 'menu-btn';
+        leaveBtn.style.marginTop = '2rem';
+        leaveBtn.addEventListener('click', () => {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+            onCancel();
+        });
+        modal.appendChild(leaveBtn);
+
+        this.root.appendChild(modal);
+        return modal;
+    }
+
+    private showRoomIdModal(roomId: string, onStartGame: () => void, onCancel?: () => void) {
+        // Cleanup existing modal to prevent stacking/ghosting
+        const existing = document.getElementById('roomIdModal');
+        if (existing && existing.parentNode) {
+            existing.parentNode.removeChild(existing);
+        }
+
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.id = 'roomIdModal';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = '#242424';
+        modal.style.display = 'flex';
+        modal.style.flexDirection = 'column';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '3000';
+        modal.style.color = 'white';
+
+        // Title
+        const title = document.createElement('h2');
+        title.textContent = '🎉 Room Created!';
+        title.style.marginBottom = '1rem';
+        title.style.fontSize = '2rem';
+        modal.appendChild(title);
+
+        // Description
+        const desc = document.createElement('p');
+        desc.textContent = 'Share this Room ID with your friend:';
+        desc.style.marginBottom = '1rem';
+        desc.style.color = '#aaa';
+        modal.appendChild(desc);
+
+        // Room ID Container
+        const roomIdContainer = document.createElement('div');
+        roomIdContainer.style.display = 'flex';
+        roomIdContainer.style.alignItems = 'center';
+        roomIdContainer.style.gap = '1rem';
+        roomIdContainer.style.marginBottom = '2rem';
+        roomIdContainer.style.padding = '1rem 2rem';
+        roomIdContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        roomIdContainer.style.borderRadius = '8px';
+
+        // Room ID Text
+        const roomIdText = document.createElement('span');
+        roomIdText.textContent = roomId;
+        roomIdText.style.fontSize = '1.5rem';
+        roomIdText.style.fontWeight = 'bold';
+        roomIdText.style.fontFamily = 'monospace';
+        roomIdText.style.color = '#4DD0E1';
+        roomIdText.style.userSelect = 'all';
+        roomIdContainer.appendChild(roomIdText);
+
+        // Copy Button
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = '📋 Copy';
+        copyBtn.className = 'menu-btn';
+        copyBtn.style.fontSize = '1rem';
+        copyBtn.style.padding = '0.5rem 1rem';
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(roomId);
+                copyBtn.textContent = '✓ Copied!';
+                copyBtn.style.background = '#81C784';
+                setTimeout(() => {
+                    copyBtn.textContent = '📋 Copy';
+                    copyBtn.style.background = '';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(roomIdText);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+                copyBtn.textContent = '✓ Selected!';
+            }
+        });
+        roomIdContainer.appendChild(copyBtn);
+
+        modal.appendChild(roomIdContainer);
+
+        // Instructions
+        const instructions = document.createElement('p');
+        instructions.id = 'coop-instructions-text';
+        instructions.textContent = 'Waiting for Player 2 to join...';
+        instructions.style.marginBottom = '2rem';
+        instructions.style.color = '#FFB74D';
+        instructions.style.fontSize = '0.9rem';
+        modal.appendChild(instructions);
+
+        // Start Game Button
+        const startBtn = document.createElement('button');
+        startBtn.id = 'coop-start-btn';
+        startBtn.textContent = 'Waiting for P2...';
+        startBtn.className = 'menu-btn';
+        startBtn.style.fontSize = '1.5rem';
+        startBtn.style.padding = '1rem 3rem';
+        startBtn.style.background = 'linear-gradient(45deg, #4DD0E1 0%, #81C784 100%)';
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.5';
+
+        startBtn.addEventListener('click', () => {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+            onStartGame();
+        });
+        modal.appendChild(startBtn);
+
+        // Cancel Button
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.className = 'menu-btn';
+        cancelBtn.style.marginTop = '1rem';
+        cancelBtn.style.fontSize = '1rem';
+        cancelBtn.addEventListener('click', () => {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+            if (onCancel) onCancel();
+        });
+        modal.appendChild(cancelBtn);
+
+        this.root.appendChild(modal);
+
+        return {
+            setPlayerJoined: () => {
+                console.log('[Coop] UI: setPlayerJoined called, updating DOM elements');
+                // Use ID lookout as backup, otherwise use closure
+                const instEl = document.getElementById('coop-instructions-text') || instructions;
+                const btnEl = (document.getElementById('coop-start-btn') as HTMLButtonElement) || startBtn;
+
+                instEl.textContent = 'Player 2 Joined! Ready to Start.';
+                instEl.style.color = '#81C784';
+
+                btnEl.textContent = 'Start Game';
+                btnEl.disabled = false;
+                btnEl.style.opacity = '1';
+
+                // Force blink effect to confirm update
+                instEl.style.animation = 'none';
+                instEl.offsetHeight; /* trigger reflow */
+                instEl.style.animation = 'pulse 0.5s 1';
+            },
+            close: () => {
+                if (modal.parentNode) modal.parentNode.removeChild(modal);
+            }
+        };
+    }
+
+    private async startCoopGame(room: RoomInfo, playerNumber: 1 | 2) {
+        try {
+            // Dynamic imports
+            const [
+                { CoopGame },
+                { CoopRenderer },
+                { CoopInputHandler }
+            ] = await Promise.all([
+                import('../coop/CoopGame'),
+                import('./CoopRenderer'),
+                import('../coop/CoopInputHandler')
+            ]);
+
+            // Hide ALL Solo UI Overlays/Menus
+            if (this.menu) this.menu.style.display = 'none';
+            if (this.gameOverMenu) this.gameOverMenu.style.display = 'none';
+            if (this.leaderboardOverlay) this.leaderboardOverlay.style.display = 'none';
+            if (this.pauseBtn) this.pauseBtn.style.display = 'block';
+
+            // Hide home menu
+            if (this.homeMenu) this.homeMenu.style.display = 'none';
+
+            // Hide solo game elements
+            const soloCanvas = this.root.querySelector<HTMLCanvasElement>('#gameCanvas');
+            const gameContainer = this.root.querySelector<HTMLElement>('#game-container');
+            const leftPanel = this.root.querySelector<HTMLElement>('#left-panel');
+            const rightPanel = this.root.querySelector<HTMLElement>('#right-panel');
+
+            // Force Landscape for Coop
+            this.toggleLandscapeMode(true);
+
+            if (soloCanvas) soloCanvas.style.display = 'none';
+            if (gameContainer) gameContainer.style.display = 'none';
+            if (leftPanel) leftPanel.style.display = 'none';
+            if (rightPanel) rightPanel.style.display = 'none';
+
+            // Stop solo game logic
+            this.game.isPaused = true;
+            this.game.gameOver = true;
+            console.log('[Coop] Solo game stopped');
+
+            // Create Coop UI Layout
+            const {
+                canvas,
+                p1NextCanvas,
+                p2NextCanvas,
+                coopScoreEl,
+                coopLevelEl
+            } = this.setupCoopLayout();
+
+            // Initialize Coop components
+            this.coopGame = new CoopGame();
+            this.coopRenderer = new CoopRenderer(canvas, 30);
+            this.coopInputHandler = new CoopInputHandler();
+
+            // Setup input handling
+            const keyHandler = (e: KeyboardEvent) => {
+                const input = this.coopInputHandler?.handleInput(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+                    e.preventDefault();
+                }
+            };
+            document.addEventListener('keydown', keyHandler);
+
+            // Start game
+            this.coopGame.start(room, playerNumber);
+
+            // Render loop
+            const renderLoop = () => {
+                if (this.coopGame && this.coopRenderer) {
+                    const state = this.coopGame.getState();
+                    this.coopRenderer.render(
+                        state.board,
+                        state.player1,
+                        state.player2,
+                        state.isPaused,
+                        this.coopGame.sync?.latency || 0
+                    );
+
+                    // Update Coop UI Stats
+                    if (coopScoreEl) coopScoreEl.textContent = state.score.toString();
+                    if (coopLevelEl) coopLevelEl.textContent = state.level.toString();
+                    this.updatePauseBtnText();
+
+                    // Render Next Pieces
+                    const nextPieces = (state as any).nextPieces;
+                    if (nextPieces) {
+                        const p1Ctx = p1NextCanvas?.getContext('2d');
+                        const p2Ctx = p2NextCanvas?.getContext('2d');
+                        if (p1Ctx) CoopRenderer.drawMiniPiece(p1Ctx, nextPieces.player1);
+                        if (p2Ctx) CoopRenderer.drawMiniPiece(p2Ctx, nextPieces.player2);
+                    }
+
+                    if (state.gameOver) {
+                        console.log('[Coop] Game Over!');
+                        this.showCoopGameOver(state.score, state.lines, state.level);
+                        return;
+                    }
+
+                    requestAnimationFrame(renderLoop);
+                }
+            };
+            renderLoop();
+
+            console.log(`[Coop] Game started as Player ${playerNumber}`);
+        } catch (error) {
+            console.error('[Coop] Failed to start game:', error);
+            alert('Failed to start Coop game.');
+        }
+    }
+
     updatePauseBtnText() {
         if (this.pauseBtn) {
-            this.pauseBtn.textContent = this.game.isPaused ? 'Resume' : 'Pause';
+            if (this.coopGame && !this.coopGame.gameOver) {
+                this.pauseBtn.textContent = this.coopGame.isPaused ? 'Resume' : 'Pause';
+            } else {
+                this.pauseBtn.textContent = this.game.isPaused ? 'Resume' : 'Pause';
+            }
         }
+    }
+
+    private setupCoopLayout() {
+        let coopContainer = this.root.querySelector<HTMLElement>('#coop-ui-container');
+        let canvas: HTMLCanvasElement;
+        let p1NextCanvas: HTMLCanvasElement;
+        let p2NextCanvas: HTMLCanvasElement;
+        let coopScoreEl: HTMLElement;
+        let coopLevelEl: HTMLElement;
+
+        if (!coopContainer) {
+            coopContainer = document.createElement('div');
+            coopContainer.id = 'coop-ui-container';
+            coopContainer.style.display = 'flex';
+            coopContainer.style.justifyContent = 'center';
+            coopContainer.style.alignItems = 'center';
+            coopContainer.style.gap = '20px';
+            coopContainer.style.padding = '20px';
+            coopContainer.style.marginTop = '20px';
+
+            // Left Panel (Score + P1 Next)
+            const leftCol = document.createElement('div');
+            leftCol.style.display = 'flex';
+            leftCol.style.flexDirection = 'column';
+            leftCol.style.gap = '10px';
+
+            const score = this.createCoopPanel('Team Score', 'coop-score-val');
+            coopScoreEl = score.value!;
+            leftCol.appendChild(score.panel);
+
+            const p1 = this.createCoopPanel('P1 Next', 'p1-next-canvas');
+            p1NextCanvas = p1.canvas!;
+            leftCol.appendChild(p1.panel);
+
+            coopContainer.appendChild(leftCol);
+
+            // Center Panel (Pause Btn + Board)
+            const centerCol = document.createElement('div');
+            centerCol.style.display = 'flex';
+            centerCol.style.flexDirection = 'column';
+            centerCol.style.alignItems = 'center';
+            centerCol.style.justifyContent = 'center';
+            centerCol.style.gap = '10px';
+
+            // Move Pause Button Here if exists
+            if (this.pauseBtn) {
+                // Remove from previous parent (controls or root)
+                if (this.pauseBtn.parentNode) {
+                    this.pauseBtn.parentNode.removeChild(this.pauseBtn);
+                }
+                this.pauseBtn.style.marginBottom = '5px';
+                this.pauseBtn.style.alignSelf = 'center';
+                // Ensure visibility
+                this.pauseBtn.style.display = 'block';
+                centerCol.appendChild(this.pauseBtn);
+            }
+
+            canvas = document.createElement('canvas');
+            canvas.id = 'coopCanvas';
+            canvas.width = 24 * 30; // 720
+            canvas.height = 12 * 30; // 360
+            centerCol.appendChild(canvas);
+
+            coopContainer.appendChild(centerCol);
+
+            // Right Panel (Level + P2 Next)
+            const rightCol = document.createElement('div');
+            rightCol.style.display = 'flex';
+            rightCol.style.flexDirection = 'column';
+            rightCol.style.gap = '10px';
+
+            const level = this.createCoopPanel('Level', 'coop-level-val');
+            coopLevelEl = level.value!;
+            rightCol.appendChild(level.panel);
+
+            const p2 = this.createCoopPanel('P2 Next', 'p2-next-canvas');
+            p2NextCanvas = p2.canvas!;
+            rightCol.appendChild(p2.panel);
+
+            coopContainer.appendChild(rightCol);
+
+            this.root.appendChild(coopContainer);
+        } else {
+            canvas = this.root.querySelector<HTMLCanvasElement>('#coopCanvas')!;
+            p1NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p1-next-canvas')!;
+            p2NextCanvas = this.root.querySelector<HTMLCanvasElement>('#p2-next-canvas')!;
+            coopScoreEl = this.root.querySelector<HTMLElement>('#coop-score-val')!;
+            coopLevelEl = this.root.querySelector<HTMLElement>('#coop-level-val')!;
+            coopContainer.style.display = 'flex';
+
+            // Re-append pause button if needed (idempotency check)
+            if (this.pauseBtn && !coopContainer.contains(this.pauseBtn)) {
+                const centerCol = canvas.parentElement;
+                if (centerCol) {
+                    centerCol.insertBefore(this.pauseBtn, canvas);
+                    this.pauseBtn.style.display = 'block';
+                }
+            }
+        }
+
+        return { canvas, p1NextCanvas, p2NextCanvas, coopScoreEl, coopLevelEl };
+    }
+
+    private createCoopPanel(title: string, id: string): { panel: HTMLElement, canvas?: HTMLCanvasElement, value?: HTMLElement } {
+        const panel = document.createElement('div');
+        panel.className = 'panel-box';
+        panel.style.background = 'rgba(0,0,0,0.5)';
+        panel.style.padding = '15px';
+        panel.style.borderRadius = '8px';
+        panel.style.textAlign = 'center';
+        panel.style.minWidth = '120px';
+
+        const h3 = document.createElement('h3');
+        h3.textContent = title;
+        h3.style.color = '#aaa';
+        h3.style.marginBottom = '10px';
+        h3.style.marginTop = '0';
+        panel.appendChild(h3);
+
+        let c, v;
+        if (id.includes('next')) {
+            c = document.createElement('canvas');
+            c.id = id;
+            c.width = 100;
+            c.height = 100;
+            const ctx = c.getContext('2d');
+            if (ctx) {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, 100, 100);
+            }
+            panel.appendChild(c);
+        } else {
+            v = document.createElement('div');
+            v.id = id;
+            v.className = 'stat-value';
+            v.textContent = '0';
+            panel.appendChild(v);
+        }
+        return { panel, canvas: c, value: v };
     }
 }

@@ -1,5 +1,6 @@
 export enum GameMode {
     OFFLINE = 'OFFLINE',
     ONLINE = 'ONLINE',
-    SPECIAL = 'SPECIAL'
+    SPECIAL = 'SPECIAL',
+    COOP = 'COOP'
 }

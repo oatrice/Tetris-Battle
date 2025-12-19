@@ -1,5 +1,42 @@
 # Changelog
 
+## [2.0.0] - 2025-12-19
+### Added
+- **🎮 Coop Mode (2 Players)**: Complete implementation of Cooperative Multiplayer on a shared board.
+    - **Core Gameplay**:
+        - Shared 24x12 horizontal board (P1: Left, P2: Right).
+        - Dual independent falling pieces with simultaneous control.
+        - `CoopGame` controller for loop, scoring, and level progression.
+        - `CoopInputHandler` for managing input for both players.
+    - **Networking & Synchronization**:
+        - **Real-time Sync**: `CoopSync` ensures state consistency between players (utilizing Firebase Realtime Database).
+        - **Pause/Resume Sync**: Robust synchronization of pause states between clients.
+        - **Room Management**: Create and join rooms easily with `RoomManager`.
+    - **Rendering**: `CoopRenderer` for the wider board and zone visualization.
+    - **Deterministic Gameplay**: `DeterministicPieces` and enhanced `SeededRandom` for consistent piece sequences.
+- **UI Refinements**:
+    - **Next Piece Panel**: Improved styling and visual hierarchy.
+    - **Login Flow**: Optimized visibility of login elements.
+- **Testing**: Comprehensive TDD tests for Coop components (`CoopBoard`, `DualPieceController`).
+
+### Changed
+- **Documentation**: Updated README and CHANGELOG to reflect the major version milestone.
+- **Mobile UI**: Adjusted margins and layout for player names and login addresses to ensure visibility on small screens.
+- **Coop Optimizations**:
+    - Increased sync interval to 200ms for smoother performance.
+    - Improved robustness of packet handling and state reconciliation.
+    - `CoopInputHandler` supports flexible keybindings.
+- **Environment**: Added `VITE_FIREBASE_DATABASE_URL` requirement.
+
+### Fixed
+- **Coop Sync Issues**:
+    - Resolved critical issue where P1's piece wasn't rendering for P2.
+    - Fixed race conditions in rapid piece drops and input handling.
+    - Adjusted `CoopSync` to correctly use Firebase Auth current user.
+- **Rendering Artifacts**: Fixed visual glitches in `CoopRenderer` (collision detection, zone divider).
+- **Service & Environment**: Fixed `process.env` usage for Vite compatibility.
+- **Auth UI**: Fixed login UI discrepancies on mobile.
+
 ## [1.3.5] - 2025-12-19
 ### Changed
 - **Mobile Styling**: Refined mobile styling to improve layout consistency and responsiveness across different devices.
