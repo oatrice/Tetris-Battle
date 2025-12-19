@@ -40,33 +40,67 @@ export class CoopGame {
         this.room = room;
         this.playerNumber = playerNumber;
 
-        if (room && playerNumber === 2) {
-            console.log('[CoopGame] Guest waiting for Host state...');
-        } else {
-            // Spawn initial pieces
-            const spawned = this.controller.spawnPieces();
-            if (!spawned) {
-                console.error('[CoopGame] Cannot spawn initial pieces - Game Over immediately!');
-                this.gameOver = true;
-                return; // Don't start game loop
-            }
+        if (room) {
+            this.setupSync(room, playerNumber);
         }
 
-        // Start game loop
+        if (room && playerNumber === 2) {
+            console.log('[CoopGame] Guest waiting for Host seed...');
+            // Guest: Wait for seed before starting
+            this.sync?.waitForSeed((seed) => {
+                console.log('[CoopGame] Guest received seed, starting game.');
+
+                // Initialize controller with shared seed
+                this.controller.setSeed(seed);
+
+                // Spawn initial pieces
+                if (!this.spawnInitialPieces()) return;
+
+                // Start game loop
+                if (!this.animationFrameId) {
+                    this.startGameLoop();
+                }
+            });
+        } else {
+            // Host or Local: Generate seed
+            const seed = Math.floor(Math.random() * 1000000);
+            console.log(`[CoopGame] Host initialization with seed: ${seed}`);
+
+            this.controller.setSeed(seed);
+
+            // Spawn initial pieces
+            if (!this.spawnInitialPieces()) return;
+
+            // Start game loop
+            this.startGameLoop();
+
+            // Broadcast seed if online
+            if (room && playerNumber === 1) {
+                this.sync?.broadcastSeed(seed);
+            }
+        }
+    }
+
+    private spawnInitialPieces(): boolean {
+        const spawned = this.controller.spawnPieces();
+        if (!spawned) {
+            console.error('[CoopGame] Cannot spawn initial pieces - Game Over immediately!');
+            this.gameOver = true;
+            return false;
+        }
+        return true;
+    }
+
+    private startGameLoop() {
         this.isPaused = false;
         this.gameOver = false;
         this.lastUpdate = performance.now();
         this.gameLoop();
-
-        // Setup sync if room provided
-        if (room) {
-            this.setupSync(room, playerNumber);
-        }
     }
 
     private setupSync(room: RoomInfo, playerNumber: 1 | 2) {
         this.sync = new CoopSync();
-        this.sync.start(room, this, playerNumber);
+        this.sync.start(room, this, playerNumber); // Existing Input/State Sync
         console.log(`[CoopGame] Sync enabled for Player ${playerNumber}`);
     }
 

@@ -8,6 +8,7 @@
 
 import { CoopBoard } from './CoopBoard';
 import { Tetromino, TetrominoType } from '../game/Tetromino';
+import { SeededRandom } from '../utils/SeededRandom';
 
 export enum PlayerAction {
     MOVE_LEFT = 'MOVE_LEFT',
@@ -30,26 +31,49 @@ export class DualPieceController {
     private players: Map<PlayerNumber, PlayerPiece>;
     private nextPieces: Map<PlayerNumber, Tetromino>;
     private pieceTypes: TetrominoType[] = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
+    private randomP1: SeededRandom;
+    private randomP2: SeededRandom;
 
     constructor(board: CoopBoard) {
         this.board = board;
         this.players = new Map();
         this.nextPieces = new Map();
 
+        // Default random
+        const now = Date.now();
+        this.randomP1 = new SeededRandom(now);
+        this.randomP2 = new SeededRandom(now + 12345);
+
         // Initialize empty player states
         this.players.set(1, { piece: null, position: { x: 0, y: 0 } });
         this.players.set(2, { piece: null, position: { x: 0, y: 0 } });
 
         // Generate initial next pieces
-        this.nextPieces.set(1, this.generatePiece());
-        this.nextPieces.set(2, this.generatePiece());
+        this.nextPieces.set(1, this.generatePiece(1));
+        this.nextPieces.set(2, this.generatePiece(2));
+    }
+
+    /**
+     * Set the Random Seed for deterministic generation
+     */
+    setSeed(seed: number) {
+        // console.log(`[DualPiece] Setting Seed: ${seed}`);
+        this.randomP1 = new SeededRandom(seed);
+        this.randomP2 = new SeededRandom(seed + 12345);
+
+        // Re-generate next pieces with new seed so they are consistent across peers
+        // Note: This might shift the stream if game already started, but usually called at start.
+        this.nextPieces.set(1, this.generatePiece(1));
+        this.nextPieces.set(2, this.generatePiece(2));
     }
 
     /**
      * Generate a random Tetromino
      */
-    private generatePiece(): Tetromino {
-        const type = this.pieceTypes[Math.floor(Math.random() * this.pieceTypes.length)];
+    private generatePiece(player: PlayerNumber): Tetromino {
+        const rng = player === 1 ? this.randomP1 : this.randomP2;
+        const index = Math.floor(rng.next() * this.pieceTypes.length);
+        const type = this.pieceTypes[index];
         return new Tetromino(type);
     }
 
@@ -59,7 +83,7 @@ export class DualPieceController {
     getNextPiece(player: PlayerNumber): Tetromino {
         let piece = this.nextPieces.get(player);
         if (!piece) {
-            piece = this.generatePiece();
+            piece = this.generatePiece(player);
             this.nextPieces.set(player, piece);
         }
         return piece;
@@ -84,7 +108,7 @@ export class DualPieceController {
 
         // Get next piece and generate new next piece
         const piece = this.getNextPiece(player);
-        this.nextPieces.set(player, this.generatePiece());
+        this.nextPieces.set(player, this.generatePiece(player));
 
         // Check if spawn position is blocked
         if (!this.board.canPlacePiece(piece, spawnPos.x, spawnPos.y)) {

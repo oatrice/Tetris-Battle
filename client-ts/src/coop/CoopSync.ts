@@ -14,6 +14,7 @@ export class CoopSync {
     private readonly inputPath = 'tetrisCoop/inputs';
     private unsubscribe?: () => void;
     private unsubscribeInput?: () => void;
+    private unsubscribeSeed?: () => void;
     private coopGame?: CoopGame;
     private playerNumber: 1 | 2 = 1;
     private syncInterval?: number;
@@ -197,6 +198,35 @@ export class CoopSync {
 
     }
 
+    /**
+     * Broadcast the random seed to the room (Master only)
+     */
+    async broadcastSeed(seed: number) {
+        if (!this.coopGame?.room) return;
+        const path = `${this.gameStatePath}/${this.coopGame.room.id}/seed`;
+        console.log(`[CoopSync] Broadcasting seed: ${seed}`);
+        await this.realtime.set(path, seed);
+    }
+
+    /**
+     * Listen for the random seed (Peer only)
+     */
+    waitForSeed(callback: (seed: number) => void) {
+        if (!this.coopGame?.room) return;
+        const path = `${this.gameStatePath}/${this.coopGame.room.id}/seed`;
+        console.log('[CoopSync] Waiting for seed...');
+
+        // We use onValue but maybe we only need it once. 
+        // However, if we restart, seed might change. So keep listening?
+        // Usually seed is set once per match.
+        this.unsubscribeSeed = this.realtime.onValue<number>(path, (seed) => {
+            if (typeof seed === 'number') {
+                console.log(`[CoopSync] Received seed: ${seed}`);
+                callback(seed);
+            }
+        });
+    }
+
     /** Helper to obtain a stable local player identifier */
     private getLocalPlayerId(): string {
         // Use Firebase auth UID if available, otherwise fallback to a random session id
@@ -221,6 +251,9 @@ export class CoopSync {
         }
         if (this.unsubscribeInput) {
             this.unsubscribeInput();
+        }
+        if (this.unsubscribeSeed) {
+            this.unsubscribeSeed();
         }
         if (this.syncInterval) {
             clearInterval(this.syncInterval);
