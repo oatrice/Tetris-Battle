@@ -191,6 +191,7 @@ export class GameUI {
         this.loginBtn.className = 'menu-btn'; // Re-use style
         this.loginBtn.style.background = '#4285F4'; // Google Blue
         this.loginBtn.style.fontSize = '1rem';
+        this.loginBtn.style.display = 'none'; // Initially hidden until auth state resolves
         this.loginBtn.addEventListener('click', () => {
             this.authService.signInWithGoogle()
                 .then(user => this.updateAuthUI(user))

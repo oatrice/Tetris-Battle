@@ -91,4 +91,32 @@ describe('GameUI Auth Integration', () => {
         expect(mockGame.setPlayerName).toHaveBeenCalledWith('Player'); // Default or stored name? logic might differ
         expect(mockGame.setPlayerMetadata).toHaveBeenCalledWith(undefined, undefined);
     });
+    it('should initially hide login button while waiting for auth state (loading)', () => {
+        // Override mock to simulate delay
+        const delayedAuth = {
+            onAuthStateChanged: vi.fn(), // No immediate callback
+        };
+        (mockAuthService.getAuth as any).mockReturnValue(delayedAuth);
+
+        const ui = new GameUI(mockGame, document.body);
+        ui.init();
+
+        const loginBtn = document.getElementById('login-btn');
+        // valid check: initially hidden
+        expect(loginBtn?.style.display).toBe('none');
+    });
+
+    it('should show login button if auth resolves to null (no user)', () => {
+        // Override mock to callback with null
+        const authWithNull = {
+            onAuthStateChanged: vi.fn((cb) => cb(null)),
+        };
+        (mockAuthService.getAuth as any).mockReturnValue(authWithNull);
+
+        const ui = new GameUI(mockGame, document.body);
+        ui.init();
+
+        const loginBtn = document.getElementById('login-btn');
+        expect(loginBtn?.style.display).not.toBe('none');
+    });
 });
