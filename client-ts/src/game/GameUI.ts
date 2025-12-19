@@ -983,6 +983,11 @@ export class GameUI {
             if (leftPanel) leftPanel.style.display = 'none';
             if (rightPanel) rightPanel.style.display = 'none';
 
+            // Stop solo game logic
+            this.game.isPaused = true; // Pause the game
+            this.game.gameOver = true; // Mark as game over to stop updates
+            console.log('[Coop] Solo game stopped');
+
             // Create or get coop canvas
             let canvas = this.root.querySelector<HTMLCanvasElement>('#coopCanvas');
             if (!canvas) {
