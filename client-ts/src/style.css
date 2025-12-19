@@ -170,30 +170,34 @@ canvas {
 
   /* Compact Boxes for Mobile */
   .panel-box {
-    padding: 2px 8px;
-    /* Slimmer padding */
+    padding: 2px 5px;
+    /* Even slimmer */
     min-width: auto;
     flex: 0 1 auto;
-    /* Don't grow too much */
     display: flex;
     flex-direction: row;
-    /* Horizontal layout for Next Piece text & canvas? or just stacked small */
-    gap: 10px;
+    gap: 5px;
+    /* Tighter gap */
+    background: transparent;
+    /* Remove background to make it less boxy? Or keep it subtle */
+    border: none;
+    /* Minimalist */
   }
 
   .panel-box h3 {
-    font-size: 0.8rem;
+    font-size: 0.6rem;
+    /* Smaller text */
     margin: 0;
-    /* Remove margin */
-    margin-right: 5px;
+    margin-right: 2px;
     line-height: 1;
+    opacity: 0.8;
   }
 
-  /* Smaller Next/Hold Canvas */
+  /* Tiny Next/Hold Canvas */
   #nextCanvas,
   #holdCanvas {
-    width: 40px;
-    height: 40px;
+    width: 25px;
+    height: 25px;
     display: block;
   }
 
@@ -203,8 +207,8 @@ canvas {
     width: auto;
     height: auto;
     max-width: 100%;
-    /* Calculate height: 100dvh - (controls ~40px) - (next panel ~50px) - margins */
-    max-height: calc(100dvh - 110px);
+    /* Calculate height: 100dvh - (controls ~40px) - (next panel ~30px) - margins */
+    max-height: calc(100dvh - 85px);
     aspect-ratio: 300/600;
     margin: 0 auto;
     border-width: 2px;
