@@ -202,6 +202,24 @@ export class GameUI {
         document.body.style.touchAction = 'none';
 
         window.addEventListener('touchmove', (e) => {
+            const target = e.target as HTMLElement;
+            // Check if user is trying to scroll a scrollable container
+            let isScrollable = false;
+            let el = target;
+
+            while (el && el !== document.body) {
+                // specialized check for our leaderboard list or any other explicit scroll container
+                if (el.style.overflowY === 'auto' || el.style.overflowY === 'scroll') {
+                    if (el.scrollHeight > el.clientHeight) {
+                        isScrollable = true;
+                        break;
+                    }
+                }
+                el = el.parentElement as HTMLElement;
+            }
+
+            if (isScrollable) return;
+
             if (window.scrollY === 0 && e.touches[0].clientY > 0 && e.cancelable) {
                 e.preventDefault();
             }
@@ -542,6 +560,7 @@ export class GameUI {
         this.leaderboardList.style.display = 'flex';
         this.leaderboardList.style.flexDirection = 'column';
         this.leaderboardList.style.gap = '10px';
+        this.leaderboardList.style.touchAction = 'pan-y'; // Allow vertical scrolling on mobile
         overlay.appendChild(this.leaderboardList);
 
         const closeBtn = document.createElement('button');

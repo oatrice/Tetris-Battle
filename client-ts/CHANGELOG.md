@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.3] - 2025-12-19
+### Fixed
+- **Touch Scrolling**: Resolved an issue where touch scrolling was not functioning correctly in the game UI, improving mobile and touch-based gameplay.
+
 ## [1.3.2] - 2025-12-19
 ### Changed
 - **CSS Styling**: Updated `style.css` to refine visual elements and ensure consistency with the new pastel theme.
