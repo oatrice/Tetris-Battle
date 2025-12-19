@@ -84,6 +84,9 @@ export class OnlineGame extends Game {
         })
 
         socketService.on('game_over', () => {
+            // Guard: only process once
+            if (this.isWinner || this.opponentGameOver) return
+
             console.log('Opponent lost! You win!')
             this.opponentGameOver = true
             this.isWinner = true
