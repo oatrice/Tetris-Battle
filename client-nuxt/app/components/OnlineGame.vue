@@ -55,6 +55,7 @@
     <!-- Center Status -->
     <div class="vs-section">
       <span class="vs-text">{{ mode === 'lan' ? '📡 LAN' : '🌐 ONLINE' }}</span>
+      <span v-if="onlineGame.isOpponentConnected && !isWaiting && onlineGame.countdown === null" class="game-timer">⏱ {{ formattedTime }}</span>
       
       <div v-if="isWaiting" class="status-box waiting">
           <div class="spinner"></div>
@@ -137,6 +138,14 @@ const matchSaved = ref(false)
 // Computed state for waiting for opponent
 const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected)
 
+// Formatted Timer
+const formattedTime = computed(() => {
+    const totalSeconds = props.onlineGame.gameDuration || 0
+    const m = Math.floor(totalSeconds / 60)
+    const s = totalSeconds % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
+})
+
 const saveAndExit = () => {
     LeaderboardService.addOnlineMatch({
         date: new Date().toISOString(),
@@ -146,7 +155,8 @@ const saveAndExit = () => {
         opponentName: props.onlineGame.opponentName || 'Opponent',
         winScore: props.onlineGame.winScore,
         maxScore: props.onlineGame.score,
-        opponentScore: props.onlineGame.opponentScore
+        opponentScore: props.onlineGame.opponentScore,
+        duration: props.onlineGame.gameDuration
     })
     matchSaved.value = true
 }
@@ -413,6 +423,17 @@ onUnmounted(() => {
 .back-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: white;
+}
+
+.game-timer {
+  font-family: monospace;
+  font-size: 1.2rem;
+  color: #fff;
+  background: rgba(0,0,0,0.5);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+  margin-top: 0.5rem;
 }
 
 .player-stats {

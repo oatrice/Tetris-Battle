@@ -20,6 +20,10 @@ export class OnlineGame extends Game {
     countdown: number | null = null
     timer: any = null
 
+    // Game Duration Logic
+    gameDuration = 0 // Seconds
+    private durationInterval: any = null
+
     constructor() {
         super()
         this.opponentBoard = Array(20).fill(null).map(() => Array(10).fill(0))
@@ -28,6 +32,22 @@ export class OnlineGame extends Game {
     // Public init method to be called AFTER reactive() wrapping
     public init(wsUrl: string) {
         this.initSocket(wsUrl)
+    }
+
+    private startDurationTimer() {
+        if (this.durationInterval) clearInterval(this.durationInterval)
+        this.durationInterval = setInterval(() => {
+            if (!this.isPaused && !this.isGameOver) {
+                this.gameDuration++
+            }
+        }, 1000)
+    }
+
+    private stopDurationTimer() {
+        if (this.durationInterval) {
+            clearInterval(this.durationInterval)
+            this.durationInterval = null
+        }
     }
 
     private initSocket(wsUrl: string) {
@@ -63,6 +83,7 @@ export class OnlineGame extends Game {
             alert('Opponent disconnected!')
             this.isOpponentConnected = false
             this.isGameOver = true
+            this.stopDurationTimer()
             if (this.timer) clearInterval(this.timer)
         })
 
@@ -74,6 +95,10 @@ export class OnlineGame extends Game {
             if (!this.isPaused) {
                 console.log('Opponent paused the game')
                 this.isPaused = true
+                // Note: We don't stop our timer if opponent pauses, 
+                // but usually online games pause for both. 
+                // For now, let's assume pause state is global or synchronized?
+                // The current togglePause implementation sends 'pause' and sets local isPaused.
             }
         })
 
@@ -87,6 +112,8 @@ export class OnlineGame extends Game {
         socketService.on('game_over', () => {
             // Guard: only process once
             if (this.isWinner || this.opponentGameOver || this.isDraw) return
+
+            this.stopDurationTimer()
 
             this.opponentGameOver = true
 
@@ -119,6 +146,7 @@ export class OnlineGame extends Game {
         if (this.isWinner) {
             this.isPaused = false
             console.log('Continuing solo play after winning')
+            this.startDurationTimer() // Resume timer for max score tracking
         }
     }
 
@@ -147,6 +175,10 @@ export class OnlineGame extends Game {
 
         this.broadcastState()
 
+        if (this.isGameOver) {
+            this.stopDurationTimer()
+        }
+
         const linesDiff = this.linesCleared - linesBefore
         if (linesDiff >= 2) {
             const garbage = this.calculateGarbage(linesDiff)
@@ -167,6 +199,7 @@ export class OnlineGame extends Game {
 
         if (this.isGameOver) {
             socketService.send('game_over')
+            this.stopDurationTimer()
         }
     }
 
@@ -213,6 +246,7 @@ export class OnlineGame extends Game {
     cleanup() {
         socketService.disconnect()
         if (this.timer) clearInterval(this.timer)
+        this.stopDurationTimer()
     }
 
     reset() {
@@ -221,11 +255,14 @@ export class OnlineGame extends Game {
         this.linesCleared = 0
         this.level = 1
         this.isGameOver = false
+        this.gameDuration = 0
+        this.stopDurationTimer()
         this.currentPiece = this.spawnPiece()
         this.nextPiece = this.spawnPiece()
     }
 
     start() {
         this.isPaused = false
+        this.startDurationTimer()
     }
 }

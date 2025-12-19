@@ -80,7 +80,10 @@
                         {{ match.gameMode === 'lan' ? '📡' : '🌐' }} Match #{{ onlineMatches.length - index }}
                     </span>
                     <span class="mode-badge" :class="match.gameMode">{{ match.gameMode?.toUpperCase() || 'ONLINE' }}</span>
-                    <span class="match-date">{{ new Date(match.date).toLocaleString() }}</span>
+                    <div class="header-right">
+                        <span class="match-duration" v-if="match.duration">⏱ {{ formatDuration(match.duration) }}</span>
+                        <span class="match-date">{{ new Date(match.date).toLocaleString() }}</span>
+                    </div>
                 </div>
                 <div class="online-result">
                     <!-- Result Badge -->
@@ -165,12 +168,22 @@ import { ref, computed } from 'vue'
 import { LeaderboardService, type LeaderboardEntry, type GameMode, type DuoMatchResult, type OnlineMatchResult } from '~/services/LeaderboardService'
 
 const props = defineProps<{
+  initialMode?: GameMode
   highlightRank?: number
   highlightMode?: GameMode
   initialTab?: GameMode
 }>()
 
 defineEmits(['close'])
+
+const formatDuration = (seconds?: number) => {
+    if (!seconds) return ''
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+
 
 const activeTab = ref<GameMode>(props.initialTab ?? 'solo')
 
@@ -278,6 +291,16 @@ h2 {
 }
 
 .match-id { font-weight: bold; color: #aaa; }
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.match-duration {
+    font-size: 0.75rem;
+    color: #4ade80; /* Green */
+    font-family: monospace;
+}
 .match-date { font-style: italic; font-size: 0.75rem; }
 
 .mode-badge {

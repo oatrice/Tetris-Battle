@@ -355,7 +355,8 @@ describe('LeaderboardService', () => {
                 opponentName: 'Eve',
                 winScore: 1500,
                 maxScore: 2300,
-                opponentScore: 800
+                opponentScore: 800,
+                duration: 300
             })
 
             expect(result.id).toBeTruthy()
@@ -377,7 +378,8 @@ describe('LeaderboardService', () => {
                 opponentName: 'Oatrice',
                 winScore: null,
                 maxScore: 800,
-                opponentScore: 1500
+                opponentScore: 1500,
+                duration: 250
             })
 
             expect(result.isWinner).toBe(false)
@@ -396,7 +398,8 @@ describe('LeaderboardService', () => {
                 opponentName: 'Opponent',
                 winScore: 1000,
                 maxScore: 1000,
-                opponentScore: 500
+                opponentScore: 500,
+                duration: 100
             })
 
             LeaderboardService.addOnlineMatch({
@@ -407,7 +410,8 @@ describe('LeaderboardService', () => {
                 opponentName: 'Opponent',
                 winScore: null,
                 maxScore: 2000,
-                opponentScore: 2500
+                opponentScore: 2500,
+                duration: 200
             })
 
             const history = LeaderboardService.getOnlineLeaderboard()
@@ -427,7 +431,8 @@ describe('LeaderboardService', () => {
                     opponentName: 'Opponent',
                     winScore: i % 2 === 0 ? i * 100 : null,
                     maxScore: i * 100,
-                    opponentScore: 500
+                    opponentScore: 500,
+                    duration: 100 + i
                 })
             }
 
@@ -445,7 +450,8 @@ describe('LeaderboardService', () => {
                 opponentName: 'Eve',
                 winScore: 1500,
                 maxScore: 1500,
-                opponentScore: 800
+                opponentScore: 800,
+                duration: 300
             })
 
             LeaderboardService.clearOnlineMatches()

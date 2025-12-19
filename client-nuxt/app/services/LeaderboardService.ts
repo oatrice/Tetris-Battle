@@ -36,6 +36,7 @@ export interface OnlineMatchResult {
     winScore: number | null     // Score at time of winning (null if lost)
     maxScore: number            // Max score (after continue playing)
     opponentScore: number       // Opponent's final score
+    duration: number            // Game duration in seconds
 }
 
 export class LeaderboardService {
