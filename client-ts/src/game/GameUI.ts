@@ -34,6 +34,9 @@ export class GameUI {
     private coopRenderer: CoopRenderer | null = null;
     private coopInputHandler: CoopInputHandler | null = null;
 
+    // PWA
+    private deferredPrompt: any = null;
+
     constructor(game: Game, root: HTMLElement) {
         this.game = game;
         this.root = root;
@@ -330,11 +333,35 @@ export class GameUI {
             this.showLeaderboard();
         });
 
+        // Install App Button (PWA)
+        const btnInstall = createBtn('btnInstall', '📲 Install App', async () => {
+            if (this.deferredPrompt) {
+                this.deferredPrompt.prompt();
+                const { outcome } = await this.deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                this.deferredPrompt = null;
+                btnInstall.style.display = 'none';
+            }
+        });
+        btnInstall.style.display = 'none'; // Hidden by default
+
+        // Listen for PWA install event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            this.deferredPrompt = e;
+            // Update UI notify the user they can install the PWA
+            btnInstall.style.display = 'block';
+            console.log('beforeinstallprompt fired, install button shown');
+        });
+
         this.homeMenu.appendChild(btnSolo);
         this.homeMenu.appendChild(btnSpecial);
         this.homeMenu.appendChild(btnCoop);
-        this.homeMenu.appendChild(btnChangeName);
         this.homeMenu.appendChild(btnLeaderboard);
+        this.homeMenu.appendChild(btnChangeName);
+        this.homeMenu.appendChild(btnInstall);
 
         const versionInfo = document.createElement('div');
         versionInfo.style.marginTop = '1rem';
