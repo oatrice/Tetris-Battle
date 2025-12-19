@@ -9,6 +9,7 @@ import {
     getDatabase,
     ref,
     set,
+    get,
     onValue,
     remove,
     push,
@@ -47,6 +48,12 @@ export class RealtimeService {
     /** Set value at a specific path */
     async set(path: string, value: any): Promise<void> {
         await set(ref(this.db, path), value);
+    }
+
+    /** Get value at a specific path (one-time read) */
+    async get<T>(path: string): Promise<T | null> {
+        const snapshot = await get(ref(this.db, path));
+        return snapshot.exists() ? (snapshot.val() as T) : null;
     }
 
     /** Listen for realtime updates */

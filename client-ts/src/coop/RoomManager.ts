@@ -40,11 +40,26 @@ export class RoomManager {
 
     /** Get room data once */
     async getRoom(roomId: string): Promise<RoomInfo | null> {
-        return new Promise((resolve) => {
-            this.realtime.onValue<RoomInfo>(`${this.roomsPath}/${roomId}`, (data) => {
-                resolve(data);
-            })();
-        });
+        console.log('[RoomManager] Getting room:', roomId);
+        try {
+            const data = await this.realtime.get<RoomInfo>(`${this.roomsPath}/${roomId}`);
+            console.log('[RoomManager] Room data:', data);
+
+            if (!data) {
+                console.warn('[RoomManager] Room not found:', roomId);
+                return null;
+            }
+
+            return {
+                id: roomId,
+                hostId: data.hostId,
+                players: data.players || [],
+                createdAt: data.createdAt || Date.now()
+            };
+        } catch (error) {
+            console.error('[RoomManager] Error getting room:', error);
+            return null;
+        }
     }
 
     /** Listen for room updates (players join/leave) */

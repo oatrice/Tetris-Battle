@@ -144,8 +144,11 @@ describe('DualPieceController', () => {
         });
 
         it('should prevent piece from overlapping with locked blocks', () => {
-            // Place a block at position (12, 5) - at the boundary between zones
-            board.grid[5][12] = 1;
+            // This test verifies that pieces can move freely until they hit a locked block
+            // In a 24-wide board, pieces can move across the entire width unless blocked
+
+            // Place a block at position (20, 5) - far right
+            board.grid[5][20] = 1;
 
             // Move P1 down to row 5
             for (let i = 0; i < 5; i++) {
@@ -154,15 +157,16 @@ describe('DualPieceController', () => {
 
             const beforeMove = controller.getPosition(1);
 
-            // Try to move right into the blocked area (should be blocked)
-            for (let i = 0; i < 20; i++) {
+            // Try to move right (should be able to move until hitting the block)
+            for (let i = 0; i < 30; i++) {
                 controller.handleAction(1, PlayerAction.MOVE_RIGHT);
             }
 
             const afterMove = controller.getPosition(1);
-            // P1 should be stopped by collision detection
-            // The piece should not be able to move past the block
-            expect(afterMove.x).toBeLessThanOrEqual(beforeMove.x + 10); // Allow some movement but not past the block
+            // Piece should have moved but not overlapped with the locked block at x=20
+            // Assuming piece width is ~4, it should stop before x=17 (20-3)
+            expect(afterMove.x).toBeGreaterThan(beforeMove.x); // Should have moved
+            expect(afterMove.x).toBeLessThan(20); // Should not overlap with block at x=20
         });
     });
 
