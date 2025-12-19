@@ -791,10 +791,12 @@ export class GameUI {
                 `guest_${Math.random().toString(36).substring(2, 10)}`;
 
             const room = await roomManager.createRoom(playerId);
-            alert(`Room Created!\nRoom ID: ${room.id}\nShare this ID with your friend!`);
 
-            // Start Coop Game as Player 1 (host)
-            await this.startCoopGame(room, 1);
+            // Show Room ID with Copy button
+            this.showRoomIdModal(room.id, () => {
+                // Start game when user clicks "Start Game"
+                this.startCoopGame(room, 1);
+            });
         } catch (error) {
             console.error('[Coop] Failed to create room:', error);
             alert('Failed to create room. Make sure Firebase Realtime Database is configured.');
@@ -821,6 +823,122 @@ export class GameUI {
             console.error('[Coop] Failed to join room:', error);
             alert('Failed to join room. Please check the Room ID.');
         }
+    }
+
+    private showRoomIdModal(roomId: string, onStartGame: () => void) {
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.id = 'roomIdModal';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        modal.style.display = 'flex';
+        modal.style.flexDirection = 'column';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '3000';
+        modal.style.color = 'white';
+
+        // Title
+        const title = document.createElement('h2');
+        title.textContent = '🎉 Room Created!';
+        title.style.marginBottom = '1rem';
+        title.style.fontSize = '2rem';
+        modal.appendChild(title);
+
+        // Description
+        const desc = document.createElement('p');
+        desc.textContent = 'Share this Room ID with your friend:';
+        desc.style.marginBottom = '1rem';
+        desc.style.color = '#aaa';
+        modal.appendChild(desc);
+
+        // Room ID Container
+        const roomIdContainer = document.createElement('div');
+        roomIdContainer.style.display = 'flex';
+        roomIdContainer.style.alignItems = 'center';
+        roomIdContainer.style.gap = '1rem';
+        roomIdContainer.style.marginBottom = '2rem';
+        roomIdContainer.style.padding = '1rem 2rem';
+        roomIdContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        roomIdContainer.style.borderRadius = '8px';
+
+        // Room ID Text
+        const roomIdText = document.createElement('span');
+        roomIdText.textContent = roomId;
+        roomIdText.style.fontSize = '1.5rem';
+        roomIdText.style.fontWeight = 'bold';
+        roomIdText.style.fontFamily = 'monospace';
+        roomIdText.style.color = '#4DD0E1';
+        roomIdText.style.userSelect = 'all';
+        roomIdContainer.appendChild(roomIdText);
+
+        // Copy Button
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = '📋 Copy';
+        copyBtn.className = 'menu-btn';
+        copyBtn.style.fontSize = '1rem';
+        copyBtn.style.padding = '0.5rem 1rem';
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(roomId);
+                copyBtn.textContent = '✓ Copied!';
+                copyBtn.style.background = '#81C784';
+                setTimeout(() => {
+                    copyBtn.textContent = '📋 Copy';
+                    copyBtn.style.background = '';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                // Fallback: select text
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(roomIdText);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+                copyBtn.textContent = '✓ Selected!';
+            }
+        });
+        roomIdContainer.appendChild(copyBtn);
+
+        modal.appendChild(roomIdContainer);
+
+        // Instructions
+        const instructions = document.createElement('p');
+        instructions.textContent = 'Waiting for Player 2 to join...';
+        instructions.style.marginBottom = '2rem';
+        instructions.style.color = '#FFB74D';
+        instructions.style.fontSize = '0.9rem';
+        modal.appendChild(instructions);
+
+        // Start Game Button
+        const startBtn = document.createElement('button');
+        startBtn.textContent = 'Start Game';
+        startBtn.className = 'menu-btn';
+        startBtn.style.fontSize = '1.5rem';
+        startBtn.style.padding = '1rem 3rem';
+        startBtn.style.background = 'linear-gradient(45deg, #4DD0E1 0%, #81C784 100%)';
+        startBtn.addEventListener('click', () => {
+            this.root.removeChild(modal);
+            onStartGame();
+        });
+        modal.appendChild(startBtn);
+
+        // Cancel Button
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.className = 'menu-btn';
+        cancelBtn.style.marginTop = '1rem';
+        cancelBtn.style.fontSize = '1rem';
+        cancelBtn.addEventListener('click', () => {
+            this.root.removeChild(modal);
+        });
+        modal.appendChild(cancelBtn);
+
+        this.root.appendChild(modal);
     }
 
     private async startCoopGame(room: RoomInfo, playerNumber: 1 | 2) {
