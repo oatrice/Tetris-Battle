@@ -545,7 +545,7 @@ export class GameUI {
             const scoreEl = this.gameOverMenu.querySelector('#gameOverScore');
             const bestScoreEl = this.gameOverMenu.querySelector('#gameOverBestScore');
             const titleEl = this.gameOverMenu.querySelector('h2');
-            const restartBtn = this.gameOverMenu.querySelector('#restartBtn');
+            const restartBtn = this.gameOverMenu.querySelector('#gameOverRestartBtn');
 
             // Customize for Coop
             if (titleEl) titleEl.textContent = 'Coop Game Over';
