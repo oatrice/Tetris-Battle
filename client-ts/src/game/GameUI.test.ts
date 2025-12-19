@@ -36,7 +36,8 @@ describe('GameUI', () => {
             getAuth: vi.fn().mockReturnValue(mockAuth),
             signInWithGoogle: vi.fn(),
             logout: vi.fn(),
-            getUser: vi.fn().mockReturnValue(null)
+            getUser: vi.fn().mockReturnValue(null),
+            getApp: vi.fn().mockReturnValue(null)
         };
         (AuthService as any).mockImplementation(() => mockAuthService);
 
@@ -254,5 +255,33 @@ describe('GameUI', () => {
         // Should fallback to a safe default
         expect(modeDisplay?.textContent).not.toContain('Invalid Date');
         expect(modeDisplay?.textContent).toContain('Unknown Date');
+    });
+
+    it('should not prevent default touchmove on scrollable leaderboard', () => {
+        ui.init();
+        ui.showLeaderboard();
+        const overlay = document.querySelector('#leaderboardOverlay') as HTMLElement;
+        const children = overlay.children;
+        // Leaderboard List is likely the 2nd child
+        const scrollableList = children[1] as HTMLElement;
+
+        // Mock JSDOM layout properties to simulate scrollable content
+        Object.defineProperty(scrollableList, 'scrollHeight', { value: 1000, configurable: true });
+        Object.defineProperty(scrollableList, 'clientHeight', { value: 500, configurable: true });
+
+        const event = new TouchEvent('touchmove', {
+            bubbles: true,
+            cancelable: true,
+            touches: [{ clientY: 100 } as any]
+        });
+
+        const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+
+        // Ensure window.scrollY is 0
+        Object.defineProperty(window, 'scrollY', { value: 0, writable: true });
+
+        scrollableList.dispatchEvent(event);
+
+        expect(preventDefaultSpy).not.toHaveBeenCalled();
     });
 });
