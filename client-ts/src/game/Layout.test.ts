@@ -11,7 +11,7 @@ describe('UI Layout', () => {
     let ui: GameUI;
     // Mock the HTML structure from main.ts
     const initialHTML = `
-        <h1>Tetris Battle TS</h1>
+        <h1>Tetris Battle</h1>
         <div class="ui-controls">
             <button id="pauseBtn">Pause</button>
             <button id="fullscreenBtn">Full Screen</button>

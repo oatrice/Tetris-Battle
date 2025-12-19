@@ -7,7 +7,7 @@ import { registerSW } from './pwa/registerSW';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
-  <h1>Tetris Battle TS</h1>
+  <h1>Tetris Battle</h1>
   <div class="ui-controls">
       <button id="pauseBtn">Pause</button>
       <button id="fullscreenBtn">Full Screen</button>

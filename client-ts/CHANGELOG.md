@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.5] - 2025-12-19
+### Changed
+- **Mobile Styling**: Refined mobile styling to improve layout consistency and responsiveness across different devices.
+- **Layout Tests**: Updated tests for `Layout.test.ts` and `MobileStyle.test.ts` to reflect recent changes in UI and styling.
+- **Main Entry Point**: Adjusted `main.ts` to incorporate the latest UI and styling updates.
+
 ## [1.3.4] - 2025-12-19
 ### Changed
 - **Margin Top**: Adjusted CSS to correctly set the `margin-top` property for elements within the game UI, ensuring proper spacing and alignment.
