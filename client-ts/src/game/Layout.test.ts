@@ -11,7 +11,6 @@ describe('UI Layout', () => {
     let ui: GameUI;
     // Mock the HTML structure from main.ts
     const initialHTML = `
-      <div>
         <h1>Tetris Battle TS</h1>
         <div class="ui-controls">
             <button id="pauseBtn">Pause</button>
@@ -19,7 +18,6 @@ describe('UI Layout', () => {
             <button id="installBtn">Install App</button>
         </div>
         <canvas id="gameCanvas" width="480" height="600"></canvas>
-      </div>
     `;
 
     beforeEach(() => {

@@ -7,16 +7,14 @@ import { registerSW } from './pwa/registerSW';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
-  <div>
-    <h1>Tetris Battle TS</h1>
-    <div class="ui-controls">
-        <button id="pauseBtn">Pause</button>
-        <button id="fullscreenBtn">Full Screen</button>
-        <button id="installBtn">Install App</button>
-    </div>
-    <canvas id="gameCanvas" width="480" height="600"></canvas>
-    <p>Arrows to Move/Rotate | Space to Hard Drop | P to Pause</p>
+  <h1>Tetris Battle TS</h1>
+  <div class="ui-controls">
+      <button id="pauseBtn">Pause</button>
+      <button id="fullscreenBtn">Full Screen</button>
+      <button id="installBtn">Install App</button>
   </div>
+  <canvas id="gameCanvas" width="480" height="600"></canvas>
+  <p>Arrows to Move/Rotate | Space to Hard Drop | P to Pause</p>
 `;
 
 const canvas = document.querySelector<HTMLCanvasElement>('#gameCanvas')!;
