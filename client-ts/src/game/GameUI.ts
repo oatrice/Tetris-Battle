@@ -702,7 +702,7 @@ export class GameUI {
         overlay.style.left = '0';
         overlay.style.width = '100%';
         overlay.style.height = '100%';
-        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        overlay.style.backgroundColor = '#242424';
         overlay.style.flexDirection = 'column';
         overlay.style.alignItems = 'center';
         overlay.style.alignItems = 'center';
@@ -872,7 +872,7 @@ export class GameUI {
         coopMenu.style.left = '0';
         coopMenu.style.width = '100%';
         coopMenu.style.height = '100%';
-        coopMenu.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        coopMenu.style.backgroundColor = '#242424';
         coopMenu.style.display = 'flex';
         coopMenu.style.flexDirection = 'column';
         coopMenu.style.alignItems = 'center';
@@ -1026,7 +1026,7 @@ export class GameUI {
         modal.style.left = '0';
         modal.style.width = '100%';
         modal.style.height = '100%';
-        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        modal.style.backgroundColor = '#242424';
         modal.style.display = 'flex';
         modal.style.flexDirection = 'column';
         modal.style.alignItems = 'center';
@@ -1090,7 +1090,7 @@ export class GameUI {
         modal.style.left = '0';
         modal.style.width = '100%';
         modal.style.height = '100%';
-        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        modal.style.backgroundColor = '#242424';
         modal.style.display = 'flex';
         modal.style.flexDirection = 'column';
         modal.style.alignItems = 'center';
