@@ -155,6 +155,8 @@ canvas {
   /* Flatten Side Panels to allow interleaving */
   .side-panel {
     display: contents !important;
+    font-size: 0;
+    /* Collapse whitespace text nodes interfering with flex layout */
   }
 
   /* Specific Orders for Top Row */
