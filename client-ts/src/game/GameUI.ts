@@ -856,17 +856,12 @@ export class GameUI {
     }
 
     toggleMenu() {
-        // Handle Coop Game Pause
+        // Handle Coop Game Pause (Toggle ONLY, no Menu Overlay)
         if (this.coopGame && !this.coopGame.gameOver) {
             this.coopGame.togglePause();
-            // In Coop, we don't necessarily show the full solo menu,
-            // but for simplicity we can show a reduced menu or just toggle text.
-            // If paused, show menu
-            if (this.coopGame.isPaused) {
-                this.showMenu();
-            } else {
-                this.hideMenu();
-            }
+            this.updatePauseBtnText();
+            // Ensure solo menu is hidden
+            this.hideMenu();
             return;
         }
 
@@ -1280,7 +1275,7 @@ export class GameUI {
             if (this.menu) this.menu.style.display = 'none';
             if (this.gameOverMenu) this.gameOverMenu.style.display = 'none';
             if (this.leaderboardOverlay) this.leaderboardOverlay.style.display = 'none';
-            if (this.pauseBtn) this.pauseBtn.style.display = 'none';
+            if (this.pauseBtn) this.pauseBtn.style.display = 'block';
 
             // Hide home menu
             if (this.homeMenu) this.homeMenu.style.display = 'none';
@@ -1346,6 +1341,7 @@ export class GameUI {
                     // Update Coop UI Stats
                     if (coopScoreEl) coopScoreEl.textContent = state.score.toString();
                     if (coopLevelEl) coopLevelEl.textContent = state.level.toString();
+                    this.updatePauseBtnText();
 
                     // Render Next Pieces
                     const nextPieces = (state as any).nextPieces;
@@ -1418,12 +1414,34 @@ export class GameUI {
 
             coopContainer.appendChild(leftCol);
 
-            // Center (Board Only)
+            // Center Panel (Pause Btn + Board)
+            const centerCol = document.createElement('div');
+            centerCol.style.display = 'flex';
+            centerCol.style.flexDirection = 'column';
+            centerCol.style.alignItems = 'center';
+            centerCol.style.justifyContent = 'center';
+            centerCol.style.gap = '10px';
+
+            // Move Pause Button Here if exists
+            if (this.pauseBtn) {
+                // Remove from previous parent (controls or root)
+                if (this.pauseBtn.parentNode) {
+                    this.pauseBtn.parentNode.removeChild(this.pauseBtn);
+                }
+                this.pauseBtn.style.marginBottom = '5px';
+                this.pauseBtn.style.alignSelf = 'center';
+                // Ensure visibility
+                this.pauseBtn.style.display = 'block';
+                centerCol.appendChild(this.pauseBtn);
+            }
+
             canvas = document.createElement('canvas');
             canvas.id = 'coopCanvas';
             canvas.width = 24 * 30; // 720
             canvas.height = 12 * 30; // 360
-            coopContainer.appendChild(canvas);
+            centerCol.appendChild(canvas);
+
+            coopContainer.appendChild(centerCol);
 
             // Right Panel (Level + P2 Next)
             const rightCol = document.createElement('div');
@@ -1449,6 +1467,15 @@ export class GameUI {
             coopScoreEl = this.root.querySelector<HTMLElement>('#coop-score-val')!;
             coopLevelEl = this.root.querySelector<HTMLElement>('#coop-level-val')!;
             coopContainer.style.display = 'flex';
+
+            // Re-append pause button if needed (idempotency check)
+            if (this.pauseBtn && !coopContainer.contains(this.pauseBtn)) {
+                const centerCol = canvas.parentElement;
+                if (centerCol) {
+                    centerCol.insertBefore(this.pauseBtn, canvas);
+                    this.pauseBtn.style.display = 'block';
+                }
+            }
         }
 
         return { canvas, p1NextCanvas, p2NextCanvas, coopScoreEl, coopLevelEl };

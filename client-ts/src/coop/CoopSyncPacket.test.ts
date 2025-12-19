@@ -33,6 +33,7 @@ describe('Phase 4: Sequence Numbers & Latency', () => {
                 handleAction: vi.fn(),
             },
             getState: vi.fn().mockReturnValue({ board: {}, nextPieces: {}, player1: {}, player2: {} }),
+            board: { grid: [] }, // Add proper board structure for direct assignment
         } as unknown as CoopGame;
 
         // Setup initial sync
@@ -114,5 +115,30 @@ describe('Phase 4: Sequence Numbers & Latency', () => {
         // Allow variance due to test execution time
         expect(sync.latency).toBeGreaterThanOrEqual(expectedLatency);
         expect(sync.latency).toBeLessThan(expectedLatency + 50);
+    });
+    it('should sync pause state from remote', () => {
+        // Find state callback
+        const stateCallback = mockOnValue.mock.calls.find(c => c[0].includes('gameState'))?.[1];
+        expect(stateCallback).toBeDefined();
+
+        // Simulate Remote Pause
+        stateCallback({
+            playerId: 'other_player',
+            state: {
+                isPaused: true,
+                board: [], // Minimal fields
+            }
+        });
+        expect(mockGame.isPaused).toBe(true); // Should apply TRUE
+
+        // Simulate Remote Resume
+        stateCallback({
+            playerId: 'other_player',
+            state: {
+                isPaused: false,
+                board: [],
+            }
+        });
+        expect(mockGame.isPaused).toBe(false); // Should apply FALSE
     });
 });
