@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.2.0] - 2025-12-19
+### Added
+- **📱 Enhanced Coop Touch Controls**: Refined touch controls for cooperative mode, improving responsiveness and intuitiveness.
+    - **DAS Sensitivity**: Adjusted DAS (Delayed Auto Shift) sensitivity for smoother continuous swipes.
+    - **Tap Precision**: Improved tap detection for more reliable piece rotation.
+    - **Gesture Recognition**: Optimized swipe gesture recognition for movement, hard drop, and hold actions.
+- **💄 UI Improvements**: Minor visual adjustments to the game UI for better clarity.
+- **⚙️ Pre-commit Hook**: Integrated an automated code fixing script into the pre-commit hook for consistent code style.
+
+## [2.1.0] - 2025-12-19
+### Added
+- **📱 Mobile Touch Controls for Coop Mode**: Full gesture support for mobile players in Cooperative Mode.
+    - Swipe L/R to move pieces.
+    - Swipe Down for Hard Drop.
+    - Swipe Up to Hold.
+    - Tap to Rotate.
+    - Long Press for Soft Drop.
+    - DAS (Delayed Auto Shift) via continuous swipe.
+- **Testing**: Added comprehensive TDD tests for `CoopInputHandler` touch controls (12 test cases).
+
 ## [2.0.0] - 2025-12-19
 ### Added
 - **🎮 Coop Mode (2 Players)**: Complete implementation of Cooperative Multiplayer on a shared board.
@@ -8,7 +28,9 @@
         - Dual independent falling pieces with simultaneous control.
         - `CoopGame` controller for loop, scoring, and level progression.
         - `CoopInputHandler` for managing input for both players.
+
     - **Networking & Synchronization**:
+
         - **Real-time Sync**: `CoopSync` ensures state consistency between players (utilizing Firebase Realtime Database).
         - **Pause/Resume Sync**: Robust synchronization of pause states between clients.
         - **Room Management**: Create and join rooms easily with `RoomManager`.
