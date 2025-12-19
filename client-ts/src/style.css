@@ -54,13 +54,9 @@ canvas {
   aspect-ratio: 300/600;
   /* Preserve aspect ratio context (10x20 grid) */
   object-fit: contain;
-  border: 4px solid #333;
   /* Thicker border */
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  /* Nice shadow for depth */
   flex-shrink: 0;
   /* Prevent shrinking below minimal logic */
-  background-color: #000;
 }
 
 #coopCanvas {
@@ -69,9 +65,11 @@ canvas {
   max-width: 90vw;
   /* Make it wider */
   max-height: 80vh;
+  background-color: #000;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  /* Nice shadow for depth */
   height: auto;
-  border-color: #4DD0E1;
-  /* Cyan border for coop */
+  border: 4px solid #3596a2;
 }
 
 #game-container {
