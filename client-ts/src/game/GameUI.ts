@@ -142,12 +142,15 @@ export class GameUI {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+        // Ensure crisp edges for high-res canvas
+        ctx.imageSmoothingEnabled = false;
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (piece) {
             const color = Renderer.getColor(piece.type);
             // Dynamic cell size to fit 4-block wide pieces with padding
-            const cellSize = Math.floor(canvas.width / 8);
+            const cellSize = Math.floor(canvas.width / 5);
 
             const pieceWidth = piece.shape[0].length * cellSize;
             const pieceHeight = piece.shape.length * cellSize;

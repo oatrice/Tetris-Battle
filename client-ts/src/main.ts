@@ -18,11 +18,11 @@ app.innerHTML = `
       <div id="left-panel" class="side-panel">
           <div class="panel-box">
             <h3>Next</h3>
-            <canvas id="nextCanvas" width="40" height="40"></canvas>
+            <canvas id="nextCanvas" width="200" height="200"></canvas>
           </div>
           <div id="hold-panel" class="panel-box" style="display:none;">
             <h3>Hold</h3>
-            <canvas id="holdCanvas" width="40" height="40"></canvas>
+            <canvas id="holdCanvas" width="200" height="200"></canvas>
           </div>
       </div>
 
