@@ -181,7 +181,9 @@ export class GameUI {
         logoutBtn.style.fontSize = '0.8rem';
         logoutBtn.style.padding = '5px 10px';
         logoutBtn.addEventListener('click', () => {
-            this.authService.logout().catch(console.error);
+            if (confirm('Are you sure you want to logout?')) {
+                this.authService.logout().catch(console.error);
+            }
         });
         this.userProfile.appendChild(logoutBtn);
 
