@@ -371,3 +371,47 @@ canvas {
 .menu-btn:active {
   transform: translateY(0);
 }
+/* Landscape Warning Overlay used in Coop Mode */
+#landscape-warning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  z-index: 9999;
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: white;
+  pointer-events: all; /* Block clicks behind */
+}
+
+#landscape-warning .icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  animation: rotate-phone 2s infinite ease-in-out;
+}
+
+@keyframes rotate-phone {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-90deg); }
+  75% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Show warning ONLY IF: 
+   1. The .force-landscape class is active on body
+   2. AND The device is in portrait mode
+*/
+body.force-landscape #landscape-warning {
+  display: none; /* Default hidden */
+}
+
+@media (orientation: portrait) {
+  body.force-landscape #landscape-warning {
+    display: flex !important;
+  }
+}

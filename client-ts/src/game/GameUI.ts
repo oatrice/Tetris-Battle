@@ -129,8 +129,26 @@ export class GameUI {
         // 9. Auto Save
         this.setupAutoSave();
 
+        // Create Landscape Warning Overlay
+        const warning = document.createElement('div');
+        warning.id = 'landscape-warning';
+        warning.innerHTML = `
+            <div class="icon">📱🔄</div>
+            <h2>Please Rotate Device</h2>
+            <p>Coop Mode requires landscape view for best experience.</p>
+        `;
+        this.root.appendChild(warning);
+
         // Initial Stats Render
         this.updateStats();
+    }
+
+    private toggleLandscapeMode(enable: boolean) {
+        if (enable) {
+            document.body.classList.add('force-landscape');
+        } else {
+            document.body.classList.remove('force-landscape');
+        }
     }
 
     public updateStats() {
@@ -1045,6 +1063,9 @@ export class GameUI {
             const gameContainer = this.root.querySelector<HTMLElement>('#game-container');
             const leftPanel = this.root.querySelector<HTMLElement>('#left-panel');
             const rightPanel = this.root.querySelector<HTMLElement>('#right-panel');
+
+            // Force Landscape for Coop
+            this.toggleLandscapeMode(true);
 
             if (soloCanvas) soloCanvas.style.display = 'none';
             if (gameContainer) gameContainer.style.display = 'none';
