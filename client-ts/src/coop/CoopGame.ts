@@ -203,11 +203,32 @@ export class CoopGame {
     /**
      * Toggle pause
      */
-    togglePause() {
-        this.isPaused = !this.isPaused;
-        if (!this.isPaused) {
-            this.lastUpdate = performance.now();
+    /**
+     * Explicit set pause state (for sync)
+     */
+    setPaused(paused: boolean) {
+        if (this.isPaused !== paused) {
+            this.isPaused = paused;
+            // If resuming, reset timer to avoid huge delta
+            if (!this.isPaused) {
+                this.lastUpdate = performance.now();
+            }
+
+            // If we are the ones changing it (not from remote loop), sync it
+            // NOTE: We rely on the periodic sync interval to push this state.
+            // Or force a push immediately?
+            // For responsiveness, force push is better.
+            if (this.sync) {
+                this.sync.sendLockSnapshot(); // Contains isPaused
+            }
         }
+    }
+
+    /**
+     * Toggle pause
+     */
+    togglePause() {
+        this.setPaused(!this.isPaused);
     }
 
     /**

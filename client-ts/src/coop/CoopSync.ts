@@ -165,6 +165,34 @@ export class CoopSync {
             this.coopGame.lines = remoteState.lines; // Force overwrite
         }
 
+        // 4. Sync Pause State
+        // Last Write Wins / Collaborative Pause
+        if (typeof remoteState.isPaused === 'boolean') {
+            // We use setPaused to ensure timers are reset, 
+            // BUT avoid infinite loop if we are the ones who sent it?
+            // Actually, setPaused checks (this.isPaused !== paused).
+            // If local is TRUE and remote is TRUE, no action.
+            // If local is FALSE and remote is TRUE (peer paused), we pause.
+            // If local is TRUE and remote is FALSE (peer resumed), we resume.
+            if (this.coopGame.isPaused !== remoteState.isPaused) {
+                console.log(`[CoopSync] Applying remote pause state: ${remoteState.isPaused}`);
+                this.coopGame.isPaused = remoteState.isPaused;
+                // We interact directly with property to avoid re-triggering setPaused broadcast?
+                // No, we need side effects (timer reset).
+                // Use a special internal method or just careful logic?
+                // If we strictly follow Last-Writer-Wins from network, we just applying it.
+                // Pushing back "confirmation" is fine but redundant.
+
+                // Manual update to avoid "re-broadcasting" acting as a new toggle
+                if (!this.coopGame.isPaused) {
+                    // Resuming
+                    (this.coopGame as any).lastUpdate = performance.now();
+                }
+                // If we want the UI to update (e.g. Pause Button), 
+                // the renderer/UI loop checks isPaused. good.
+            }
+        }
+
         // 3. Overwrite Next Pieces (Critical for "Snapshot" behavior)
         if (remoteState.nextPieces) {
             // If we are P2, we MUST accept P1's next pieces

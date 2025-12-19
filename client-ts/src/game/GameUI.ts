@@ -270,6 +270,12 @@ export class GameUI {
                 // this.showMenu();
             }
             this.game.saveState();
+
+            // Coop Pause on Tab Out
+            if (this.coopGame && !this.coopGame.gameOver && !this.coopGame.isPaused) {
+                console.log('[GameUI] Tab unfocused -> Pausing Coop Game');
+                this.coopGame.setPaused(true);
+            }
         });
 
         window.addEventListener('beforeunload', () => {
@@ -280,10 +286,17 @@ export class GameUI {
         });
 
         window.addEventListener('focus', () => {
+            // Solo Game Resume
             this.game.loadState();
             this.updatePauseBtnText();
             if (this.game.isPaused) {
                 // this.showMenu();
+            }
+
+            // Coop Game Resume on Tab In
+            if (this.coopGame && !this.coopGame.gameOver && this.coopGame.isPaused) {
+                console.log('[GameUI] Tab focused -> Resuming Coop Game');
+                this.coopGame.setPaused(false);
             }
         });
     }
@@ -843,6 +856,21 @@ export class GameUI {
     }
 
     toggleMenu() {
+        // Handle Coop Game Pause
+        if (this.coopGame && !this.coopGame.gameOver) {
+            this.coopGame.togglePause();
+            // In Coop, we don't necessarily show the full solo menu,
+            // but for simplicity we can show a reduced menu or just toggle text.
+            // If paused, show menu
+            if (this.coopGame.isPaused) {
+                this.showMenu();
+            } else {
+                this.hideMenu();
+            }
+            return;
+        }
+
+        // Handle Solo Game Pause
         if (this.game.isPaused) {
             this.game.togglePause();
             this.hideMenu();
@@ -1348,7 +1376,11 @@ export class GameUI {
 
     updatePauseBtnText() {
         if (this.pauseBtn) {
-            this.pauseBtn.textContent = this.game.isPaused ? 'Resume' : 'Pause';
+            if (this.coopGame && !this.coopGame.gameOver) {
+                this.pauseBtn.textContent = this.coopGame.isPaused ? 'Resume' : 'Pause';
+            } else {
+                this.pauseBtn.textContent = this.game.isPaused ? 'Resume' : 'Pause';
+            }
         }
     }
 
