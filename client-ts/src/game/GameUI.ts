@@ -1311,7 +1311,8 @@ export class GameUI {
                         state.board,
                         state.player1,
                         state.player2,
-                        state.isPaused
+                        state.isPaused,
+                        this.coopGame.sync?.latency || 0
                     );
 
                     // Update Coop UI Stats

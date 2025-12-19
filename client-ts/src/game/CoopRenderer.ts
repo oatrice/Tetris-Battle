@@ -36,7 +36,8 @@ export class CoopRenderer {
         board: CoopBoard,
         player1: PlayerState,
         player2: PlayerState,
-        isPaused: boolean = false
+        isPaused: boolean = false,
+        latency: number = 0
     ): void {
         // Clear canvas
         this.ctx.fillStyle = '#1a1a1a';
@@ -64,10 +65,26 @@ export class CoopRenderer {
             this.drawPiece(player2.piece, player2.position);
         }
 
+        // Draw Latency
+        if (latency > 0) {
+            this.drawLatency(latency);
+        }
+
         // Draw pause overlay
         if (isPaused) {
             this.drawOverlay('PAUSED');
         }
+    }
+
+    private drawLatency(latency: number): void {
+        this.ctx.fillStyle = latency > 100 ? '#ff4444' : '#44ff44';
+        this.ctx.font = '14px monospace';
+        this.ctx.textAlign = 'right';
+        this.ctx.textBaseline = 'top';
+        this.ctx.fillText(`Ping: ${latency}ms`, this.canvas.width - 10, 10);
+
+        // Reset
+        this.ctx.textAlign = 'start';
     }
 
     private drawZoneDivider(): void {

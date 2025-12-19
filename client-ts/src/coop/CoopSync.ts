@@ -15,9 +15,18 @@ export class CoopSync {
     private unsubscribe?: () => void;
     private unsubscribeInput?: () => void;
     private unsubscribeSeed?: () => void;
+    private unsubscribeHeartbeat?: () => void;
     private coopGame?: CoopGame;
     private playerNumber: 1 | 2 = 1;
     private syncInterval?: number;
+    private heartbeatInterval?: number;
+
+    // Phase 4: Sequence Numbers
+    private localSequence = 0;
+    private remoteSequence = 0;
+
+    // Latency Monitoring
+    public latency = 0; // ms
 
     /**
      * Start syncing the given CoopGame with the specified room.
@@ -35,18 +44,26 @@ export class CoopSync {
         // Listen for remote changes
         this.unsubscribe = this.realtime.onValue<any>(path, (remote) => {
             if (remote && remote.playerId !== this.getLocalPlayerId()) {
-                this.applyRemoteState(remote.state);
+                // Pass full remote object or just sequence
+                this.applyRemoteState(remote.state, remote.sequenceNumber);
             }
         });
 
         // Listen for remote inputs
         const roomInputPath = `${this.inputPath}/${room.id}`;
         this.lastInputTimestamp = Date.now(); // Ignore old inputs
+        // Reset sequences on start
+        this.localSequence = 0;
+        this.remoteSequence = 0;
+
         this.unsubscribeInput = this.realtime.onValue<Record<string, any>>(roomInputPath, (inputs) => {
             if (inputs) {
                 this.handleRemoteInputs(inputs);
             }
         });
+
+        // Start Heartbeat
+        this.startHeartbeat(room.id);
 
         // Push state periodically (every 100ms)
         this.syncInterval = window.setInterval(() => {
@@ -74,6 +91,7 @@ export class CoopSync {
         if (!this.coopGame) return;
 
         const state = this.coopGame.getState();
+        this.localSequence++;
 
         // Serialize state
         const syncState = {
@@ -111,6 +129,7 @@ export class CoopSync {
                 playerId: this.getLocalPlayerId(),
                 playerNumber: this.playerNumber,
                 state: syncState,
+                sequenceNumber: this.localSequence,
                 timestamp: Date.now()
             });
         } catch (error) {
@@ -119,8 +138,17 @@ export class CoopSync {
     }
 
     /** Apply remote state to the local game */
-    private applyRemoteState(remoteState: any): void {
+    private applyRemoteState(remoteState: any, sequenceNumber?: number): void {
         if (!remoteState || !this.coopGame) return;
+
+        // Sequence Check
+        if (typeof sequenceNumber === 'number') {
+            if (sequenceNumber <= this.remoteSequence) {
+                // Ignore old state
+                return;
+            }
+            this.remoteSequence = sequenceNumber;
+        }
 
         const isSnapshot = remoteState.isSnapshot === true;
 
@@ -255,8 +283,14 @@ export class CoopSync {
         if (this.unsubscribeSeed) {
             this.unsubscribeSeed();
         }
+        if (this.unsubscribeHeartbeat) {
+            this.unsubscribeHeartbeat();
+        }
         if (this.syncInterval) {
             clearInterval(this.syncInterval);
+        }
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
         }
         console.log('[CoopSync] Sync stopped');
     }
@@ -270,10 +304,13 @@ export class CoopSync {
     async sendInput(action: PlayerAction) {
         if (!this.coopGame?.room) return;
 
+        this.localSequence++;
+
         const packet = {
             action,
             playerNumber: this.playerNumber,
             playerId: this.getLocalPlayerId(),
+            sequenceNumber: this.localSequence,
             timestamp: Date.now()
         };
 
@@ -289,16 +326,31 @@ export class CoopSync {
         if (!this.coopGame) return;
 
         const entries = Object.entries(inputs);
-        // Sort by timestamp to ensure correct order
-        entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+        // Sort by sequence number if available, else timestamp
+        entries.sort((a, b) => {
+            const seqA = a[1].sequenceNumber || 0;
+            const seqB = b[1].sequenceNumber || 0;
+            if (seqA && seqB) return seqA - seqB;
+            return a[1].timestamp - b[1].timestamp;
+        });
 
         for (const [, packet] of entries) {
             // content validation
             if (!packet || typeof packet.timestamp !== 'number') continue;
 
             // processing check
-            if (packet.timestamp <= this.lastInputTimestamp) continue;
             if (packet.playerId === this.getLocalPlayerId()) continue; // Ignore own inputs
+
+            // Phase 4: Sequence Check
+            if (packet.sequenceNumber) {
+                if (packet.sequenceNumber <= this.remoteSequence) {
+                    continue; // Ignore old/duplicate packet
+                }
+                this.remoteSequence = packet.sequenceNumber;
+            } else {
+                // Fallback for non-sequenced packets (shouldn't happen in P4)
+                if (packet.timestamp <= this.lastInputTimestamp) continue;
+            }
 
             // Apply input
             this.lastInputTimestamp = packet.timestamp;
@@ -306,9 +358,53 @@ export class CoopSync {
             // Only apply for the OTHER player
             const expectedOtherPlayer = this.playerNumber === 1 ? 2 : 1;
             if (packet.playerNumber === expectedOtherPlayer) {
-                // console.log(`[CoopSync] Applying remote input: ${packet.action}`);
+                // console.log(`[CoopSync] Applying remote input: ${packet.action} (Seq: ${packet.sequenceNumber})`);
                 this.coopGame.controller.handleAction(expectedOtherPlayer, packet.action);
             }
         }
+    }
+
+    /**
+     * Start Heartbeat / Ping-Pong mechanism
+     */
+    private startHeartbeat(roomId: string) {
+        const myPingPath = `tetrisCoop/heartbeat/${roomId}/${this.playerNumber}/ping`;
+        const myPongPath = `tetrisCoop/heartbeat/${roomId}/${this.playerNumber}/pong`;
+
+        const otherPlayer = this.playerNumber === 1 ? 2 : 1;
+        const peerPingPath = `tetrisCoop/heartbeat/${roomId}/${otherPlayer}/ping`;
+        const peerPongPath = `tetrisCoop/heartbeat/${roomId}/${otherPlayer}/pong`;
+
+        // 1. Listen for MY Pong (Response from Peer)
+        // receiving pong means round-trip complete
+        this.unsubscribeHeartbeat = this.realtime.onValue<number>(myPongPath, (timestamp) => {
+            if (timestamp) {
+                const now = Date.now();
+                const rtt = now - timestamp;
+                this.latency = Math.ceil(rtt / 2); // One-way approximation
+                // console.log(`[CoopSync] Latency: ${this.latency}ms`);
+            }
+        });
+
+        // 2. Listen for Peer's Ping (To Echo back)
+        const unsubPeerPing = this.realtime.onValue<number>(peerPingPath, (timestamp) => {
+            if (timestamp) {
+                // Echo back immediately to THEIR pong path
+                // console.log('[CoopSync] Received Ping, sending Pong');
+                this.realtime.set(peerPongPath, timestamp);
+            }
+        });
+
+        // Store unsubs (Composite)
+        const oldUnsub = this.unsubscribeHeartbeat;
+        this.unsubscribeHeartbeat = () => {
+            if (oldUnsub) oldUnsub();
+            unsubPeerPing();
+        };
+
+        // 3. Send Ping Loop
+        this.heartbeatInterval = window.setInterval(() => {
+            this.realtime.set(myPingPath, Date.now());
+        }, 2000); // Every 2 seconds
     }
 }
