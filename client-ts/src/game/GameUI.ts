@@ -1076,6 +1076,12 @@ export class GameUI {
     }
 
     private showRoomIdModal(roomId: string, onStartGame: () => void, onCancel?: () => void) {
+        // Cleanup existing modal to prevent stacking/ghosting
+        const existing = document.getElementById('roomIdModal');
+        if (existing && existing.parentNode) {
+            existing.parentNode.removeChild(existing);
+        }
+
         // Create modal overlay
         const modal = document.createElement('div');
         modal.id = 'roomIdModal';
@@ -1157,6 +1163,7 @@ export class GameUI {
 
         // Instructions
         const instructions = document.createElement('p');
+        instructions.id = 'coop-instructions-text';
         instructions.textContent = 'Waiting for Player 2 to join...';
         instructions.style.marginBottom = '2rem';
         instructions.style.color = '#FFB74D';
@@ -1165,6 +1172,7 @@ export class GameUI {
 
         // Start Game Button
         const startBtn = document.createElement('button');
+        startBtn.id = 'coop-start-btn';
         startBtn.textContent = 'Waiting for P2...';
         startBtn.className = 'menu-btn';
         startBtn.style.fontSize = '1.5rem';
@@ -1195,12 +1203,22 @@ export class GameUI {
 
         return {
             setPlayerJoined: () => {
-                console.log('[Coop] UI: setPlayerJoined called');
-                instructions.textContent = 'Player 2 Joined! Ready to Start.';
-                instructions.style.color = '#81C784';
-                startBtn.textContent = 'Start Game';
-                startBtn.disabled = false;
-                startBtn.style.opacity = '1';
+                console.log('[Coop] UI: setPlayerJoined called, updating DOM elements');
+                // Use ID lookout as backup, otherwise use closure
+                const instEl = document.getElementById('coop-instructions-text') || instructions;
+                const btnEl = (document.getElementById('coop-start-btn') as HTMLButtonElement) || startBtn;
+
+                instEl.textContent = 'Player 2 Joined! Ready to Start.';
+                instEl.style.color = '#81C784';
+
+                btnEl.textContent = 'Start Game';
+                btnEl.disabled = false;
+                btnEl.style.opacity = '1';
+
+                // Force blink effect to confirm update
+                instEl.style.animation = 'none';
+                instEl.offsetHeight; /* trigger reflow */
+                instEl.style.animation = 'pulse 0.5s 1';
             },
             close: () => {
                 if (modal.parentNode) modal.parentNode.removeChild(modal);

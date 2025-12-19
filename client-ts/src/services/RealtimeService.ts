@@ -46,9 +46,11 @@ export class RealtimeService {
         if (getApps().some(a => a.name === appName)) {
             app = getApp(appName);
         } else {
+            console.log('[RealtimeService] Initializing new Firebase App:', appName);
             app = initializeApp(firebaseConfig, appName);
         }
         this.db = getDatabase(app);
+        console.log('[RealtimeService] Database initialized:', this.db.app.name);
     }
 
     /** Set value at a specific path */
@@ -67,10 +69,15 @@ export class RealtimeService {
         path: string,
         callback: (data: T | null) => void
     ): () => void {
+        console.log('[RealtimeService] Subscribing to path:', path);
         const unsubscribe = onValue(ref(this.db, path), (snapshot: DataSnapshot) => {
+            // console.log('[RealtimeService] Data received for path:', path);
             callback(snapshot.exists() ? (snapshot.val() as T) : null);
         });
-        return unsubscribe;
+        return () => {
+            console.log('[RealtimeService] Unsubscribing from path:', path);
+            unsubscribe();
+        };
     }
 
     /** Remove data at a path */
