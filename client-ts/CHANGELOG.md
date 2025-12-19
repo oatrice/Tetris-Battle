@@ -1,14 +1,5 @@
 # Changelog
 
-## [2.2.0] - 2025-12-19
-### Added
-- **📱 Enhanced Coop Touch Controls**: Refined touch controls for cooperative mode, improving responsiveness and intuitiveness.
-    - **DAS Sensitivity**: Adjusted DAS (Delayed Auto Shift) sensitivity for smoother continuous swipes.
-    - **Tap Precision**: Improved tap detection for more reliable piece rotation.
-    - **Gesture Recognition**: Optimized swipe gesture recognition for movement, hard drop, and hold actions.
-- **💄 UI Improvements**: Minor visual adjustments to the game UI for better clarity.
-- **⚙️ Pre-commit Hook**: Integrated an automated code fixing script into the pre-commit hook for consistent code style.
-
 ## [2.1.0] - 2025-12-19
 ### Added
 - **📱 Mobile Touch Controls for Coop Mode**: Full gesture support for mobile players in Cooperative Mode.
