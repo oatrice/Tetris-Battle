@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.1] - 2025-12-19
+### Added
+- **Layout Persistence**: Implemented functionality to save and load custom UI layouts, allowing players to retain their preferred arrangements of game elements.
+
+### Changed
+- **GameUI Refinements**:
+    - **Layout Management**: Updated `GameUI` to utilize the new layout persistence features.
+    - **Renderer Updates**: Made minor adjustments to `Renderer` to accommodate potential layout changes.
+- **Main Entry Point**: Modified `main.ts` to initialize layout persistence.
+
+### Fixed
+- **Layout Test Stability**: Addressed an issue in `Layout.test.ts` that could cause test failures due to layout inconsistencies.
+
 ## [1.3.0] - 2025-12-19
 ### Changed
 - **Visuals**:
