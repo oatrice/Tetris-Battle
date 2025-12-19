@@ -156,7 +156,8 @@ const saveAndExit = () => {
         winScore: props.onlineGame.winScore,
         maxScore: props.onlineGame.score,
         opponentScore: props.onlineGame.opponentScore,
-        duration: props.onlineGame.gameDuration
+        duration: props.onlineGame.gameDuration,
+        matchId: props.onlineGame.matchId || undefined
     })
     matchSaved.value = true
 }

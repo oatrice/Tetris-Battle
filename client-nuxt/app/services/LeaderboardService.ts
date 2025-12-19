@@ -37,6 +37,7 @@ export interface OnlineMatchResult {
     maxScore: number            // Max score (after continue playing)
     opponentScore: number       // Opponent's final score
     duration: number            // Game duration in seconds
+    matchId?: string            // Server-assigned match ID (optional for backward compatibility)
 }
 
 export class LeaderboardService {

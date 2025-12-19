@@ -78,6 +78,9 @@
                 <div class="session-header">
                     <span class="match-id">
                         {{ match.gameMode === 'lan' ? '📡' : '🌐' }} Match #{{ onlineMatches.length - index }}
+                        <span v-if="match.matchId" class="server-match-id" :title="match.matchId">
+                            (ID: {{ typeof match.matchId === 'string' ? match.matchId.slice(-6) : '' }})
+                        </span>
                     </span>
                     <span class="mode-badge" :class="match.gameMode">{{ match.gameMode?.toUpperCase() || 'ONLINE' }}</span>
                     <div class="header-right">
@@ -302,6 +305,13 @@ h2 {
     font-family: monospace;
 }
 .match-date { font-style: italic; font-size: 0.75rem; }
+
+.server-match-id {
+    font-size: 0.65rem;
+    color: #555;
+    margin-left: 0.3rem;
+    font-weight: normal;
+}
 
 .mode-badge {
     font-size: 0.65rem;

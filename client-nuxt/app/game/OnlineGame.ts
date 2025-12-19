@@ -15,6 +15,7 @@ export class OnlineGame extends Game {
     isWinner = false          // True when we won (opponent game over)
     isDraw = false            // True when both players game over at same time
     winScore: number | null = null  // Score at time of winning (for leaderboard)
+    matchId: string | null = null // Server-assigned match ID
 
     // Countdown Logic
     countdown: number | null = null
@@ -58,9 +59,10 @@ export class OnlineGame extends Game {
         })
 
         socketService.on('game_start', (payload: any) => {
-            console.log('Game Started vs', payload.opponentName)
+            console.log('Game Started vs', payload.opponentName, 'MatchID:', payload.matchId)
             this.opponentId = payload.opponentId
             this.opponentName = payload.opponentName
+            this.matchId = payload.matchId
             this.isOpponentConnected = true
             this.reset()
             this.startCountdown()
