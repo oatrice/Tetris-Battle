@@ -203,9 +203,10 @@ canvas {
     order: 3;
     width: auto;
     height: auto;
-    max-width: 100%;
-    /* Calculate height: 100dvh - (controls ~30px) - (next panel ~20px) - margins */
-    max-height: calc(100dvh - 55px);
+    max-width: 65vw;
+    /* Restrict width -> smaller board & cells */
+    /* Calculate height: 100dvh - (controls + next + margin) ~ more space */
+    max-height: calc(100dvh - 100px);
     aspect-ratio: 300/600;
     margin: 0 auto;
     border-width: 2px;
