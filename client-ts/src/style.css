@@ -146,39 +146,39 @@ canvas {
     align-items: flex-start;
     justify-content: center;
     width: 100%;
-    height: 100%;
+    height: auto;
     margin-bottom: 0;
-    gap: 0;
-    /* Removing inherited 20px gap from desktop */
+    gap: 8px;
+    /* Consistent gap between Next, Hold, Score */
   }
 
-  /* Show Left Panel (Next Piece) */
-  #left-panel {
-    display: flex !important;
+  /* Flatten Side Panels to allow interleaving */
+  .side-panel {
+    display: contents !important;
+    font-size: 0;
+    /* Collapse whitespace text nodes interfering with flex layout */
+  }
+
+  /* Specific Orders for Top Row */
+  /* Next Box */
+  #left-panel .panel-box:nth-child(1) {
     order: 1;
-    width: auto;
-    /* Allow sharing row */
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 10px;
-    gap: 5px;
   }
 
-  /* Show Right Panel (Score) next to layout */
-  #right-panel {
-    display: flex !important;
+  /* Hold Box (Dynamic) */
+  #hold-panel {
     order: 2;
-    width: auto;
-    /* Share row */
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 10px;
-    gap: 5px;
   }
 
-  /* Hide Lines & Level on mobile, keep Score */
+  /* Score Box */
+  #right-panel .panel-box:nth-child(1) {
+    order: 3;
+  }
+
+  /* Hide Lines & Level on mobile (keep using nth-child targeting on the flattened children?) 
+     No, nth-child works on DOM. #right-panel children are still in #right-panel DOM node. 
+     Even with display: contents, CSS selectors match the DOM tree.
+  */
   #right-panel .panel-box:nth-child(2),
   #right-panel .panel-box:nth-child(3) {
     display: none;
@@ -226,18 +226,20 @@ canvas {
     display: block;
   }
 
-  /* Board - Fill Remaining Space */
+  /* Board - Force New Line & Fill Remaining Space */
   canvas#gameCanvas {
-    order: 3;
+    order: 4;
     width: auto;
     height: auto;
     max-width: 65vw;
     /* Restrict width -> smaller board & cells */
     /* Calculate height: 100dvh - (controls + next + margin) ~ more space */
-    max-height: calc(100dvh - 100px);
+    max-height: calc(100dvh - 110px);
     aspect-ratio: 300/600;
-    margin: 0 auto;
+    margin: 5px auto 0 auto;
     border-width: 2px;
+    flex-basis: 100%;
+    /* Force wrap to new line */
   }
 
   /* Hide Instructions */
