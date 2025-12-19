@@ -51,14 +51,14 @@ export class CoopGame {
 
         // Setup sync if room provided
         if (room) {
-            this.setupSync(room);
+            this.setupSync(room, playerNumber);
         }
     }
 
-    private setupSync(_room: RoomInfo) {
-        // TODO: Implement sync when CoopSync is ready for CoopGame
-        // this.sync = new CoopSync();
-        // this.sync.start(room, this);
+    private setupSync(room: RoomInfo, playerNumber: 1 | 2) {
+        this.sync = new CoopSync();
+        this.sync.start(room, this, playerNumber);
+        console.log(`[CoopGame] Sync enabled for Player ${playerNumber}`);
     }
 
     /**

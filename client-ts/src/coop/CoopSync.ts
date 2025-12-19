@@ -4,86 +4,134 @@
  */
 
 import { RealtimeService } from '../services/RealtimeService';
-import { Game } from '../game/Game';
 import { RoomInfo } from './RoomManager';
+import type { CoopGame } from './CoopGame';
 
 export class CoopSync {
     private realtime = new RealtimeService();
     private readonly gameStatePath = 'tetrisCoop/gameState';
     private unsubscribe?: () => void;
-    private game?: Game; // reference to the Game instance
+    private coopGame?: CoopGame;
+    private playerNumber: 1 | 2 = 1;
+    private syncInterval?: number;
 
     /**
-     * Start syncing the given game with the specified room.
-     * It will listen for remote updates and push local updates on each game tick.
+     * Start syncing the given CoopGame with the specified room.
+     * @param room - Room information
+     * @param game - CoopGame instance
+     * @param playerNumber - Which player this client is (1 or 2)
      */
-    start(room: RoomInfo, game: Game): void {
-        this.game = game; // store reference for later use
+    start(room: RoomInfo, game: CoopGame, playerNumber: 1 | 2): void {
+        this.coopGame = game;
+        this.playerNumber = playerNumber;
         const path = `${this.gameStatePath}/${room.id}`;
+
+        console.log(`[CoopSync] Starting sync for Player ${playerNumber} in room ${room.id}`);
 
         // Listen for remote changes
         this.unsubscribe = this.realtime.onValue<any>(path, (remote) => {
             if (remote && remote.playerId !== this.getLocalPlayerId()) {
-                this.applyRemoteState(game, remote.state);
+                this.applyRemoteState(remote.state);
             }
         });
 
-        // Hook into game.update to push local state after each tick
-        const originalUpdate = game.update.bind(game);
-        game.update = (delta: number) => {
-            originalUpdate(delta);
-            this.pushState(path);
-        };
+        // Push state periodically (every 100ms)
+        this.syncInterval = window.setInterval(() => {
+            if (!this.coopGame?.isPaused && !this.coopGame?.gameOver) {
+                this.pushState(path);
+            }
+        }, 100);
     }
 
     /** Push current local game state to the DB */
     private async pushState(path: string) {
-        // Serialize minimal state needed for sync
-        const state = {
-            board: (this.game?.['board'] as any)?.grid,
-            currentPiece: this.game?.['currentPiece']
-                ? {
-                    type: this.game?.['currentPiece']?.type,
-                    shape: this.game?.['currentPiece']?.shape,
-                    position: this.game?.['position'],
-                }
-                : null,
-            nextPiece: this.game?.['nextPiece'],
-            score: this.game?.['score'],
-            lines: this.game?.['lines'],
-            level: this.game?.['level'],
+        if (!this.coopGame) return;
+
+        const state = this.coopGame.getState();
+
+        // Serialize state
+        const syncState = {
+            board: state.board.grid,
+            player1: {
+                piece: state.player1.piece ? {
+                    type: state.player1.piece.type,
+                    shape: state.player1.piece.shape,
+                    rotationIndex: state.player1.piece.rotationIndex
+                } : null,
+                position: state.player1.position
+            },
+            player2: {
+                piece: state.player2.piece ? {
+                    type: state.player2.piece.type,
+                    shape: state.player2.piece.shape,
+                    rotationIndex: state.player2.piece.rotationIndex
+                } : null,
+                position: state.player2.position
+            },
+            score: state.score,
+            lines: state.lines,
+            level: state.level,
+            isPaused: state.isPaused,
+            gameOver: state.gameOver
         };
-        await this.realtime.set(path, { playerId: this.getLocalPlayerId(), state });
+
+        try {
+            await this.realtime.set(path, {
+                playerId: this.getLocalPlayerId(),
+                playerNumber: this.playerNumber,
+                state: syncState,
+                timestamp: Date.now()
+            });
+        } catch (error) {
+            console.error('[CoopSync] Failed to push state:', error);
+        }
     }
 
     /** Apply remote state to the local game */
-    private applyRemoteState(game: Game, remoteState: any): void {
-        if (!remoteState) return;
-        // Update board grid
-        if (remoteState.board) (game['board'] as any).grid = remoteState.board;
-        // Update current piece & position
-        if (remoteState.currentPiece) {
-            const cp = remoteState.currentPiece;
-            if (game['currentPiece']) {
-                game['currentPiece'].type = cp.type;
-                game['currentPiece'].setShape(cp.shape);
-            }
-            if (game['position']) {
-                game['position'] = { x: cp.position.x, y: cp.position.y };
+    private applyRemoteState(remoteState: any): void {
+        if (!remoteState || !this.coopGame) return;
+
+        // Only sync board state (both players contribute to the same board)
+        if (remoteState.board) {
+            this.coopGame.board.grid = remoteState.board;
+        }
+
+        // Sync the OTHER player's piece (not our own)
+        const otherPlayer: 1 | 2 = this.playerNumber === 1 ? 2 : 1;
+        const otherPlayerState = this.playerNumber === 1 ? remoteState.player2 : remoteState.player1;
+
+        if (otherPlayerState?.piece) {
+            const controller = this.coopGame.controller;
+            const currentPiece = controller.getPiece(otherPlayer);
+
+            // Update piece if it changed
+            if (currentPiece && otherPlayerState.piece.type === currentPiece.type) {
+                // Just update position if same piece
+                const currentPos = controller.getPosition(otherPlayer);
+                if (currentPos.x !== otherPlayerState.position.x ||
+                    currentPos.y !== otherPlayerState.position.y) {
+                    // Position updated remotely - this is handled by DualPieceController
+                    // We don't force update to avoid conflicts
+                }
             }
         }
-        // Update next piece
-        if (remoteState.nextPiece) game['nextPiece'] = remoteState.nextPiece;
-        // Scores etc.
-        if (remoteState.score !== undefined) game['score'] = remoteState.score;
-        if (remoteState.lines !== undefined) game['lines'] = remoteState.lines;
-        if (remoteState.level !== undefined) game['level'] = remoteState.level;
+
+        // Sync score/lines/level (use max values to avoid conflicts)
+        if (remoteState.score !== undefined) {
+            this.coopGame.score = Math.max(this.coopGame.score, remoteState.score);
+        }
+        if (remoteState.lines !== undefined) {
+            this.coopGame.lines = Math.max(this.coopGame.lines, remoteState.lines);
+        }
+        if (remoteState.level !== undefined) {
+            this.coopGame.level = Math.max(this.coopGame.level, remoteState.level);
+        }
     }
 
     /** Helper to obtain a stable local player identifier */
     private getLocalPlayerId(): string {
         // Use Firebase auth UID if available, otherwise fallback to a random session id
-        const authService = (window as any).authService as any; // will be set by GameUI
+        const authService = (window as any).authService as any;
         const currentUser = authService?.getAuth?.()?.currentUser;
         if (currentUser) {
             return currentUser.uid;
@@ -99,6 +147,12 @@ export class CoopSync {
 
     /** Stop listening */
     stop() {
-        if (this.unsubscribe) this.unsubscribe();
+        if (this.unsubscribe) {
+            this.unsubscribe();
+        }
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+        }
+        console.log('[CoopSync] Sync stopped');
     }
 }

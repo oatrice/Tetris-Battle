@@ -12,7 +12,10 @@
         - `CoopInputHandler`: Dual keyboard support (Player 1: WASD+Q/E, Player 2: Arrows+Space/Shift).
     - **Networking**:
         - `RoomManager`: Create, join, and manage multiplayer rooms via Firebase Realtime Database.
-        - `CoopSync`: Real-time game state synchronization between players.
+        - `CoopSync`: **Real-time game state synchronization** between players (100ms sync interval).
+            - Syncs board state, both players' pieces, positions, score, lines, and level.
+            - Conflict resolution using max values for score/lines/level.
+            - Automatic player ID detection (Firebase Auth or guest ID).
         - `RealtimeService`: Firebase Realtime Database wrapper with graceful error handling.
     - **UI**:
         - Added "Coop Mode" button in Home Menu.
@@ -25,6 +28,7 @@
 - **GameMode**: Added `COOP` enum value.
 - **Environment**: Added `VITE_FIREBASE_DATABASE_URL` requirement for Coop Mode.
 - **Documentation**: Updated README with Coop Mode features and Firebase Realtime Database setup instructions.
+- **CoopSync**: Refactored to support `CoopGame` instead of `Game`, with proper dual-piece synchronization.
 
 ### Fixed
 - **RealtimeService**: Fixed `process.env` to `import.meta.env` for Vite compatibility.
