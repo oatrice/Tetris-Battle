@@ -146,9 +146,9 @@ export class GameUI {
 
         if (piece) {
             const color = Renderer.getColor(piece.type);
-            const cellSize = 20; // Smaller size for preview
-            // Calculate centering offset
-            // piece.shape is typically 3x3 or 4x4
+            // Dynamic cell size to fit 4-block wide pieces with padding
+            const cellSize = Math.floor(canvas.width / 5);
+
             const pieceWidth = piece.shape[0].length * cellSize;
             const pieceHeight = piece.shape.length * cellSize;
             const offsetX = (canvas.width - pieceWidth) / 2;
