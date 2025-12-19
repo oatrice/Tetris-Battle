@@ -76,16 +76,18 @@
         <div v-else class="session-list">
             <div v-for="(match, index) in onlineMatches" :key="match.id" class="session-card">
                 <div class="session-header">
-                    <span class="match-id">
-                        {{ match.gameMode === 'lan' ? '📡' : '🌐' }} Match #{{ onlineMatches.length - index }}
-                        <span v-if="match.matchId" class="server-match-id" :title="match.matchId">
-                            (ID: {{ typeof match.matchId === 'string' ? match.matchId.slice(-6) : '' }})
+                    <div class="header-row top">
+                        <div class="match-info">
+                            <span class="match-number">{{ match.gameMode === 'lan' ? '📡' : '🌐' }} Match #{{ onlineMatches.length - index }}</span>
+                            <span class="mode-badge" :class="match.gameMode">{{ match.gameMode?.toUpperCase() || 'ONLINE' }}</span>
+                        </div>
+                        <span class="match-date">{{ new Date(match.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</span>
+                    </div>
+                    <div class="header-row bottom">
+                         <span v-if="match.matchId" class="server-match-id" :title="match.matchId">
+                            ID: {{ typeof match.matchId === 'string' ? match.matchId.slice(-6) : 'N/A' }}
                         </span>
-                    </span>
-                    <span class="mode-badge" :class="match.gameMode">{{ match.gameMode?.toUpperCase() || 'ONLINE' }}</span>
-                    <div class="header-right">
                         <span class="match-duration" v-if="match.duration">⏱ {{ formatDuration(match.duration) }}</span>
-                        <span class="match-date">{{ new Date(match.date).toLocaleString() }}</span>
                     </div>
                 </div>
                 <div class="online-result">
@@ -285,32 +287,53 @@ h2 {
 
 .session-header {
     display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    color: #888;
+    flex-direction: column;
+    gap: 0.2rem;
     margin-bottom: 0.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 0.3rem;
 }
 
-.match-id { font-weight: bold; color: #aaa; }
-.header-right {
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-row.top {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #e0e0e0;
+}
+
+.header-row.bottom {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.match-info {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
-.match-duration {
-    font-size: 0.75rem;
-    color: #4ade80; /* Green */
-    font-family: monospace;
+
+.match-number {
+    color: #fff;
 }
-.match-date { font-style: italic; font-size: 0.75rem; }
+
+.match-date {
+    font-style: normal;
+    font-size: 0.75rem;
+    color: #aaa;
+}
 
 .server-match-id {
-    font-size: 0.65rem;
-    color: #555;
-    margin-left: 0.3rem;
-    font-weight: normal;
+    font-family: monospace;
+    font-size: 0.7rem;
+    color: #666;
+    background: rgba(0,0,0,0.2);
+    padding: 0 4px;
+    border-radius: 4px;
 }
 
 .mode-badge {
