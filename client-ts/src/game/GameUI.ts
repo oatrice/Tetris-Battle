@@ -133,10 +133,12 @@ export class GameUI {
         const warning = document.createElement('div');
         warning.id = 'landscape-warning';
         warning.innerHTML = `
-            <div class="icon">📱🔄</div>
-            <h2>Please Rotate Device</h2>
             <p>Coop Mode requires landscape view for best experience.</p>
+            <p style="font-size:0.8rem; margin-top:10px; opacity:0.7;">(Tap to Fullscreen)</p>
         `;
+        warning.addEventListener('click', () => {
+            this.enterFullscreen();
+        });
         this.root.appendChild(warning);
 
         // Initial Stats Render
@@ -146,8 +148,36 @@ export class GameUI {
     private toggleLandscapeMode(enable: boolean) {
         if (enable) {
             document.body.classList.add('force-landscape');
+            // Try enabling fullscreen on mobile
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                this.enterFullscreen();
+            }
         } else {
             document.body.classList.remove('force-landscape');
+            // Check if we strictly need to exit, maybe keep it if user wants?
+            // Usually valid to exit if we forced it.
+            this.exitFullscreen();
+        }
+    }
+
+    private enterFullscreen() {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => console.warn('[UI] Fullscreen blocked:', err));
+        } else if ((elem as any).webkitRequestFullscreen) { /* Safari */
+            (elem as any).webkitRequestFullscreen();
+        } else if ((elem as any).msRequestFullscreen) { /* IE11 */
+            (elem as any).msRequestFullscreen();
+        }
+    }
+
+    private exitFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => { });
+        } else if ((document as any).webkitExitFullscreen) { /* Safari */
+            (document as any).webkitExitFullscreen();
+        } else if ((document as any).msExitFullscreen) { /* IE11 */
+            (document as any).msExitFullscreen();
         }
     }
 
