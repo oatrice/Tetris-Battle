@@ -1323,6 +1323,38 @@ export class GameUI {
             };
             document.addEventListener('keydown', keyHandler);
 
+            // Setup touch input handling for mobile
+            const touchStartHandler = (e: TouchEvent) => {
+                // Skip if touching a button
+                if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+                this.coopInputHandler?.handleTouchStart(e);
+            };
+
+            const touchMoveHandler = (e: TouchEvent) => {
+                // Prevent scrolling on canvas
+                if (e.target === canvas) {
+                    e.preventDefault();
+                }
+                const input = this.coopInputHandler?.handleTouchMove(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+                }
+            };
+
+            const touchEndHandler = (e: TouchEvent) => {
+                // Skip if touching a button
+                if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+                const input = this.coopInputHandler?.handleTouchEnd(e);
+                if (input && this.coopGame) {
+                    this.coopGame.handleInput(input.action);
+                }
+            };
+
+            window.addEventListener('touchstart', touchStartHandler, { passive: false });
+            window.addEventListener('touchmove', touchMoveHandler, { passive: false });
+            window.addEventListener('touchend', touchEndHandler);
+
+
             // Start game
             this.coopGame.start(room, playerNumber);
 
