@@ -432,10 +432,9 @@ body.force-landscape #landscape-warning {
   /* Default hidden */
 }
 
-@media (orientation: portrait) {
-  body.force-landscape #landscape-warning {
-    display: flex !important;
-  }
+/* CSS Controlled by JS for robustness */
+body.force-landscape #landscape-warning.show {
+  display: flex !important;
 }
 
 /* =========================================

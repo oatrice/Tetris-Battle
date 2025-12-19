@@ -149,20 +149,43 @@ export class GameUI {
         const fsBtn = this.root.querySelector<HTMLElement>('#fullscreenBtn');
         if (enable) {
             document.body.classList.add('force-landscape');
-            // Hide fullscreen button as we are managing layout/fullscreen manually
             if (fsBtn) fsBtn.style.display = 'none';
 
-            // Try enabling fullscreen on mobile
+            // JS Check Orientation
+            this.checkOrientation();
+            window.addEventListener('resize', this.boundCheckOrientation);
+            window.addEventListener('orientationchange', this.boundCheckOrientation);
+
             if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
                 this.enterFullscreen();
             }
         } else {
             document.body.classList.remove('force-landscape');
-            if (fsBtn) fsBtn.style.display = 'block'; // Restore button
+            if (fsBtn) fsBtn.style.display = 'block';
 
-            // Check if we strictly need to exit, maybe keep it if user wants?
-            // Usually valid to exit if we forced it.
+            window.removeEventListener('resize', this.boundCheckOrientation);
+            window.removeEventListener('orientationchange', this.boundCheckOrientation);
+
+            const warning = document.querySelector('#landscape-warning');
+            if (warning) warning.classList.remove('show');
+
             this.exitFullscreen();
+        }
+    }
+
+    private boundCheckOrientation = () => this.checkOrientation();
+
+    private checkOrientation() {
+        const warning = document.querySelector('#landscape-warning');
+        if (!warning) return;
+
+        // Check dimensions directly
+        const isPortrait = window.innerHeight > window.innerWidth;
+
+        if (document.body.classList.contains('force-landscape') && isPortrait) {
+            warning.classList.add('show');
+        } else {
+            warning.classList.remove('show');
         }
     }
 
