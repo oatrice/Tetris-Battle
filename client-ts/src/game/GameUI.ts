@@ -972,6 +972,17 @@ export class GameUI {
             // Hide home menu
             if (this.homeMenu) this.homeMenu.style.display = 'none';
 
+            // Hide solo game elements (canvas and panels)
+            const soloCanvas = this.root.querySelector<HTMLCanvasElement>('#gameCanvas');
+            const gameContainer = this.root.querySelector<HTMLElement>('#game-container');
+            const leftPanel = this.root.querySelector<HTMLElement>('#left-panel');
+            const rightPanel = this.root.querySelector<HTMLElement>('#right-panel');
+
+            if (soloCanvas) soloCanvas.style.display = 'none';
+            if (gameContainer) gameContainer.style.display = 'none';
+            if (leftPanel) leftPanel.style.display = 'none';
+            if (rightPanel) rightPanel.style.display = 'none';
+
             // Create or get coop canvas
             let canvas = this.root.querySelector<HTMLCanvasElement>('#coopCanvas');
             if (!canvas) {
@@ -980,8 +991,13 @@ export class GameUI {
                 canvas.width = 24 * 30; // 24 columns * 30px
                 canvas.height = 12 * 30; // 12 rows * 30px
                 canvas.style.display = 'block';
-                canvas.style.margin = '0 auto';
+                canvas.style.margin = '2rem auto';
+                canvas.style.border = '2px solid #4DD0E1';
+                canvas.style.borderRadius = '8px';
+                canvas.style.boxShadow = '0 4px 20px rgba(77, 208, 225, 0.3)';
                 this.root.appendChild(canvas);
+            } else {
+                canvas.style.display = 'block';
             }
 
             // Initialize Coop components
