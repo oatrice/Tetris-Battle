@@ -29,6 +29,7 @@ export interface DuoMatchResult {
 export interface OnlineMatchResult {
     id: string
     date: string
+    gameMode: 'online' | 'lan'  // Distinguish between Online and LAN
     isWinner: boolean
     playerName: string
     opponentName: string

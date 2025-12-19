@@ -54,7 +54,7 @@
 
     <!-- Center Status -->
     <div class="vs-section">
-      <span class="vs-text">ONLINE</span>
+      <span class="vs-text">{{ mode === 'lan' ? '📡 LAN' : '🌐 ONLINE' }}</span>
       
       <div v-if="isWaiting" class="status-box waiting">
           <div class="spinner"></div>
@@ -124,6 +124,7 @@ const PlayerBoard = defineAsyncComponent(() => import('./PlayerBoard.vue'))
 
 const props = defineProps<{
   onlineGame: OnlineGame
+  mode?: 'online' | 'lan'
 }>()
 
 const emit = defineEmits(['back'])
@@ -139,6 +140,7 @@ const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpp
 const saveAndExit = () => {
     LeaderboardService.addOnlineMatch({
         date: new Date().toISOString(),
+        gameMode: props.mode || 'online',
         isWinner: props.onlineGame.isWinner,
         playerName: playerName.value || 'Player',
         opponentName: props.onlineGame.opponentName || 'Opponent',

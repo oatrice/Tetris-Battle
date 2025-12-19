@@ -349,6 +349,7 @@ describe('LeaderboardService', () => {
         it('should add and retrieve online match (winner)', () => {
             const result = LeaderboardService.addOnlineMatch({
                 date: '2024-01-01',
+                gameMode: 'online',
                 isWinner: true,
                 playerName: 'Oatrice',
                 opponentName: 'Eve',
@@ -370,6 +371,7 @@ describe('LeaderboardService', () => {
         it('should add online match (loser)', () => {
             const result = LeaderboardService.addOnlineMatch({
                 date: '2024-01-01',
+                gameMode: 'lan',
                 isWinner: false,
                 playerName: 'Eve',
                 opponentName: 'Oatrice',
@@ -388,6 +390,7 @@ describe('LeaderboardService', () => {
         it('should keep history sorted by newest first (unshift)', () => {
             LeaderboardService.addOnlineMatch({
                 date: '2024-01-01',
+                gameMode: 'online',
                 isWinner: true,
                 playerName: 'OldMatch',
                 opponentName: 'Opponent',
@@ -398,6 +401,7 @@ describe('LeaderboardService', () => {
 
             LeaderboardService.addOnlineMatch({
                 date: '2024-01-02',
+                gameMode: 'lan',
                 isWinner: false,
                 playerName: 'NewMatch',
                 opponentName: 'Opponent',
@@ -417,6 +421,7 @@ describe('LeaderboardService', () => {
             for (let i = 0; i < 51; i++) {
                 LeaderboardService.addOnlineMatch({
                     date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+                    gameMode: i % 2 === 0 ? 'online' : 'lan',
                     isWinner: i % 2 === 0,
                     playerName: `Player${i}`,
                     opponentName: 'Opponent',
@@ -434,6 +439,7 @@ describe('LeaderboardService', () => {
         it('should clear online matches', () => {
             LeaderboardService.addOnlineMatch({
                 date: '2024-01-01',
+                gameMode: 'online',
                 isWinner: true,
                 playerName: 'Oatrice',
                 opponentName: 'Eve',

@@ -76,7 +76,10 @@
         <div v-else class="session-list">
             <div v-for="(match, index) in onlineMatches" :key="match.id" class="session-card">
                 <div class="session-header">
-                    <span class="match-id">Match #{{ onlineMatches.length - index }}</span>
+                    <span class="match-id">
+                        {{ match.gameMode === 'lan' ? '📡' : '🌐' }} Match #{{ onlineMatches.length - index }}
+                    </span>
+                    <span class="mode-badge" :class="match.gameMode">{{ match.gameMode?.toUpperCase() || 'ONLINE' }}</span>
                     <span class="match-date">{{ new Date(match.date).toLocaleString() }}</span>
                 </div>
                 <div class="online-result">
@@ -275,7 +278,25 @@ h2 {
 }
 
 .match-id { font-weight: bold; color: #aaa; }
-.match-date { font-style: italic; }
+.match-date { font-style: italic; font-size: 0.75rem; }
+
+.mode-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.mode-badge.online {
+    background: rgba(102, 126, 234, 0.3);
+    color: #667eea;
+}
+
+.mode-badge.lan {
+    background: rgba(0, 212, 255, 0.3);
+    color: #00d4ff;
+}
 
 .session-players {
     display: flex;
