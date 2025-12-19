@@ -37,6 +37,7 @@ const dateDisplay = computed(() => {
 <style scoped>
 .version-info {
   display: inline-flex;
+  margin-top: 1rem;
   gap: 0.5rem;
   font-size: 0.75rem;
   color: #aaa;

@@ -112,4 +112,15 @@ describe('OnlineGame game_over handling', () => {
             expect(game.winScore).toBe(5000)
         })
     })
+
+    describe('Attack Mode Logic', () => {
+        it('should default to garbage mode', () => {
+            expect(game.attackMode).toBe('garbage')
+        })
+
+        it('should allow changing attack mode', () => {
+            game.attackMode = 'lines'
+            expect(game.attackMode).toBe('lines')
+        })
+    })
 })

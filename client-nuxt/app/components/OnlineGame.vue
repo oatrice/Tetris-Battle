@@ -59,7 +59,16 @@
       
       <div v-if="isWaiting" class="status-box waiting">
           <div class="spinner"></div>
-          <span>Waiting for Opponent...</span>
+          <div class="waiting-message">
+            <label class="settings-label">
+                Attack Mode:
+                <select v-model="onlineGame.attackMode" class="mode-select">
+                    <option value="garbage">Garbage Lines</option>
+                    <option value="lines">Score Attack</option>
+                </select>
+            </label>
+            <span>Waiting for Opponent...</span>
+          </div>
       </div>
       <div v-else-if="onlineGame.isOpponentConnected" class="status-box connected">
           <span>🟢 Connected</span>
@@ -586,5 +595,39 @@ onUnmounted(() => {
 @keyframes pop {
     0% { transform: scale(0.5); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
+}
+
+.waiting-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.settings-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #ccc;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mode-select {
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+}
+
+.mode-select:focus {
+    border-color: #646cff;
 }
 </style>

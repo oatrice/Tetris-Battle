@@ -25,6 +25,9 @@ export class OnlineGame extends Game {
     gameDuration = 0 // Seconds
     private durationInterval: any = null
 
+    // Game Settings
+    attackMode: 'lines' | 'garbage' = 'garbage' // Default to garbage
+
     constructor() {
         super()
         this.opponentBoard = Array(20).fill(null).map(() => Array(10).fill(0))
@@ -182,7 +185,7 @@ export class OnlineGame extends Game {
         }
 
         const linesDiff = this.linesCleared - linesBefore
-        if (linesDiff >= 2) {
+        if (linesDiff >= 2 && this.attackMode === 'garbage') {
             const garbage = this.calculateGarbage(linesDiff)
             if (garbage > 0) {
                 socketService.send('attack', { lines: garbage })
