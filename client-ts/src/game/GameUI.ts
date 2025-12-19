@@ -945,11 +945,31 @@ export class GameUI {
                 `guest_${Math.random().toString(36).substring(2, 10)}`;
 
             const room = await roomManager.createRoom(playerId);
+            let unsub: (() => void) | null = null;
 
             // Show Room ID with Copy button
-            this.showRoomIdModal(room.id, () => {
+            const controls = this.showRoomIdModal(room.id, async () => {
                 // Start game when user clicks "Start Game"
-                this.startCoopGame(room, 1);
+                if (unsub) unsub();
+                try {
+                    await roomManager.updateStatus(room.id, 'playing');
+                    this.startCoopGame(room, 1);
+                } catch (e) {
+                    console.error('[Coop] Failed to start game:', e);
+                }
+            }, () => {
+                // Cancelled
+                if (unsub) unsub();
+                // Optional: roomManager.deleteRoom(room.id);
+            });
+
+            // Listen for P2
+            unsub = roomManager.onRoomUpdate(room.id, (updatedRoom) => {
+                console.log('[Coop] Room update received:', updatedRoom);
+                if (updatedRoom && updatedRoom.players.length >= 2) {
+                    console.log('[Coop] P2 joined detected, updating UI...');
+                    controls.setPlayerJoined();
+                }
             });
         } catch (error) {
             console.error('[Coop] Failed to create room:', error);
@@ -973,8 +993,19 @@ export class GameUI {
 
             if (room) {
                 console.log('[Coop] Successfully joined room:', room.id);
-                // Start Coop Game as Player 2
-                await this.startCoopGame(room, 2);
+
+                let unsub: (() => void) | null = null;
+                const modal = this.showWaitingHostModal(room.id, () => {
+                    if (unsub) unsub();
+                });
+
+                unsub = roomManager.onRoomUpdate(room.id, (updatedRoom) => {
+                    if (updatedRoom && updatedRoom.status === 'playing') {
+                        if (unsub) unsub();
+                        if (modal.parentNode) modal.parentNode.removeChild(modal);
+                        this.startCoopGame(updatedRoom, 2);
+                    }
+                });
             } else {
                 console.error('[Coop] Room not found:', roomId);
                 alert(`Room not found!\nRoom ID: ${roomId}\n\nPlease check the Room ID and try again.`);
@@ -987,7 +1018,64 @@ export class GameUI {
         }
     }
 
-    private showRoomIdModal(roomId: string, onStartGame: () => void) {
+    private showWaitingHostModal(roomId: string, onCancel: () => void): HTMLElement {
+        const modal = document.createElement('div');
+        modal.id = 'waitingHostModal';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        modal.style.display = 'flex';
+        modal.style.flexDirection = 'column';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '3000';
+        modal.style.color = 'white';
+
+        const title = document.createElement('h2');
+        title.textContent = '✅ Joined Room';
+        title.style.marginBottom = '1rem';
+        modal.appendChild(title);
+
+        const desc = document.createElement('p');
+        desc.textContent = `Room ID: ${roomId}`;
+        desc.style.marginBottom = '2rem';
+        desc.style.color = '#4DD0E1';
+        desc.style.fontFamily = 'monospace';
+        desc.style.fontSize = '1.2rem';
+        modal.appendChild(desc);
+
+        const loader = document.createElement('div');
+        loader.textContent = 'Waiting for Host to start...';
+        loader.style.fontSize = '1.2rem';
+        loader.style.color = '#FFB74D';
+
+        if (!document.getElementById('pulse-anim')) {
+            const style = document.createElement('style');
+            style.id = 'pulse-anim';
+            style.textContent = `@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }`;
+            document.head.appendChild(style);
+        }
+        loader.style.animation = 'pulse 1.5s infinite';
+        modal.appendChild(loader);
+
+        const leaveBtn = document.createElement('button');
+        leaveBtn.textContent = 'Leave';
+        leaveBtn.className = 'menu-btn';
+        leaveBtn.style.marginTop = '2rem';
+        leaveBtn.addEventListener('click', () => {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+            onCancel();
+        });
+        modal.appendChild(leaveBtn);
+
+        this.root.appendChild(modal);
+        return modal;
+    }
+
+    private showRoomIdModal(roomId: string, onStartGame: () => void, onCancel?: () => void) {
         // Create modal overlay
         const modal = document.createElement('div');
         modal.id = 'roomIdModal';
@@ -1055,7 +1143,6 @@ export class GameUI {
                 }, 2000);
             } catch (err) {
                 console.error('Failed to copy:', err);
-                // Fallback: select text
                 const selection = window.getSelection();
                 const range = document.createRange();
                 range.selectNodeContents(roomIdText);
@@ -1078,13 +1165,16 @@ export class GameUI {
 
         // Start Game Button
         const startBtn = document.createElement('button');
-        startBtn.textContent = 'Start Game';
+        startBtn.textContent = 'Waiting for P2...';
         startBtn.className = 'menu-btn';
         startBtn.style.fontSize = '1.5rem';
         startBtn.style.padding = '1rem 3rem';
         startBtn.style.background = 'linear-gradient(45deg, #4DD0E1 0%, #81C784 100%)';
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.5';
+
         startBtn.addEventListener('click', () => {
-            this.root.removeChild(modal);
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
             onStartGame();
         });
         modal.appendChild(startBtn);
@@ -1096,11 +1186,26 @@ export class GameUI {
         cancelBtn.style.marginTop = '1rem';
         cancelBtn.style.fontSize = '1rem';
         cancelBtn.addEventListener('click', () => {
-            this.root.removeChild(modal);
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+            if (onCancel) onCancel();
         });
         modal.appendChild(cancelBtn);
 
         this.root.appendChild(modal);
+
+        return {
+            setPlayerJoined: () => {
+                console.log('[Coop] UI: setPlayerJoined called');
+                instructions.textContent = 'Player 2 Joined! Ready to Start.';
+                instructions.style.color = '#81C784';
+                startBtn.textContent = 'Start Game';
+                startBtn.disabled = false;
+                startBtn.style.opacity = '1';
+            },
+            close: () => {
+                if (modal.parentNode) modal.parentNode.removeChild(modal);
+            }
+        };
     }
 
     private async startCoopGame(room: RoomInfo, playerNumber: 1 | 2) {

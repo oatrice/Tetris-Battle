@@ -4,7 +4,7 @@
  * Uses environment variables prefixed with VITE_ (Vite exposes them to client).
  */
 
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import {
     getDatabase,
     ref,
@@ -41,7 +41,13 @@ export class RealtimeService {
             appId: import.meta.env.VITE_FIREBASE_APP_ID!,
         };
 
-        const app = initializeApp(firebaseConfig, 'realtime-db-app');
+        const appName = 'realtime-db-app';
+        let app;
+        if (getApps().some(a => a.name === appName)) {
+            app = getApp(appName);
+        } else {
+            app = initializeApp(firebaseConfig, appName);
+        }
         this.db = getDatabase(app);
     }
 

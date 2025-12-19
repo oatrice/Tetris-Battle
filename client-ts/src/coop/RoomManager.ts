@@ -10,6 +10,7 @@ export interface RoomInfo {
     hostId: string;
     players: string[]; // user IDs
     createdAt: number;
+    status: 'waiting' | 'playing' | 'ended';
 }
 
 export class RoomManager {
@@ -22,8 +23,15 @@ export class RoomManager {
             hostId,
             players: [hostId],
             createdAt: Date.now(),
+            status: 'waiting',
         });
-        return { id: roomId!, hostId, players: [hostId], createdAt: Date.now() };
+        return {
+            id: roomId!,
+            hostId,
+            players: [hostId],
+            createdAt: Date.now(),
+            status: 'waiting'
+        };
     }
 
     /** Join an existing room */
@@ -36,6 +44,11 @@ export class RoomManager {
             });
         }
         return { ...room, players: [...room.players, playerId] };
+    }
+
+    /** Update room status */
+    async updateStatus(roomId: string, status: 'waiting' | 'playing' | 'ended'): Promise<void> {
+        await this.realtime.update(`${this.roomsPath}/${roomId}`, { status });
     }
 
     /** Get room data once */
@@ -52,9 +65,10 @@ export class RoomManager {
 
             return {
                 id: roomId,
-                hostId: data.hostId,
+                hostId: data.hostId || '',
                 players: data.players || [],
-                createdAt: data.createdAt || Date.now()
+                createdAt: data.createdAt || Date.now(),
+                status: data.status || 'waiting'
             };
         } catch (error) {
             console.error('[RoomManager] Error getting room:', error);
@@ -62,9 +76,21 @@ export class RoomManager {
         }
     }
 
-    /** Listen for room updates (players join/leave) */
+    /** Listen for room updates (players join/leave, status change) */
     onRoomUpdate(roomId: string, cb: (room: RoomInfo | null) => void): () => void {
-        return this.realtime.onValue<RoomInfo>(`${this.roomsPath}/${roomId}`, cb);
+        return this.realtime.onValue<RoomInfo>(`${this.roomsPath}/${roomId}`, (data) => {
+            if (data) {
+                cb({
+                    id: roomId,
+                    hostId: data.hostId || '',
+                    players: data.players || [],
+                    createdAt: data.createdAt || Date.now(),
+                    status: data.status || 'waiting'
+                });
+            } else {
+                cb(null);
+            }
+        });
     }
 
     /** Delete a room */
