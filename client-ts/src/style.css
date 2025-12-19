@@ -142,7 +142,8 @@ canvas {
     /* Change to row to allow wrapping logic */
     flex-wrap: wrap;
     align-items: flex-start;
-    justify-content: space-between;
+    justify-content: center;
+    /* Center board */
     /* Spread Next and Score */
     width: 100%;
     height: 100%;
@@ -150,53 +151,10 @@ canvas {
     margin-bottom: 0;
   }
 
-  /* Arrange Panels Top Side-by-Side */
-  #left-panel {
-    order: 1;
-    width: 48%;
-    /* Roughly half */
-    min-width: auto;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 5px;
-    gap: 5px;
-  }
-
+  /* Hide Panels on Mobile - Focus on Board Only */
+  #left-panel,
   #right-panel {
-    order: 2;
-    width: 48%;
-    min-width: auto;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-    margin-bottom: 5px;
-  }
-
-  /* Compact Boxes */
-  .panel-box {
-    padding: 5px;
-    min-width: auto;
-    flex: 1;
-    /* Distribute space */
-    align-items: center;
-  }
-
-  .panel-box h3 {
-    font-size: 0.7rem;
-    margin-bottom: 2px;
-  }
-
-  .stat-value {
-    font-size: 1rem;
-  }
-
-  /* Smaller Next/Hold Canvas */
-  #nextCanvas,
-  #holdCanvas {
-    width: 50px;
-    height: 50px;
+    display: none !important;
   }
 
   /* Board - Fill Remaining Space */
@@ -205,8 +163,8 @@ canvas {
     width: auto;
     height: auto;
     max-width: 100%;
-    /* Calculate height: 100dvh - (controls + panels + margins) ~ approx 160px overhead */
-    max-height: calc(100dvh - 160px);
+    /* Calculate height: 100dvh - (controls ~50px only) */
+    max-height: calc(100dvh - 60px);
     aspect-ratio: 300/600;
     margin: 0 auto;
     border-width: 2px;
