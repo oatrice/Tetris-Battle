@@ -3,6 +3,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CoopGame } from './CoopGame';
 import { RoomInfo } from './RoomManager';
 
+// Mock RealtimeService to avoid Missing URL Error
+vi.mock('../services/RealtimeService', () => {
+    return {
+        RealtimeService: vi.fn().mockImplementation(() => ({
+            onValue: vi.fn(),
+            set: vi.fn(),
+            push: vi.fn(),
+            off: vi.fn()
+        }))
+    };
+});
+
 describe('CoopGame State Sync on Lock', () => {
     let game: CoopGame;
     let mockSync: any;
