@@ -106,6 +106,14 @@ export class CoopSync {
             this.coopGame.controller.setNextPiece(2, remoteState.nextPieces.player2);
         }
 
+        // Initial Sync: If I am Guest and have no piece, take it from Host
+        if (this.playerNumber === 2 && !this.coopGame.controller.getPiece(2)) {
+            if (remoteState.player2 && remoteState.player2.piece) {
+                console.log('[CoopSync] Initializing Guest Piece from Host');
+                this.coopGame.controller.setPiece(2, remoteState.player2.piece, remoteState.player2.position);
+            }
+        }
+
         // Sync the OTHER player's piece (not our own)
         const otherPlayer: 1 | 2 = this.playerNumber === 1 ? 2 : 1;
         const otherPlayerState = this.playerNumber === 1 ? remoteState.player2 : remoteState.player1;

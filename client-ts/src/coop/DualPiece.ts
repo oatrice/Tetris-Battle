@@ -262,4 +262,17 @@ export class DualPieceController {
     setNextPiece(player: PlayerNumber, type: TetrominoType): void {
         this.nextPieces.set(player, new Tetromino(type));
     }
+
+    /**
+     * Force set a player's piece state (for synchronization)
+     */
+    setPiece(player: PlayerNumber, pieceInfo: any, position: { x: number, y: number }): void {
+        const piece = new Tetromino(pieceInfo.type);
+        piece.rotationIndex = pieceInfo.rotationIndex;
+
+        this.players.set(player, {
+            piece,
+            position
+        });
+    }
 }

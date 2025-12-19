@@ -236,5 +236,19 @@ describe('DualPieceController', () => {
 
             expect(controller.getPiece(2)?.type).toBe('I');
         });
+
+        it('should allow setting current piece state (sync)', () => {
+            const mockPiece = { type: 'L', rotationIndex: 1, shape: [] };
+            const mockPos = { x: 10, y: 10 };
+
+            controller.setPiece(1, mockPiece, mockPos);
+
+            const piece = controller.getPiece(1)!;
+            expect(piece.type).toBe('L');
+            expect(piece.rotationIndex).toBe(1);
+            const pos = controller.getPosition(1);
+            expect(pos.x).toBe(10);
+            expect(pos.y).toBe(10);
+        });
     });
 });

@@ -40,12 +40,16 @@ export class CoopGame {
         this.room = room;
         this.playerNumber = playerNumber;
 
-        // Spawn initial pieces
-        const spawned = this.controller.spawnPieces();
-        if (!spawned) {
-            console.error('[CoopGame] Cannot spawn initial pieces - Game Over immediately!');
-            this.gameOver = true;
-            return; // Don't start game loop
+        if (room && playerNumber === 2) {
+            console.log('[CoopGame] Guest waiting for Host state...');
+        } else {
+            // Spawn initial pieces
+            const spawned = this.controller.spawnPieces();
+            if (!spawned) {
+                console.error('[CoopGame] Cannot spawn initial pieces - Game Over immediately!');
+                this.gameOver = true;
+                return; // Don't start game loop
+            }
         }
 
         // Start game loop
