@@ -57,15 +57,24 @@ export class DualPieceController {
 
     /**
      * Spawn a piece for a specific player
+     * Returns false if spawn position is blocked (game over condition)
      */
-    spawnPiece(player: PlayerNumber): void {
+    spawnPiece(player: PlayerNumber): boolean {
         const spawnPos = this.board.getSpawnPosition(player);
         const piece = this.generatePiece();
+
+        // Check if spawn position is blocked
+        if (!this.board.canPlacePiece(piece, spawnPos.x, spawnPos.y)) {
+            console.warn(`[DualPiece] Cannot spawn piece for Player ${player} - Game Over!`);
+            return false; // Game Over
+        }
 
         this.players.set(player, {
             piece,
             position: { x: spawnPos.x, y: spawnPos.y }
         });
+
+        return true; // Spawn successful
     }
 
     /**
@@ -186,28 +195,34 @@ export class DualPieceController {
 
     /**
      * Apply gravity to both pieces
+     * Returns info about which pieces were locked
      */
-    applyGravity(): void {
-        this.applyGravityToPlayer(1);
-        this.applyGravityToPlayer(2);
+    applyGravity(): { player1Locked: boolean; player2Locked: boolean } {
+        const player1Locked = this.applyGravityToPlayer(1);
+        const player2Locked = this.applyGravityToPlayer(2);
+        return { player1Locked, player2Locked };
     }
 
     /**
      * Apply gravity to a specific player
+     * Returns true if piece was locked
      */
-    private applyGravityToPlayer(player: PlayerNumber): void {
+    private applyGravityToPlayer(player: PlayerNumber): boolean {
         const playerState = this.players.get(player);
-        if (!playerState || !playerState.piece) return;
+        if (!playerState || !playerState.piece) return false;
 
-        const { piece, position } = playerState;
+        const { x, y } = playerState.position;
+        const newY = y + 1;
 
-        if (this.board.isValidPosition(piece, position.x, position.y + 1)) {
-            playerState.position.y++;
-        } else {
-            // Lock piece and spawn new one
-            this.board.lockPiece(piece, position.x, position.y);
-            this.spawnPiece(player);
+        // Try to move down
+        if (this.board.isValidPosition(playerState.piece, x, newY)) {
+            playerState.position = { x, y: newY };
+            return false; // Not locked
         }
+
+        // Can't move down - lock the piece
+        this.board.lockPiece(playerState.piece, x, y);
+        return true; // Locked - needs respawn
     }
 
     /**

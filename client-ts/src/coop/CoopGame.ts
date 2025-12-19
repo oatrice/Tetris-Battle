@@ -81,10 +81,33 @@ export class CoopGame {
      * Update game state
      */
     update(delta: number) {
+        if (this.gameOver) return; // Stop updating if game over
+
         // Apply gravity every dropInterval
         if (delta >= this.dropInterval) {
-            this.controller.applyGravity();
+            const gravityResult = this.controller.applyGravity();
             this.lastUpdate = performance.now();
+
+            // Check if any piece needs respawn (locked)
+            if (gravityResult.player1Locked || gravityResult.player2Locked) {
+                // Try to spawn new pieces
+                if (gravityResult.player1Locked) {
+                    const spawned = this.controller.spawnPiece(1);
+                    if (!spawned) {
+                        console.log('[CoopGame] Player 1 cannot spawn - Game Over!');
+                        this.gameOver = true;
+                        return;
+                    }
+                }
+                if (gravityResult.player2Locked) {
+                    const spawned = this.controller.spawnPiece(2);
+                    if (!spawned) {
+                        console.log('[CoopGame] Player 2 cannot spawn - Game Over!');
+                        this.gameOver = true;
+                        return;
+                    }
+                }
+            }
 
             // Check for line clears
             const result = this.controller.checkAndClearLines();

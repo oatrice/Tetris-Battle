@@ -10,6 +10,8 @@
  * └────────────────────────┘
  */
 
+import { Tetromino } from '../game/Tetromino';
+
 interface PieceShape {
     shape: number[][];
     type?: string;
@@ -95,6 +97,13 @@ export class CoopBoard {
             }
         }
         return true;
+    }
+
+    /**
+     * Check if a Tetromino can be placed at position (wrapper for isValidPosition)
+     */
+    canPlacePiece(piece: Tetromino, x: number, y: number): boolean {
+        return this.isValidPosition(piece, x, y);
     }
 
     /**

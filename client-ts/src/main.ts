@@ -148,14 +148,17 @@ function loop(timestamp: number) {
   const deltaTime = timestamp - lastTime;
   lastTime = timestamp;
 
-  game.update(deltaTime);
+  // Skip solo game logic if paused (e.g., in Coop Mode)
+  if (!game.isPaused) {
+    game.update(deltaTime);
 
-  if (game.gameOver) {
-    ui.showGameOver();
+    if (game.gameOver) {
+      ui.showGameOver();
+    }
+
+    ui.updateStats();
+    renderer.render(game);
   }
-
-  ui.updateStats();
-  renderer.render(game);
 
   requestAnimationFrame(loop);
 }
