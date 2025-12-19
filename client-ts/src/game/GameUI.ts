@@ -1041,7 +1041,7 @@ export class GameUI {
                 coopContainer.id = 'coop-ui-container';
                 coopContainer.style.display = 'flex';
                 coopContainer.style.justifyContent = 'center';
-                coopContainer.style.alignItems = 'flex-start';
+                coopContainer.style.alignItems = 'center';
                 coopContainer.style.gap = '20px';
                 coopContainer.style.padding = '20px';
                 coopContainer.style.marginTop = '20px';
