@@ -67,7 +67,17 @@
       <div v-if="onlineGame.isGameOver || onlineGame.isWinner" class="game-over-box">
           <span v-if="onlineGame.isWinner" class="result-text win">🏆 YOU WIN!</span>
           <span v-else class="result-text lose">GAME OVER</span>
-          <button @click="emit('back')" class="back-btn">Exit</button>
+          
+          <div v-if="onlineGame.isWinner && onlineGame.winScore !== null" class="win-score">
+              Score: {{ onlineGame.winScore }}
+          </div>
+          
+          <div class="button-row">
+              <button v-if="onlineGame.isWinner && onlineGame.isPaused" @click="onlineGame.continueAfterWin()" class="continue-btn">
+                  ▶️ Continue Playing
+              </button>
+              <button @click="emit('back')" class="back-btn">Exit</button>
+          </div>
       </div>
 
      <button v-if="!onlineGame.isGameOver && !showNameInput" @click="onlineGame.togglePause()" class="back-btn small">
@@ -422,6 +432,34 @@ onUnmounted(() => {
 @keyframes pulse {
     from { transform: scale(1); }
     to { transform: scale(1.05); }
+}
+
+.win-score {
+    font-size: 1.2rem;
+    color: #ffd700;
+    margin: 0.5rem 0;
+}
+
+.button-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.continue-btn {
+    background: linear-gradient(135deg, #00ff88, #00cc6a);
+    color: #004400;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.continue-btn:hover {
+    transform: scale(1.02);
 }
 
 .board-overlay {

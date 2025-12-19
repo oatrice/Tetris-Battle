@@ -13,6 +13,7 @@ export class OnlineGame extends Game {
     opponentName: string | null = null
     opponentGameOver = false  // True when opponent lost
     isWinner = false          // True when we won (opponent game over)
+    winScore: number | null = null  // Score at time of winning (for leaderboard)
 
     // Countdown Logic
     countdown: number | null = null
@@ -86,6 +87,8 @@ export class OnlineGame extends Game {
             console.log('Opponent lost! You win!')
             this.opponentGameOver = true
             this.isWinner = true
+            this.isPaused = true  // Pause to show win message
+            this.winScore = this.score  // Record score at win time
         })
     }
 
@@ -98,6 +101,14 @@ export class OnlineGame extends Game {
         const event = this.isPaused ? 'pause' : 'resume'
         console.log(`Sending ${event} signal`)
         socketService.send(event)
+    }
+
+    // Continue playing solo after winning (for high score)
+    continueAfterWin() {
+        if (this.isWinner) {
+            this.isPaused = false
+            console.log('Continuing solo play after winning')
+        }
     }
 
     private startCountdown() {
