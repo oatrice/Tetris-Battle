@@ -3,6 +3,7 @@ import { GameMode } from './GameMode';
 import { Renderer } from './Renderer';
 import { APP_VERSION, COMMIT_HASH, COMMIT_DATE } from 'virtual:version-info';
 import { AuthService } from '../services/AuthService';
+import { createTeamLeaderboardOverlay, createPlayerNamesModal } from '../coop/CoopLeaderboardUI';
 import type { CoopGame } from '../coop/CoopGame';
 import type { CoopRenderer } from './CoopRenderer';
 import type { CoopInputHandler } from '../coop/CoopInputHandler';
@@ -426,6 +427,10 @@ export class GameUI {
             this.showLeaderboard();
         });
 
+        const btnTeamLeaderboard = createBtn('btnTeamLeaderboard', '🏆 Team Leaderboard', () => {
+            createTeamLeaderboardOverlay(this.root);
+        });
+
         // Install App Button (PWA)
         const btnInstall = createBtn('btnInstall', '📲 Checking PWA...', async () => {
             if (this.deferredPrompt) {
@@ -465,6 +470,7 @@ export class GameUI {
         this.homeMenu.appendChild(btnSpecial);
         this.homeMenu.appendChild(btnCoop);
         this.homeMenu.appendChild(btnLeaderboard);
+        this.homeMenu.appendChild(btnTeamLeaderboard);
         this.homeMenu.appendChild(btnChangeName);
         this.homeMenu.appendChild(btnInstall);
 
@@ -1135,12 +1141,24 @@ export class GameUI {
             const controls = this.showRoomIdModal(room.id, async () => {
                 // Start game when user clicks "Start Game"
                 if (unsub) unsub();
-                try {
-                    await roomManager.updateStatus(room.id, 'playing');
-                    this.startCoopGame(room, 1);
-                } catch (e) {
-                    console.error('[Coop] Failed to start game:', e);
-                }
+
+                // Show Player Names Modal first
+                createPlayerNamesModal(this.root, async (player1Name, player2Name) => {
+                    try {
+                        await roomManager.updateStatus(room.id, 'playing');
+                        await this.startCoopGame(room, 1);
+
+                        // Set player names after game starts
+                        if (this.coopGame) {
+                            this.coopGame.setPlayerNames(player1Name, player2Name);
+                            if (this.authService) {
+                                this.coopGame.setAuthService(this.authService);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[Coop] Failed to start game:', e);
+                    }
+                });
             }, () => {
                 // Cancelled
                 if (unsub) unsub();
@@ -1189,7 +1207,19 @@ export class GameUI {
                     if (updatedRoom && updatedRoom.status === 'playing') {
                         if (unsub) unsub();
                         if (modal.parentNode) modal.parentNode.removeChild(modal);
-                        this.startCoopGame(updatedRoom, 2);
+
+                        // Show Player Names Modal before starting
+                        createPlayerNamesModal(this.root, async (player1Name, player2Name) => {
+                            await this.startCoopGame(updatedRoom, 2);
+
+                            // Set player names after game starts
+                            if (this.coopGame) {
+                                this.coopGame.setPlayerNames(player1Name, player2Name);
+                                if (this.authService) {
+                                    this.coopGame.setAuthService(this.authService);
+                                }
+                            }
+                        });
                     }
                 });
             } else {
@@ -1217,7 +1247,19 @@ export class GameUI {
 
             const controls = this.showRoomIdModal(room.id, async () => {
                 if (unsub) unsub();
-                await this.startCoopGameWithHybrid(room, 1);
+
+                // Show Player Names Modal
+                createPlayerNamesModal(this.root, async (player1Name, player2Name) => {
+                    await this.startCoopGameWithHybrid(room, 1);
+
+                    // Set player names
+                    if (this.coopGame) {
+                        this.coopGame.setPlayerNames(player1Name, player2Name);
+                        if (this.authService) {
+                            this.coopGame.setAuthService(this.authService);
+                        }
+                    }
+                });
             }, () => {
                 if (unsub) unsub();
                 roomManager.deleteRoom(room.id);
@@ -1250,7 +1292,18 @@ export class GameUI {
             const room = await roomManager.joinRoom(roomId, playerId);
 
             if (room) {
-                await this.startCoopGameWithHybrid(room, 2);
+                // Show Player Names Modal
+                createPlayerNamesModal(this.root, async (player1Name, player2Name) => {
+                    await this.startCoopGameWithHybrid(room, 2);
+
+                    // Set player names
+                    if (this.coopGame) {
+                        this.coopGame.setPlayerNames(player1Name, player2Name);
+                        if (this.authService) {
+                            this.coopGame.setAuthService(this.authService);
+                        }
+                    }
+                });
             } else {
                 throw new Error('Room not found');
             }
