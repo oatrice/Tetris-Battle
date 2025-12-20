@@ -1,10 +1,11 @@
 import { AuthService } from '../services/AuthService';
-import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, query, where, orderBy, limit, doc, setDoc } from 'firebase/firestore';
 
 /**
  * Team Score Entry for Cooperative Mode
  */
 export interface TeamScoreEntry {
+    gameSessionId: string; // Unique ID for this game session (prevents duplicates)
     player1Name: string;
     player2Name: string;
     scoreP1: number;
@@ -101,15 +102,27 @@ export class CoopLeaderboard {
 
             const finalEntry = {
                 ...entry,
-                userId: user?.uid || entry.userId,
+                userId: user?.uid || 'anonymous',
                 mode: 'COOP' // Mode identifier
             };
 
-            await addDoc(collection(db, 'coop_leaderboard'), finalEntry);
+            // Use gameSessionId as document ID to prevent duplicates
+            const docRef = doc(db, 'coop_leaderboard', entry.gameSessionId);
+
+            // Use setDoc without merge to ensure uniqueness
+            await setDoc(docRef, finalEntry);
+
             console.log('[CoopLeaderboard] Team score saved to Firestore');
-        } catch (e) {
+        } catch (e: any) {
+            // Check if error is due to duplicate (though setDoc should overwrite)
+            // This happens if Firestore Security Rules prevent overwrites
+            if (e.code === 'permission-denied' && e.message?.includes('already exists')) {
+                console.log('[CoopLeaderboard] Score already uploaded by peer, skipping');
+                return; // Don't retry or queue
+            }
+
             console.error('[CoopLeaderboard] Failed to save team score online', e);
-            // On failure, add to queue for retry
+            // On other failures, add to queue for retry
             this.addToSyncQueue(entry);
         }
     }

@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CoopLeaderboard } from './CoopLeaderboard';
-import { addDoc } from 'firebase/firestore';
+import { setDoc } from 'firebase/firestore';
 
 // Mock Firestore
 vi.mock('firebase/firestore', () => ({
     getFirestore: vi.fn().mockReturnValue({}),
     collection: vi.fn(),
-    addDoc: vi.fn(),
+    doc: vi.fn(),
+    setDoc: vi.fn(),
     getDocs: vi.fn(),
     query: vi.fn(),
     where: vi.fn(),
@@ -45,6 +46,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
     describe('Local Storage - Immediate Save', () => {
         it('should save team score to local storage immediately', async () => {
             const teamScore = {
+                gameSessionId: 'test-session-1',
                 player1Name: 'Alice',
                 player2Name: 'Bob',
                 scoreP1: 3000,
@@ -69,6 +71,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
             // Add 12 scores
             for (let i = 1; i <= 12; i++) {
                 await leaderboard.addTeamScore({
+                    gameSessionId: `test-session-${i}`,
                     player1Name: `P1-${i}`,
                     player2Name: `P2-${i}`,
                     scoreP1: i * 100,
@@ -95,6 +98,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
             mockAuthService.getUser.mockReturnValue({ uid: 'u1', displayName: 'User1' });
 
             const teamScore = {
+                gameSessionId: 'test-session-2',
                 player1Name: 'Charlie',
                 player2Name: 'Dave',
                 scoreP1: 4000,
@@ -113,7 +117,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
             expect(queue[0].totalScore).toBe(7500);
 
             // Verify NO Firestore call
-            expect(addDoc).not.toHaveBeenCalled();
+            expect(setDoc).not.toHaveBeenCalled();
         });
 
         it('should NOT sync to Firestore when offline even if authenticated', async () => {
@@ -121,6 +125,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
             mockAuthService.getUser.mockReturnValue({ uid: 'u1', displayName: 'User1' });
 
             await leaderboard.addTeamScore({
+                gameSessionId: 'test-session-3',
                 player1Name: 'Eve',
                 player2Name: 'Frank',
                 scoreP1: 2000,
@@ -131,7 +136,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
                 timestamp: Date.now()
             });
 
-            expect(addDoc).not.toHaveBeenCalled();
+            expect(setDoc).not.toHaveBeenCalled();
         });
     });
 
@@ -144,6 +149,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
 
             // Add score while offline
             await leaderboard.addTeamScore({
+                gameSessionId: 'test-session-4',
                 player1Name: 'Grace',
                 player2Name: 'Hank',
                 scoreP1: 5000,
@@ -154,7 +160,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
                 timestamp: Date.now()
             });
 
-            expect(addDoc).not.toHaveBeenCalled();
+            expect(setDoc).not.toHaveBeenCalled();
             expect(leaderboard.getSyncQueue()).toHaveLength(1);
 
             // Step 2: Go Online
@@ -164,8 +170,8 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
             await leaderboard.syncPendingScores();
 
             // Verify Firestore was called
-            expect(addDoc).toHaveBeenCalled();
-            const calls = (addDoc as any).mock.calls;
+            expect(setDoc).toHaveBeenCalled();
+            const calls = (setDoc as any).mock.calls;
             expect(calls[0][1].totalScore).toBe(9500);
 
             // Verify queue is cleared
@@ -179,6 +185,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
             // Add 3 scores while offline
             for (let i = 1; i <= 3; i++) {
                 await leaderboard.addTeamScore({
+                    gameSessionId: `test-session-queue-${i}`,
                     player1Name: `P1-${i}`,
                     player2Name: `P2-${i}`,
                     scoreP1: i * 1000,
@@ -197,7 +204,7 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
             await leaderboard.syncPendingScores();
 
             // Verify all 3 were synced
-            expect(addDoc).toHaveBeenCalledTimes(3);
+            expect(setDoc).toHaveBeenCalledTimes(3);
             expect(leaderboard.getSyncQueue()).toHaveLength(0);
         });
     });
@@ -209,10 +216,11 @@ describe('CoopLeaderboard - Offline-First with Auto-Sync', () => {
             Object.defineProperty(navigator, 'onLine', { writable: true, value: true });
 
             // Mock Firestore failure
-            vi.mocked(addDoc).mockRejectedValueOnce(new Error('Firestore 503 Error'));
+            vi.mocked(setDoc).mockRejectedValueOnce(new Error('Firestore 503 Error'));
             const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
             await leaderboard.addTeamScore({
+                gameSessionId: 'test-session-5',
                 player1Name: 'Ivy',
                 player2Name: 'Jack',
                 scoreP1: 6000,

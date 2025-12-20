@@ -1218,18 +1218,14 @@ export class GameUI {
                         if (unsub) unsub();
                         if (modal.parentNode) modal.parentNode.removeChild(modal);
 
-                        // Show Player Names Modal before starting
-                        createPlayerNamesModal(this.root, async (player1Name: string, player2Name: string) => {
-                            await this.startCoopGame(updatedRoom, 2);
+                        // Player 2 doesn't need to enter names - Host (P1) already did
+                        console.log('[Coop] P2: Starting game (names will be set by P1)');
+                        this.startCoopGame(updatedRoom, 2);
 
-                            // Set player names after game starts
-                            if (this.coopGame) {
-                                this.coopGame.setPlayerNames(player1Name, player2Name);
-                                if (this.authService) {
-                                    this.coopGame.setAuthService(this.authService);
-                                }
-                            }
-                        });
+                        // Auth service will be set when game starts
+                        if (this.coopGame && this.authService) {
+                            this.coopGame.setAuthService(this.authService);
+                        }
                     }
                 });
             } else {
@@ -1310,18 +1306,14 @@ export class GameUI {
             const room = await roomManager.joinRoom(roomId, playerId);
 
             if (room) {
-                // Show Player Names Modal
-                createPlayerNamesModal(this.root, async (player1Name: string, player2Name: string) => {
-                    await this.startCoopGameWithHybrid(room, 2);
+                // Player 2 doesn't need to enter names - Host (P1) already did
+                console.log('[HybridSync] P2: Starting game (names will be set by P1)');
+                await this.startCoopGameWithHybrid(room, 2);
 
-                    // Set player names
-                    if (this.coopGame) {
-                        this.coopGame.setPlayerNames(player1Name, player2Name);
-                        if (this.authService) {
-                            this.coopGame.setAuthService(this.authService);
-                        }
-                    }
-                });
+                // Auth service will be set when game starts
+                if (this.coopGame && this.authService) {
+                    this.coopGame.setAuthService(this.authService);
+                }
             } else {
                 throw new Error('Room not found');
             }

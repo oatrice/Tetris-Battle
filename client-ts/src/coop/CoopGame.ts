@@ -65,6 +65,7 @@ export class CoopGame {
 
     // Team Score System
     private leaderboard: CoopLeaderboard;
+    private gameSessionId: string = ''; // Unique ID for this game session
     player1Name: string = 'Player 1';
     player2Name: string = 'Player 2';
 
@@ -72,6 +73,7 @@ export class CoopGame {
         this.board = new CoopBoard();
         this.controller = new DualPieceController(this.board);
         this.leaderboard = new CoopLeaderboard();
+        this.gameSessionId = this.generateGameSessionId();
     }
 
     /**
@@ -277,11 +279,22 @@ export class CoopGame {
     }
 
     /**
+     * Generate unique game session ID
+     */
+    private generateGameSessionId(): string {
+        const roomId = this.room?.id || 'local';
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substr(2, 9);
+        return `${roomId}_${timestamp}_${random}`;
+    }
+
+    /**
      * Save team score to leaderboard when game over
      */
     private async saveTeamScore(): Promise<void> {
         try {
             const teamScore = {
+                gameSessionId: this.gameSessionId,
                 player1Name: this.player1Name,
                 player2Name: this.player2Name,
                 scoreP1: this.scoreP1,
