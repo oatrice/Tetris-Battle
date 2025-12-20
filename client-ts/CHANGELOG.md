@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.3.0] - 2025-12-20
+### Added
+- **PWA Authentication Loading State**: Implemented a dedicated loading state for PWA authentication, providing a clearer user experience during the authentication process.
+
 ## [2.2.1] - 2025-12-20
 ### Changed
 - **Refined P2P Connection UI**: Improved the user interface for P2P connections, providing clearer feedback and more intuitive controls for establishing and managing peer-to-peer sessions.
