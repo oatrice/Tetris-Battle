@@ -1146,16 +1146,19 @@ export class GameUI {
 
             // Show Room ID with Copy button
             const controls = this.showRoomIdModal(room.id, async () => {
-                // Start game when user clicks "Start Game"
-                if (unsub) unsub();
-
-                // Show Player Names Modal first
-                createPlayerNamesModal(this.root, async (player1Name, player2Name) => {
+                // Show Player Names Modal first (before unsub)
+                createPlayerNamesModal(this.root, async (player1Name: string, player2Name: string) => {
                     try {
+                        // Unsubscribe from room updates
+                        if (unsub) unsub();
+
+                        // Update room status to playing
                         await roomManager.updateStatus(room.id, 'playing');
+
+                        // Start coop game
                         await this.startCoopGame(room, 1);
 
-                        // Set player names after game starts
+                        // Set player names and auth service
                         if (this.coopGame) {
                             this.coopGame.setPlayerNames(player1Name, player2Name);
                             if (this.authService) {
@@ -1216,7 +1219,7 @@ export class GameUI {
                         if (modal.parentNode) modal.parentNode.removeChild(modal);
 
                         // Show Player Names Modal before starting
-                        createPlayerNamesModal(this.root, async (player1Name, player2Name) => {
+                        createPlayerNamesModal(this.root, async (player1Name: string, player2Name: string) => {
                             await this.startCoopGame(updatedRoom, 2);
 
                             // Set player names after game starts
@@ -1253,18 +1256,26 @@ export class GameUI {
             console.log('[HybridSync] Room created:', room.id);
 
             const controls = this.showRoomIdModal(room.id, async () => {
-                if (unsub) unsub();
+                console.log('[HybridSync] Start Game button clicked!');
+                // Show Player Names Modal first (before unsub)
+                createPlayerNamesModal(this.root, async (player1Name: string, player2Name: string) => {
+                    console.log('[HybridSync] Player names entered:', player1Name, player2Name);
+                    try {
+                        // Unsubscribe from room updates
+                        if (unsub) unsub();
 
-                // Show Player Names Modal
-                createPlayerNamesModal(this.root, async (player1Name, player2Name) => {
-                    await this.startCoopGameWithHybrid(room, 1);
+                        // Start hybrid coop game
+                        await this.startCoopGameWithHybrid(room, 1);
 
-                    // Set player names
-                    if (this.coopGame) {
-                        this.coopGame.setPlayerNames(player1Name, player2Name);
-                        if (this.authService) {
-                            this.coopGame.setAuthService(this.authService);
+                        // Set player names
+                        if (this.coopGame) {
+                            this.coopGame.setPlayerNames(player1Name, player2Name);
+                            if (this.authService) {
+                                this.coopGame.setAuthService(this.authService);
+                            }
                         }
+                    } catch (e) {
+                        console.error('[HybridSync] Failed to start game:', e);
                     }
                 });
             }, () => {
@@ -1300,7 +1311,7 @@ export class GameUI {
 
             if (room) {
                 // Show Player Names Modal
-                createPlayerNamesModal(this.root, async (player1Name, player2Name) => {
+                createPlayerNamesModal(this.root, async (player1Name: string, player2Name: string) => {
                     await this.startCoopGameWithHybrid(room, 2);
 
                     // Set player names

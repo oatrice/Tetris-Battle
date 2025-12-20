@@ -212,9 +212,11 @@ export function createPlayerNamesModal(
     container: HTMLElement,
     onStart?: (player1Name: string, player2Name: string) => void
 ): void {
+    console.log('[PlayerNamesModal] Creating modal...');
     // Remove existing modal if any
     const existingModal = container.querySelector('.player-names-modal');
     if (existingModal) {
+        console.log('[PlayerNamesModal] Removing existing modal');
         existingModal.remove();
     }
 
@@ -231,7 +233,7 @@ export function createPlayerNamesModal(
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 1000;
+        z-index: 10000;
         backdrop-filter: blur(5px);
     `;
 
@@ -384,4 +386,5 @@ export function createPlayerNamesModal(
     content.appendChild(buttonsDiv);
     modal.appendChild(content);
     container.appendChild(modal);
+    console.log('[PlayerNamesModal] Modal appended to container:', container.id || container.className);
 }
