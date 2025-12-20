@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.4.0] - 2025-12-20
+### Added
+- **💾 Team Score Leaderboard (Offline-First with Auto-Sync)**: 
+    - Implemented `CoopLeaderboard` for Cooperative Mode team scores.
+    - **Local Storage Priority**: Team scores are saved to Local Storage immediately upon Game Over, ensuring no data loss.
+    - **Sync Queue**: Scores are queued when offline or Firestore is unavailable.
+    - **Auto-Sync**: Automatically syncs queued scores to Firestore when internet connection is restored (via `online` event listener).
+    - **Network Resilience**: Scores remain in Local Storage even if online sync fails, preventing data loss.
+    - **Team Score Data**:
+        - Player 1 & Player 2 names
+        - Individual scores (`scoreP1`, `scoreP2`)
+        - Total team score
+        - Individual lines cleared (`linesP1`, `linesP2`)
+        - Timestamp
+    - **Integration**: `CoopGame` automatically saves team scores on Game Over.
+- **Testing**: Comprehensive TDD tests for `CoopLeaderboard` (8 test cases covering offline, online, sync queue, and network resilience).
+
 ## [2.3.0] - 2025-12-20
 ### Added
 - **PWA Authentication Loading State**: Implemented a dedicated loading state for PWA authentication, providing a clearer user experience during the authentication process.

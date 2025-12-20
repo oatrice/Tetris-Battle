@@ -8,6 +8,9 @@ import { CoopBoard } from './CoopBoard';
 import { DualPieceController, PlayerAction } from './DualPiece';
 import { CoopSync } from './CoopSync';
 import { RoomInfo } from './RoomManager';
+import { CoopLeaderboard } from './CoopLeaderboard';
+import { AuthService } from '../services/AuthService';
+
 
 export class CoopGame {
     board: CoopBoard;
@@ -60,11 +63,30 @@ export class CoopGame {
     playerNumber: 1 | 2 = 1; // Which player this client controls
     room?: RoomInfo;
 
-    // ... rest of class ...
+    // Team Score System
+    private leaderboard: CoopLeaderboard;
+    player1Name: string = 'Player 1';
+    player2Name: string = 'Player 2';
 
     constructor() {
         this.board = new CoopBoard();
         this.controller = new DualPieceController(this.board);
+        this.leaderboard = new CoopLeaderboard();
+    }
+
+    /**
+     * Set AuthService for online score syncing
+     */
+    setAuthService(authService: AuthService) {
+        this.leaderboard.setAuthService(authService);
+    }
+
+    /**
+     * Set player names for team score
+     */
+    setPlayerNames(player1Name: string, player2Name: string) {
+        this.player1Name = player1Name;
+        this.player2Name = player2Name;
     }
 
     /**
@@ -173,6 +195,7 @@ export class CoopGame {
                     if (!spawned) {
                         console.log('[CoopGame] Player 1 cannot spawn - Game Over!');
                         this.gameOver = true;
+                        this.saveTeamScore(); // Save team score on game over
                         return;
                     }
                 }
@@ -181,6 +204,7 @@ export class CoopGame {
                     if (!spawned) {
                         console.log('[CoopGame] Player 2 cannot spawn - Game Over!');
                         this.gameOver = true;
+                        this.saveTeamScore(); // Save team score on game over
                         return;
                     }
                 }
@@ -249,6 +273,29 @@ export class CoopGame {
         // Broadcast input (Phase 2)
         if (this.sync) {
             this.sync.sendInput(action);
+        }
+    }
+
+    /**
+     * Save team score to leaderboard when game over
+     */
+    private async saveTeamScore(): Promise<void> {
+        try {
+            const teamScore = {
+                player1Name: this.player1Name,
+                player2Name: this.player2Name,
+                scoreP1: this.scoreP1,
+                scoreP2: this.scoreP2,
+                totalScore: this.score,
+                linesP1: this.linesP1,
+                linesP2: this.linesP2,
+                timestamp: Date.now()
+            };
+
+            await this.leaderboard.addTeamScore(teamScore);
+            console.log('[CoopGame] Team score saved:', teamScore);
+        } catch (e) {
+            console.error('[CoopGame] Failed to save team score:', e);
         }
     }
 
