@@ -46,7 +46,8 @@ describe('GameUI Button State', () => {
         // 4. Start Game again (Solo)
         ui.startGame();
 
-        // Expect button to say "Resume" because we loaded a saved state which was paused
-        expect(pauseBtn.textContent).toBe('Resume');
+        // Bug Fix Applied: เมื่อเริ่มเกมใหม่จะ unpause โดยอัตโนมัติ
+        // ดังนั้นปุ่มควรแสดง "Pause" แทนที่จะเป็น "Resume"
+        expect(pauseBtn.textContent).toBe('Pause');
     });
 });

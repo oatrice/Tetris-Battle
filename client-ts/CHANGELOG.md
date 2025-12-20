@@ -1,13 +1,17 @@
 # Changelog
 
+## [2.2.1] - 2025-12-20
+### Changed
+- **Refined P2P Connection UI**: Improved the user interface for P2P connections, providing clearer feedback and more intuitive controls for establishing and managing peer-to-peer sessions.
+- **Optimized WebRTC Sync**: Enhanced the WebRTC synchronization logic for more robust and efficient data transfer in cooperative modes.
+- **Updated Game Logic**: Made minor adjustments to game logic for smoother gameplay and better integration with new cooperative features.
+- **Enhanced Firebase Signaling**: Improved the reliability and efficiency of Firebase-based signaling for initiating and managing P2P connections.
+- **Streamlined Hybrid Sync**: Optimized the hybrid synchronization mechanism to better balance local and remote updates.
+
 ## [2.2.0] - 2025-12-19
 ### Added
-- **📱 Enhanced Coop Touch Controls**: Refined touch controls for cooperative mode, improving responsiveness and intuitiveness.
-    - **DAS Sensitivity**: Adjusted DAS (Delayed Auto Shift) sensitivity for smoother continuous swipes.
-    - **Tap Precision**: Improved tap detection for more reliable piece rotation.
-    - **Gesture Recognition**: Optimized swipe gesture recognition for movement, hard drop, and hold actions.
-- **💄 UI Improvements**: Minor visual adjustments to the game UI for better clarity.
-- **⚙️ Pre-commit Hook**: Integrated an automated code fixing script into the pre-commit hook for consistent code style.
+- **🌐 P2P Offline Cooperative Mode**: Enables local multiplayer sessions where two players can play cooperatively on a shared board without an internet connection. This feature utilizes local network discovery and connection for peer-to-peer communication.
+- **📊 Network Statistics Display**: Introduced a new overlay that displays P2P network statistics, including ping, packet loss, and bandwidth usage, to aid in debugging and performance monitoring of the offline cooperative mode.
 
 ## [2.1.0] - 2025-12-19
 ### Added
