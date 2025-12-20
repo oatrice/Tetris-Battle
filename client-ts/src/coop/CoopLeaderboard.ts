@@ -213,13 +213,28 @@ export class CoopLeaderboard {
     /**
      * Get online team scores from Firestore
      */
+    /**
+     * Get online team scores from Firestore
+     * Public access - does not require authentication
+     */
     async getOnlineTeamScores(): Promise<TeamScoreEntry[]> {
-        if (!this.authService) return [];
-        const app = this.authService.getApp();
-        if (!app) return [];
-
         try {
-            const db = getFirestore(app);
+            // Try to get DB from AuthService first, or fallback to default instance
+            let db;
+            const app = this.authService?.getApp();
+
+            if (app) {
+                db = getFirestore(app);
+            } else {
+                // Attempt to use default app instance (initialized elsewhere)
+                try {
+                    db = getFirestore();
+                } catch (e) {
+                    console.warn('[CoopLeaderboard] Default Firestore app not found');
+                    return [];
+                }
+            }
+
             const q = query(
                 collection(db, 'coop_leaderboard'),
                 where('mode', '==', 'COOP'),
