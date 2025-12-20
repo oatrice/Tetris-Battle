@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.5.0] - 2025-12-20
+### Added
+- **Public Access to Leaderboard**:
+    - Introduced a new public endpoint to fetch leaderboard data.
+    - This allows external applications or services to access and display leaderboard information without requiring authentication.
+
 ## [2.4.0] - 2025-12-20
 ### Added
 - **💾 Team Score Leaderboard (Offline-First with Auto-Sync)**: 
