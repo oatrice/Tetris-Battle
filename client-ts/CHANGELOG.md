@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.3] - 2025-12-20
+### Changed
+- **Updated dependencies**: Updated various project dependencies to their latest compatible versions.
+
+## [2.2.2] - 2025-12-20
+### Changed
+- **Refined P2P Connection UI**: Improved the user interface for P2P connections, providing clearer feedback and more intuitive controls for establishing and managing peer-to-peer sessions.
+- **Optimized WebRTC Sync**: Enhanced the WebRTC synchronization logic for more robust and efficient data transfer in cooperative modes.
+- **Updated Game Logic**: Made minor adjustments to game logic for smoother gameplay and better integration with new cooperative features.
+- **Enhanced Firebase Signaling**: Improved the reliability and efficiency of Firebase-based signaling for initiating and managing P2P connections.
+- **Streamlined Hybrid Sync**: Optimized the hybrid synchronization mechanism to better balance local and remote updates.
+
 ## [2.2.1] - 2025-12-20
 ### Changed
 - **Refined P2P Connection UI**: Improved the user interface for P2P connections, providing clearer feedback and more intuitive controls for establishing and managing peer-to-peer sessions.
