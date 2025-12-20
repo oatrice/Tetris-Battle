@@ -380,11 +380,12 @@ export class GameUI {
 
         this.loginBtn = document.createElement('button');
         this.loginBtn.id = 'login-btn';
-        this.loginBtn.textContent = 'Login with Google';
+        this.loginBtn.textContent = '🔄 Loading Auth...';
         this.loginBtn.className = 'menu-btn';
         this.loginBtn.style.background = '#4285F4';
         this.loginBtn.style.fontSize = '1rem';
-        this.loginBtn.style.display = 'none';
+        this.loginBtn.style.display = 'block'; // Show with loading text
+        this.loginBtn.disabled = true; // Disabled while loading
         this.loginBtn.addEventListener('click', () => {
             this.authService.signInWithGoogle()
                 .then(user => this.updateAuthUI(user))
@@ -426,7 +427,7 @@ export class GameUI {
         });
 
         // Install App Button (PWA)
-        const btnInstall = createBtn('btnInstall', '📲 Install App', async () => {
+        const btnInstall = createBtn('btnInstall', '📲 Checking PWA...', async () => {
             if (this.deferredPrompt) {
                 this.deferredPrompt.prompt();
                 const { outcome } = await this.deferredPrompt.userChoice;
@@ -435,7 +436,8 @@ export class GameUI {
                 btnInstall.style.display = 'none';
             }
         });
-        btnInstall.style.display = 'none'; // Hidden by default
+        btnInstall.disabled = true; // Disabled while checking
+        btnInstall.style.display = 'block'; // Show with loading text
 
         // Listen for PWA install event
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -443,10 +445,21 @@ export class GameUI {
             e.preventDefault();
             // Stash the event so it can be triggered later.
             this.deferredPrompt = e;
-            // Update UI notify the user they can install the PWA
+            // Update UI: enable button and change text
+            btnInstall.textContent = '📲 Install App';
+            btnInstall.disabled = false;
             btnInstall.style.display = 'block';
             console.log('beforeinstallprompt fired, install button shown');
         });
+
+        // Hide Install button after timeout if PWA is not installable
+        setTimeout(() => {
+            if (btnInstall.disabled) {
+                // Still disabled = PWA event hasn't fired
+                btnInstall.style.display = 'none';
+                console.log('[PWA] Not installable, hiding Install button');
+            }
+        }, 3000);
 
         this.homeMenu.appendChild(btnSolo);
         this.homeMenu.appendChild(btnSpecial);
@@ -491,7 +504,12 @@ export class GameUI {
                 this.game.leaderboard.mergeLocalScoresToUser(user.uid, user.photoURL);
             }
         } else {
-            if (this.loginBtn) this.loginBtn.style.display = 'block';
+            // Auth is ready, but no user signed in
+            if (this.loginBtn) {
+                this.loginBtn.textContent = 'Login with Google';
+                this.loginBtn.disabled = false;
+                this.loginBtn.style.display = 'block';
+            }
             if (this.userProfile) this.userProfile.style.display = 'none';
             this.game.setPlayerName('Player');
             this.game.setPlayerMetadata(undefined, undefined);

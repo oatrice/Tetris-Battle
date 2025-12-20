@@ -45,25 +45,29 @@ describe('GameUI Auth Loading State', () => {
         ui = new GameUI(game, root);
     });
 
-    it('should hide login button initially while waiting for auth state', () => {
+    it('should show login button with loading text initially while waiting for auth state', () => {
         ui.init();
 
-        const loginBtn = root.querySelector('#login-btn') as HTMLElement;
+        const loginBtn = root.querySelector('#login-btn') as HTMLButtonElement;
         expect(loginBtn).not.toBeNull();
-        expect(loginBtn.style.display).toBe('none'); // Should be hidden initially
+        expect(loginBtn.style.display).toBe('block'); // Should be visible with loading state
+        expect(loginBtn.textContent).toBe('🔄 Loading Auth...');
+        expect(loginBtn.disabled).toBe(true); // Disabled while loading
     });
 
-    it('should show login button if auth returns null (no user)', () => {
+    it('should show login button with proper text if auth returns null (no user)', () => {
         ui.init();
 
-        const loginBtn = root.querySelector('#login-btn') as HTMLElement;
+        const loginBtn = root.querySelector('#login-btn') as HTMLButtonElement;
 
         // Simulate Auth finishing with no user
         if (mockAuthCallback) {
             mockAuthCallback(null);
         }
 
-        expect(loginBtn.style.display).toBe('block'); // Or '' if default
+        expect(loginBtn.style.display).toBe('block');
+        expect(loginBtn.textContent).toBe('Login with Google'); // Text should update
+        expect(loginBtn.disabled).toBe(false); // Should be enabled now
     });
 
     it('should keep login button hidden and show profile if auth returns user', () => {
