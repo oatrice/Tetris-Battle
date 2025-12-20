@@ -7,12 +7,31 @@ import { createTeamLeaderboardOverlay, createPlayerNamesModal } from './CoopLead
  * Tests for Team Leaderboard UI
  * TDD: RED -> GREEN -> REFACTOR
  */
+// Mock CoopLeaderboard
+const mockGetOnlineTeamScores = vi.fn();
+const mockGetTopTeamScores = vi.fn();
+
+vi.mock('./CoopLeaderboard', () => {
+    return {
+        CoopLeaderboard: vi.fn().mockImplementation(() => {
+            return {
+                getOnlineTeamScores: mockGetOnlineTeamScores,
+                getTopTeamScores: mockGetTopTeamScores,
+            };
+        })
+    };
+});
+
 describe('Team Leaderboard UI', () => {
     let dom: JSDOM;
     let document: Document;
     let container: HTMLElement;
 
     beforeEach(() => {
+        // Reset mocks
+        mockGetOnlineTeamScores.mockResolvedValue([]);
+        mockGetTopTeamScores.mockReturnValue([]);
+
         // Setup DOM environment
         dom = new JSDOM('<!DOCTYPE html><html><body><div id="app"></div></body></html>');
         document = dom.window.document;
@@ -20,17 +39,17 @@ describe('Team Leaderboard UI', () => {
         global.window = dom.window as any;
 
         container = document.getElementById('app')!;
-        localStorage.clear();
     });
 
     afterEach(() => {
         container.innerHTML = '';
+        vi.clearAllMocks();
     });
 
     // 🟥 Test 1: Render Team Leaderboard Overlay
     describe('Render Team Leaderboard', () => {
-        it('should create overlay with "Team Leaderboard" title', () => {
-            createTeamLeaderboardOverlay();
+        it('should create overlay with "Team Leaderboard" title', async () => {
+            await createTeamLeaderboardOverlay();
 
             const overlay = document.querySelector('.team-leaderboard-overlay');
             expect(overlay).toBeTruthy();
@@ -39,36 +58,42 @@ describe('Team Leaderboard UI', () => {
             expect(title?.textContent).toBe('Team Leaderboard');
         });
 
-        it('should display "No team scores yet" when empty', () => {
-            createTeamLeaderboardOverlay();
+        it('should display "No scores found yet" when empty', async () => {
+            await createTeamLeaderboardOverlay();
 
-            const emptyMessage = document.querySelector('.empty-message');
-            expect(emptyMessage?.textContent).toContain('No team scores yet');
+            await vi.waitFor(() => {
+                const emptyMessage = document.querySelector('.empty-message');
+                expect(emptyMessage).toBeTruthy();
+                expect(emptyMessage?.textContent).toContain('No scores found yet');
+            }, { timeout: 1000 });
         });
 
-        it('should render top 10 team scores in descending order', () => {
-            // Mock localStorage with team scores
+        it('should render top 10 team scores in descending order', async () => {
+            // Mock scores
             const mockScores = [
-                { player1Name: 'Alice', player2Name: 'Bob', totalScore: 5000, scoreP1: 3000, scoreP2: 2000, linesP1: 15, linesP2: 10, timestamp: Date.now() },
-                { player1Name: 'Charlie', player2Name: 'Dave', totalScore: 4500, scoreP1: 2500, scoreP2: 2000, linesP1: 12, linesP2: 11, timestamp: Date.now() },
-                { player1Name: 'Eve', player2Name: 'Frank', totalScore: 3000, scoreP1: 1500, scoreP2: 1500, linesP1: 8, linesP2: 7, timestamp: Date.now() }
+                { gameSessionId: '1', player1Name: 'Alice', player2Name: 'Bob', totalScore: 5000, scoreP1: 3000, scoreP2: 2000, linesP1: 15, linesP2: 10, timestamp: Date.now() },
+                { gameSessionId: '2', player1Name: 'Charlie', player2Name: 'Dave', totalScore: 4500, scoreP1: 2500, scoreP2: 2000, linesP1: 12, linesP2: 11, timestamp: Date.now() },
+                { gameSessionId: '3', player1Name: 'Eve', player2Name: 'Frank', totalScore: 3000, scoreP1: 1500, scoreP2: 1500, linesP1: 8, linesP2: 7, timestamp: Date.now() }
             ];
-            localStorage.setItem('tetris_coop_leaderboard', JSON.stringify(mockScores));
+            mockGetOnlineTeamScores.mockResolvedValue(mockScores);
 
-            createTeamLeaderboardOverlay();
+            await createTeamLeaderboardOverlay();
 
-            const rows = document.querySelectorAll('.leaderboard-row');
-            expect(rows.length).toBe(3);
+            await vi.waitFor(() => {
+                const rows = document.querySelectorAll('.leaderboard-row');
+                expect(rows.length).toBe(3);
+                // ...
 
-            // Check first row (highest score)
-            const firstRow = rows[0];
-            expect(firstRow.textContent).toContain('Alice');
-            expect(firstRow.textContent).toContain('Bob');
-            expect(firstRow.textContent).toContain('5000');
+                // Check first row (highest score)
+                const firstRow = rows[0];
+                expect(firstRow.textContent).toContain('Alice');
+                expect(firstRow.textContent).toContain('Bob');
+                expect(firstRow.textContent).toContain('5000');
+            }, { timeout: 1000 });
         });
 
-        it('should include Close button that removes overlay', () => {
-            createTeamLeaderboardOverlay();
+        it('should include Close button that removes overlay', async () => {
+            await createTeamLeaderboardOverlay();
 
             const closeButton = document.querySelector('.close-btn') as HTMLButtonElement;
             expect(closeButton).toBeTruthy();
@@ -152,30 +177,36 @@ describe('Team Leaderboard UI', () => {
 
     // 🟥 Test 3: Display individual scores breakdown
     describe('Score Breakdown Display', () => {
-        it('should show individual scores (P1 and P2) for each team', () => {
+        it('should show individual scores (P1 and P2) for each team', async () => {
             const mockScores = [
-                { player1Name: 'Alice', player2Name: 'Bob', totalScore: 5000, scoreP1: 3000, scoreP2: 2000, linesP1: 15, linesP2: 10, timestamp: Date.now() }
+                { gameSessionId: '1', player1Name: 'Alice', player2Name: 'Bob', totalScore: 5000, scoreP1: 3000, scoreP2: 2000, linesP1: 15, linesP2: 10, timestamp: Date.now() }
             ];
-            localStorage.setItem('tetris_coop_leaderboard', JSON.stringify(mockScores));
+            mockGetOnlineTeamScores.mockResolvedValue(mockScores);
 
-            createTeamLeaderboardOverlay();
+            await createTeamLeaderboardOverlay();
 
-            const row = document.querySelector('.leaderboard-row');
-            expect(row?.textContent).toContain('3000'); // P1 score
-            expect(row?.textContent).toContain('2000'); // P2 score
+            await vi.waitFor(() => {
+                const row = document.querySelector('.leaderboard-row');
+                expect(row).toBeTruthy();
+                expect(row?.textContent).toContain('3000'); // P1 score
+                expect(row?.textContent).toContain('2000'); // P2 score
+            }, { timeout: 1000 });
         });
 
-        it('should display lines cleared for each player', () => {
+        it('should display lines cleared for each player', async () => {
             const mockScores = [
-                { player1Name: 'Alice', player2Name: 'Bob', totalScore: 5000, scoreP1: 3000, scoreP2: 2000, linesP1: 15, linesP2: 10, timestamp: Date.now() }
+                { gameSessionId: '1', player1Name: 'Alice', player2Name: 'Bob', totalScore: 5000, scoreP1: 3000, scoreP2: 2000, linesP1: 15, linesP2: 10, timestamp: Date.now() }
             ];
-            localStorage.setItem('tetris_coop_leaderboard', JSON.stringify(mockScores));
+            mockGetOnlineTeamScores.mockResolvedValue(mockScores);
 
-            createTeamLeaderboardOverlay();
+            await createTeamLeaderboardOverlay();
 
-            const row = document.querySelector('.leaderboard-row');
-            expect(row?.textContent).toContain('15'); // P1 lines
-            expect(row?.textContent).toContain('10'); // P2 lines
+            await vi.waitFor(() => {
+                const row = document.querySelector('.leaderboard-row');
+                expect(row).toBeTruthy();
+                expect(row?.textContent).toContain('15'); // P1 lines
+                expect(row?.textContent).toContain('10'); // P2 lines
+            }, { timeout: 1000 });
         });
     });
 });

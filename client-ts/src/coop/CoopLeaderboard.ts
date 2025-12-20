@@ -1,5 +1,6 @@
 import { AuthService } from '../services/AuthService';
 import { getFirestore, collection, getDocs, query, where, orderBy, limit, doc, setDoc } from 'firebase/firestore';
+import { getApps, initializeApp } from 'firebase/app';
 
 /**
  * Team Score Entry for Cooperative Mode
@@ -226,12 +227,26 @@ export class CoopLeaderboard {
             if (app) {
                 db = getFirestore(app);
             } else {
-                // Attempt to use default app instance (initialized elsewhere)
+                // Attempt to use default app instance
                 try {
                     db = getFirestore();
                 } catch (e) {
-                    console.warn('[CoopLeaderboard] Default Firestore app not found');
-                    return [];
+                    // Fallback: Try to use any initialized app (e.g. realtime-db-app initialized by RealtimeService)
+                    const apps = getApps();
+                    if (apps.length > 0) {
+                        console.log('[CoopLeaderboard] Using fallback app:', apps[0].name);
+                        db = getFirestore(apps[0]);
+                    } else {
+                        // Initialize a temporary app for public read access
+                        console.log('[CoopLeaderboard] Initializing public Firebase App');
+                        const firebaseConfig = {
+                            apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+                            authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+                            projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+                        };
+                        const publicApp = initializeApp(firebaseConfig, 'public-leaderboard-app');
+                        db = getFirestore(publicApp);
+                    }
                 }
             }
 

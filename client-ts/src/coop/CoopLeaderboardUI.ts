@@ -9,7 +9,7 @@ import { CoopLeaderboard, TeamScoreEntry } from './CoopLeaderboard';
  * Create Team Leaderboard Overlay
  * Displays Top 10 Teams with scores breakdown
  */
-export function createTeamLeaderboardOverlay(): void {
+export async function createTeamLeaderboardOverlay(): Promise<void> {
     // Remove existing overlay if any
     const existingOverlay = document.querySelector('.team-leaderboard-overlay');
     if (existingOverlay) {
@@ -59,29 +59,46 @@ export function createTeamLeaderboardOverlay(): void {
     `;
     content.appendChild(title);
 
-    // Load team scores from localStorage
-    const leaderboard = new CoopLeaderboard();
-    const teamScores = leaderboard.getTopTeamScores();
+    // Score Container
+    const scoreList = document.createElement('div');
+    scoreList.style.minHeight = '200px';
+    content.appendChild(scoreList);
 
-    if (teamScores.length === 0) {
-        // Empty message
-        const emptyMessage = document.createElement('p');
-        emptyMessage.className = 'empty-message';
-        emptyMessage.textContent = '🎮 No team scores yet. Play Coop Mode to compete!';
-        emptyMessage.style.cssText = `
-            color: #a0aec0;
-            text-align: center;
-            font-size: 1.2rem;
-            padding: 2rem 0;
-        `;
-        content.appendChild(emptyMessage);
-    } else {
-        // Render scores
-        teamScores.forEach((score, index) => {
-            const row = createTeamScoreRow(score, index + 1);
-            content.appendChild(row);
-        });
-    }
+    // Initial Loading State
+    scoreList.innerHTML = `
+        <div style="text-align: center; color: #a0aec0; padding: 2rem;">
+            <div class="spinner" style="margin-bottom: 1rem; font-size: 2rem;">🔄</div>
+            <p>Loading global scores...</p>
+        </div>
+    `;
+
+    // Load Logic
+    const leaderboard = new CoopLeaderboard();
+
+    // Start loading process
+    (async () => {
+        try {
+            console.log('[CoopLeaderboardUI] Fetching online scores...');
+            const onlineScores = await leaderboard.getOnlineTeamScores();
+            console.log('[CoopLeaderboardUI] Online scores:', onlineScores);
+
+            let displayScores = onlineScores;
+            let source = 'Global';
+
+            if (displayScores.length === 0) {
+                console.log('[CoopLeaderboardUI] No online scores, falling back to local');
+                displayScores = leaderboard.getTopTeamScores();
+                source = 'Local';
+            }
+
+            renderScores(scoreList, displayScores, source);
+
+        } catch (e) {
+            console.error('[CoopLeaderboardUI] Failed to load scores:', e);
+            // Fallback to local on error
+            renderScores(scoreList, leaderboard.getTopTeamScores(), 'Local (Offline)');
+        }
+    })();
 
     // Close button
     const closeButton = document.createElement('button');
@@ -115,6 +132,48 @@ export function createTeamLeaderboardOverlay(): void {
 
     overlay.appendChild(content);
     document.body.appendChild(overlay);
+}
+
+/**
+ * Render Scores Helper
+ */
+function renderScores(container: HTMLElement, scores: TeamScoreEntry[], source: string) {
+    container.innerHTML = '';
+
+    // Add source badge
+    const badge = document.createElement('div');
+    badge.style.cssText = `
+        display: inline-block;
+        padding: 4px 12px;
+        background: ${source === 'Global' ? '#48bb78' : '#ed8936'};
+        color: white;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        margin-bottom: 1rem;
+        font-weight: bold;
+    `;
+    badge.textContent = `${source} Leaderboard`;
+    container.appendChild(badge);
+
+    if (scores.length === 0) {
+        // Empty message
+        const emptyMessage = document.createElement('p');
+        emptyMessage.className = 'empty-message';
+        emptyMessage.textContent = '🎮 No scores found yet. Play Coop Mode to compete!';
+        emptyMessage.style.cssText = `
+            color: #a0aec0;
+            text-align: center;
+            font-size: 1.2rem;
+            padding: 2rem 0;
+        `;
+        container.appendChild(emptyMessage);
+    } else {
+        // Render scores
+        scores.forEach((score, index) => {
+            const row = createTeamScoreRow(score, index + 1);
+            container.appendChild(row);
+        });
+    }
 }
 
 /**
