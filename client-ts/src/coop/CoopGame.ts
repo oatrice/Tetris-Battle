@@ -144,6 +144,7 @@ export class CoopGame {
         if (!spawned) {
             console.error('[CoopGame] Cannot spawn initial pieces - Game Over immediately!');
             this.gameOver = true;
+            this.saveTeamScore();
             return false;
         }
         return true;
@@ -152,6 +153,7 @@ export class CoopGame {
     private startGameLoop() {
         this.isPaused = false;
         this.gameOver = false;
+        this.isScoreSaved = false; // Reset persistence flag
         this.lastUpdate = performance.now();
         this.gameLoop();
     }
@@ -288,15 +290,27 @@ export class CoopGame {
         return `${roomId}_${timestamp}_${random}`;
     }
 
+    private isScoreSaved: boolean = false; // Idempotency flag
+
     /**
      * Save team score to leaderboard when game over
+     * Optimized for robustness and idempotency
      */
     private async saveTeamScore(): Promise<void> {
+        // Prevent duplicate saves
+        if (this.isScoreSaved) {
+            console.log('[CoopGame] Score already saved, skipping.');
+            return;
+        }
+
+        this.isScoreSaved = true;
+
         try {
+            // Snapshot data immediately (Protection against state clearing)
             const teamScore = {
                 gameSessionId: this.gameSessionId,
-                player1Name: this.player1Name,
-                player2Name: this.player2Name,
+                player1Name: this.player1Name || 'Player 1', // Fallback defaults
+                player2Name: this.player2Name || 'Player 2',
                 scoreP1: this.scoreP1,
                 scoreP2: this.scoreP2,
                 totalScore: this.score,
@@ -305,10 +319,14 @@ export class CoopGame {
                 timestamp: Date.now()
             };
 
+            // Async boundary: Catch errors locally
             await this.leaderboard.addTeamScore(teamScore);
             console.log('[CoopGame] Team score saved:', teamScore);
         } catch (e) {
+            // Error Isolation: Game loop must not crash
             console.error('[CoopGame] Failed to save team score:', e);
+            // We could set isScoreSaved = false to retry?
+            // For now, let's assume one-shot attempt prevents loop spamming.
         }
     }
 
