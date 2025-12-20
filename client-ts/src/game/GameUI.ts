@@ -428,7 +428,7 @@ export class GameUI {
         });
 
         const btnTeamLeaderboard = createBtn('btnTeamLeaderboard', '🏆 Team Leaderboard', () => {
-            createTeamLeaderboardOverlay(this.root);
+            createTeamLeaderboardOverlay();
         });
 
         // Install App Button (PWA)
@@ -814,6 +814,13 @@ export class GameUI {
     startGame(mode?: GameMode) {
         if (this.homeMenu) this.homeMenu.style.display = 'none';
         if (this.leaderboardOverlay) this.leaderboardOverlay.style.display = 'none';
+
+        // Hide Team Leaderboard overlay if exists
+        const teamLeaderboardOverlay = document.querySelector('.team-leaderboard-overlay');
+        if (teamLeaderboardOverlay) {
+            teamLeaderboardOverlay.remove();
+        }
+
         if (this.pauseBtn) this.pauseBtn.style.display = 'block';
         const modeDisplay = this.root.querySelector<HTMLElement>('#modeDisplay');
         if (modeDisplay) modeDisplay.style.display = 'block';

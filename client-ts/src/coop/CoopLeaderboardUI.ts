@@ -9,16 +9,16 @@ import { CoopLeaderboard, TeamScoreEntry } from './CoopLeaderboard';
  * Create Team Leaderboard Overlay
  * Displays Top 10 Teams with scores breakdown
  */
-export function createTeamLeaderboardOverlay(container: HTMLElement): void {
+export function createTeamLeaderboardOverlay(): void {
     // Remove existing overlay if any
-    const existingOverlay = container.querySelector('.leaderboard-overlay');
+    const existingOverlay = document.querySelector('.team-leaderboard-overlay');
     if (existingOverlay) {
         existingOverlay.remove();
     }
 
     // Create overlay
     const overlay = document.createElement('div');
-    overlay.className = 'leaderboard-overlay';
+    overlay.className = 'team-leaderboard-overlay';
     overlay.style.cssText = `
         position: fixed;
         top: 0;
@@ -29,7 +29,7 @@ export function createTeamLeaderboardOverlay(container: HTMLElement): void {
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 1000;
+        z-index: 9999;
         backdrop-filter: blur(5px);
     `;
 
@@ -114,7 +114,7 @@ export function createTeamLeaderboardOverlay(container: HTMLElement): void {
     content.appendChild(closeButton);
 
     overlay.appendChild(content);
-    container.appendChild(overlay);
+    document.body.appendChild(overlay);
 }
 
 /**

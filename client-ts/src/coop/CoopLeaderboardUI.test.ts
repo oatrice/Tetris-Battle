@@ -30,9 +30,9 @@ describe('Team Leaderboard UI', () => {
     // 🟥 Test 1: Render Team Leaderboard Overlay
     describe('Render Team Leaderboard', () => {
         it('should create overlay with "Team Leaderboard" title', () => {
-            createTeamLeaderboardOverlay(container);
+            createTeamLeaderboardOverlay();
 
-            const overlay = container.querySelector('.leaderboard-overlay');
+            const overlay = document.querySelector('.team-leaderboard-overlay');
             expect(overlay).toBeTruthy();
 
             const title = overlay?.querySelector('h2');
@@ -40,9 +40,9 @@ describe('Team Leaderboard UI', () => {
         });
 
         it('should display "No team scores yet" when empty', () => {
-            createTeamLeaderboardOverlay(container);
+            createTeamLeaderboardOverlay();
 
-            const emptyMessage = container.querySelector('.empty-message');
+            const emptyMessage = document.querySelector('.empty-message');
             expect(emptyMessage?.textContent).toContain('No team scores yet');
         });
 
@@ -55,9 +55,9 @@ describe('Team Leaderboard UI', () => {
             ];
             localStorage.setItem('tetris_coop_leaderboard', JSON.stringify(mockScores));
 
-            createTeamLeaderboardOverlay(container);
+            createTeamLeaderboardOverlay();
 
-            const rows = container.querySelectorAll('.leaderboard-row');
+            const rows = document.querySelectorAll('.leaderboard-row');
             expect(rows.length).toBe(3);
 
             // Check first row (highest score)
@@ -68,9 +68,9 @@ describe('Team Leaderboard UI', () => {
         });
 
         it('should include Close button that removes overlay', () => {
-            createTeamLeaderboardOverlay(container);
+            createTeamLeaderboardOverlay();
 
-            const closeButton = container.querySelector('.close-btn') as HTMLButtonElement;
+            const closeButton = document.querySelector('.close-btn') as HTMLButtonElement;
             expect(closeButton).toBeTruthy();
             expect(closeButton.textContent).toContain('Close');
 
@@ -78,7 +78,7 @@ describe('Team Leaderboard UI', () => {
             closeButton.click();
 
             // Overlay should be removed
-            const overlay = container.querySelector('.leaderboard-overlay');
+            const overlay = document.querySelector('.team-leaderboard-overlay');
             expect(overlay).toBeFalsy();
         });
     });
@@ -158,9 +158,9 @@ describe('Team Leaderboard UI', () => {
             ];
             localStorage.setItem('tetris_coop_leaderboard', JSON.stringify(mockScores));
 
-            createTeamLeaderboardOverlay(container);
+            createTeamLeaderboardOverlay();
 
-            const row = container.querySelector('.leaderboard-row');
+            const row = document.querySelector('.leaderboard-row');
             expect(row?.textContent).toContain('3000'); // P1 score
             expect(row?.textContent).toContain('2000'); // P2 score
         });
@@ -171,9 +171,9 @@ describe('Team Leaderboard UI', () => {
             ];
             localStorage.setItem('tetris_coop_leaderboard', JSON.stringify(mockScores));
 
-            createTeamLeaderboardOverlay(container);
+            createTeamLeaderboardOverlay();
 
-            const row = container.querySelector('.leaderboard-row');
+            const row = document.querySelector('.leaderboard-row');
             expect(row?.textContent).toContain('15'); // P1 lines
             expect(row?.textContent).toContain('10'); // P2 lines
         });
