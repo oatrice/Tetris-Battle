@@ -8,6 +8,7 @@ export interface VersionInfo {
     commitHash: string
     commitDate: string
     isDev: boolean
+    isDirty: boolean
 }
 
 export function useVersionInfo(): VersionInfo {
@@ -33,6 +34,7 @@ export function useVersionInfo(): VersionInfo {
         version: config.public.appVersion as string || '0.0.0',
         commitHash: config.public.commitHash as string || 'dev',
         commitDate: formatDate(config.public.commitDate as string || ''),
-        isDev: import.meta.dev
+        isDev: import.meta.dev,
+        isDirty: config.public.isDirty as boolean ?? false
     }
 }

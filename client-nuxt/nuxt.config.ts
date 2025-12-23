@@ -1,13 +1,17 @@
 import { execSync } from 'child_process'
+import pkg from './package.json'
 
 // Get git info at build time
 function getGitInfo() {
   try {
     const commitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim()
     const commitDate = execSync('git log -1 --format=%cI', { encoding: 'utf-8' }).trim()
-    return { commitHash, commitDate }
+    // Check for uncommitted changes (dirty state)
+    const status = execSync('git status --porcelain', { encoding: 'utf-8' }).trim()
+    const isDirty = status.length > 0
+    return { commitHash, commitDate, isDirty }
   } catch {
-    return { commitHash: 'dev', commitDate: new Date().toISOString() }
+    return { commitHash: 'dev', commitDate: new Date().toISOString(), isDirty: true }
   }
 }
 
@@ -20,9 +24,10 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      appVersion: '3.0.0',
+      appVersion: pkg.version,
       commitHash: gitInfo.commitHash,
-      commitDate: gitInfo.commitDate
+      commitDate: gitInfo.commitDate,
+      isDirty: gitInfo.isDirty
     }
   },
 

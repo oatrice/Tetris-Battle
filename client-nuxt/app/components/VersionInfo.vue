@@ -1,16 +1,16 @@
 <template>
-  <div class="version-info" :class="{ dev: versionInfo.isDev }">
+  <div class="version-info" :class="{ dev: versionInfo.isDev, dirty: versionInfo.isDirty }">
     <span class="version">v{{ versionInfo.version }}</span>
-    <!-- In Dev: always show HMR mode. In Prod: hide details -->
+    <!-- In Dev: show hash/HMR based on dirty state. In Prod: hide details -->
     <template v-if="versionInfo.isDev && showDetails">
-      <span class="hash">(HMR)</span>
-      <span class="date">{{ currentTime }}</span>
+      <span class="hash">({{ hashDisplay }})</span>
+      <span class="date">{{ dateDisplay }}</span>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useVersionInfo } from '~/composables/useVersionInfo'
 
 defineProps<{
@@ -18,12 +18,19 @@ defineProps<{
 }>()
 
 const versionInfo = useVersionInfo()
-
-// Current time - updates on mount (HMR will re-mount and update this)
 const currentTime = ref('')
 
 onMounted(() => {
   currentTime.value = new Date().toLocaleTimeString()
+})
+
+// In dev mode, show HMR indicator; in production, show commit hash
+const hashDisplay = computed(() => {
+  return versionInfo.isDev ? 'HMR12' : versionInfo.commitHash
+})
+
+const dateDisplay = computed(() => {
+  return versionInfo.isDev ? currentTime.value : versionInfo.commitDate
 })
 </script>
 
@@ -39,6 +46,10 @@ onMounted(() => {
 }
 
 .version-info.dev {
+  color: #888;
+}
+
+.version-info.dirty {
   color: #f5a623;
   background: rgba(245, 166, 35, 0.1);
 }
