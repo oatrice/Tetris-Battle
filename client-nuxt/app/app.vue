@@ -2,239 +2,193 @@
   <div class="container" @keydown="handleKeydown" tabindex="0" ref="gameContainer">
     <h1>🎮 Tetris Duo</h1>
     
-    <div class="game-area">
-      <!-- Hold Piece -->
-      <div class="side-panel">
-        <h4>HOLD</h4>
-        <div class="piece-preview" :style="{ opacity: game.heldPiece ? 1 : 0.3 }">
-          <div v-if="game.heldPiece" class="mini-grid">
-            <div 
-              v-for="(row, y) in getPieceGrid(game.heldPiece)" 
-              :key="y" 
-              class="mini-row"
-            >
-              <div 
-                v-for="(cell, x) in row" 
-                :key="x" 
-                class="mini-cell"
-                :style="{ backgroundColor: cell ? game.heldPiece.color : 'transparent' }"
-              />
-            </div>
-          </div>
-          <span v-else class="empty-hint">C</span>
-        </div>
-      </div>
+    <!-- Mode Selection -->
+    <div v-if="!gameMode" class="mode-select">
+      <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
+      <button @click="startDuo" class="mode-btn duo">👥 Duo (Local)</button>
+    </div>
 
-      <!-- Game Board -->
-      <div class="board-container">
-        <canvas 
-          ref="canvas" 
-          :width="canvasWidth" 
-          :height="canvasHeight"
-          class="game-canvas"
+    <!-- Solo Mode -->
+    <div v-else-if="gameMode === 'solo'" class="game-area">
+      <SoloGame :game="soloGame!" @restart="restartSolo" />
+    </div>
+
+    <!-- Duo Mode -->
+    <div v-else-if="gameMode === 'duo'" class="duo-area">
+      <!-- Player 1 Board -->
+      <div class="player-section">
+        <div class="player-header p1">
+          <span class="player-label">P1</span>
+          <span class="controls-hint">WASD + Q/E</span>
+        </div>
+        <PlayerBoard 
+          :game="duoGame!.player1" 
+          :showHold="true" 
+          :showNext="true"
+          playerColor="#00d4ff"
         />
-        <div v-if="game.isPaused" class="pause-overlay">
-          <span>⏸️ PAUSED</span>
-        </div>
-        <div v-if="game.isGameOver" class="gameover-overlay">
-          <span>💀 GAME OVER</span>
-          <button @click="restartGame">🔄 Restart</button>
+        <div class="player-stats">
+          <span class="score">{{ duoGame!.player1.score }}</span>
+          <span>L{{ duoGame!.player1.level }} • {{ duoGame!.player1.linesCleared }}</span>
         </div>
       </div>
 
-      <!-- Next Piece & Info -->
-      <div class="side-panel">
-        <h4>NEXT</h4>
-        <div class="piece-preview">
-          <div class="mini-grid">
-            <div 
-              v-for="(row, y) in getPieceGrid(game.nextPiece)" 
-              :key="y" 
-              class="mini-row"
-            >
-              <div 
-                v-for="(cell, x) in row" 
-                :key="x" 
-                class="mini-cell"
-                :style="{ backgroundColor: cell ? game.nextPiece.color : 'transparent' }"
-              />
-            </div>
-          </div>
+      <!-- VS -->
+      <div class="vs-section">
+        <span class="vs-text">VS</span>
+        <div v-if="duoGame!.winner" class="winner-overlay">
+          <span class="winner-text">🏆 P{{ duoGame!.winner }} WINS!</span>
+          <button @click="restartDuo">🔄 Rematch</button>
         </div>
-        
-        <div class="stats">
-          <p class="score">{{ game.score }}</p>
-          <p>Level {{ game.level }}</p>
-          <p>Lines {{ game.linesCleared }}</p>
+        <div v-if="duoGame!.isPaused && !duoGame!.winner" class="pause-text">⏸️</div>
+        <button @click="backToMenu" class="back-btn">← Menu</button>
+      </div>
+
+      <!-- Player 2 Board -->
+      <div class="player-section">
+        <div class="player-header p2">
+          <span class="player-label">P2</span>
+          <span class="controls-hint">←→↓↑ + ,/.</span>
         </div>
-        
-        <div class="controls-hint">
-          <small>←→ ↓↑ Space Hold:C P</small>
+        <PlayerBoard 
+          :game="duoGame!.player2" 
+          :showHold="true" 
+          :showNext="true"
+          playerColor="#ff6b6b"
+        />
+        <div class="player-stats">
+          <span class="score">{{ duoGame!.player2.score }}</span>
+          <span>L{{ duoGame!.player2.level }} • {{ duoGame!.player2.linesCleared }}</span>
         </div>
-        
-        <button @click="restartGame" class="restart-btn">🔄</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { Game } from '~/game/Game'
-import { COLORS } from '~/game/shapes'
+import { DuoGame } from '~/game/DuoGame'
 
-const CELL_SIZE = 24
-const BOARD_WIDTH = 10
-const BOARD_HEIGHT = 20
+// Async components
+const SoloGame = defineAsyncComponent(() => import('~/components/SoloGame.vue'))
+const PlayerBoard = defineAsyncComponent(() => import('~/components/PlayerBoard.vue'))
 
-const canvasWidth = BOARD_WIDTH * CELL_SIZE
-const canvasHeight = BOARD_HEIGHT * CELL_SIZE
+type GameMode = 'solo' | 'duo' | null
 
-const canvas = ref<HTMLCanvasElement | null>(null)
 const gameContainer = ref<HTMLDivElement | null>(null)
-const game = ref(new Game())
+const gameMode = ref<GameMode>(null)
+const soloGame = ref<Game | null>(null)
+const duoGame = ref<DuoGame | null>(null)
+
 let animationId: number | null = null
 let lastUpdate = 0
-const DROP_INTERVAL = 1000 // 1 second per drop
+const DROP_INTERVAL = 1000
 
-const restartGame = () => {
-  game.value = new Game()
+// ============ Mode Selection ============
+const startSolo = () => {
+  gameMode.value = 'solo'
+  soloGame.value = new Game()
+  startGameLoop()
 }
 
-// Helper to create a 4x4 grid for piece preview
-const getPieceGrid = (piece: { getBlocks: () => { x: number, y: number }[] }) => {
-  const grid: boolean[][] = Array.from({ length: 4 }, () => Array(4).fill(false) as boolean[])
-  const blocks = piece.getBlocks()
-  const minX = Math.min(...blocks.map(b => b.x))
-  const minY = Math.min(...blocks.map(b => b.y))
-  
-  blocks.forEach(block => {
-    const row = block.y - minY
-    const col = block.x - minX
-    if (row >= 0 && row < 4 && col >= 0 && col < 4 && grid[row]) {
-      grid[row]![col] = true
-    }
-  })
-  return grid
+const startDuo = () => {
+  gameMode.value = 'duo'
+  duoGame.value = new DuoGame()
+  startGameLoop()
 }
-const handleKeydown = (e: KeyboardEvent) => {
-  if (game.value.isGameOver) return
-  
-  switch (e.key) {
-    case 'ArrowLeft':
-      game.value.moveLeft()
-      break
-    case 'ArrowRight':
-      game.value.moveRight()
-      break
-    case 'ArrowDown':
-      game.value.moveDown()
-      break
-    case 'ArrowUp':
-      game.value.rotate()
-      break
-    case ' ':
-      e.preventDefault()
-      game.value.hardDrop()
-      break
-    case 'c':
-    case 'C':
-      game.value.hold()
-      break
-    case 'p':
-    case 'P':
-      game.value.togglePause()
-      break
+
+const restartSolo = () => {
+  soloGame.value = new Game()
+}
+
+const restartDuo = () => {
+  duoGame.value = new DuoGame()
+}
+
+const backToMenu = () => {
+  gameMode.value = null
+  soloGame.value = null
+  duoGame.value = null
+  if (animationId) {
+    cancelAnimationFrame(animationId)
+    animationId = null
   }
-  renderGame()
 }
 
-const renderGame = () => {
-  const ctx = canvas.value?.getContext('2d')
-  if (!ctx) return
-
-  // Clear canvas
-  ctx.fillStyle = '#0a0a1a'
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight)
-
-  // Draw grid
-  ctx.strokeStyle = '#1a1a3a'
-  for (let x = 0; x <= BOARD_WIDTH; x++) {
-    ctx.beginPath()
-    ctx.moveTo(x * CELL_SIZE, 0)
-    ctx.lineTo(x * CELL_SIZE, canvasHeight)
-    ctx.stroke()
-  }
-  for (let y = 0; y <= BOARD_HEIGHT; y++) {
-    ctx.beginPath()
-    ctx.moveTo(0, y * CELL_SIZE)
-    ctx.lineTo(canvasWidth, y * CELL_SIZE)
-    ctx.stroke()
-  }
-
-  // Draw locked blocks
-  for (let y = 0; y < BOARD_HEIGHT; y++) {
-    for (let x = 0; x < BOARD_WIDTH; x++) {
-      const cell = game.value.board.getCell(x, y)
-      if (cell > 0) {
-        const pieceTypes = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
-        const color = COLORS[pieceTypes[cell - 1]!] ?? '#888'
-        drawBlock(ctx, x, y, color)
-      }
-    }
-  }
-
-  // Draw ghost piece
-  const ghost = game.value.getGhostPiece()
-  const ghostBlocks = ghost.getBlocks()
-  ctx.globalAlpha = 0.3
-  ghostBlocks.forEach(block => {
-    drawBlock(ctx, block.x, block.y, game.value.currentPiece.color)
-  })
-  ctx.globalAlpha = 1.0
-
-  // Draw current piece
-  const blocks = game.value.currentPiece.getBlocks()
-  blocks.forEach(block => {
-    drawBlock(ctx, block.x, block.y, game.value.currentPiece.color)
-  })
-}
-
-const drawBlock = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string) => {
-  const padding = 1
-  ctx.fillStyle = color
-  ctx.fillRect(
-    x * CELL_SIZE + padding,
-    y * CELL_SIZE + padding,
-    CELL_SIZE - padding * 2,
-    CELL_SIZE - padding * 2
-  )
-  
-  // Highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.2)'
-  ctx.fillRect(
-    x * CELL_SIZE + padding,
-    y * CELL_SIZE + padding,
-    CELL_SIZE - padding * 2,
-    4
-  )
-}
-
-const gameLoop = (timestamp: number) => {
-  if (!game.value.isPaused && !game.value.isGameOver) {
+// ============ Game Loop ============
+const startGameLoop = () => {
+  const gameLoop = (timestamp: number) => {
     if (timestamp - lastUpdate > DROP_INTERVAL) {
-      game.value.moveDown()
+      if (gameMode.value === 'solo' && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
+        soloGame.value.moveDown()
+      } else if (gameMode.value === 'duo' && duoGame.value) {
+        duoGame.value.tick()
+      }
       lastUpdate = timestamp
     }
+    animationId = requestAnimationFrame(gameLoop)
   }
-  renderGame()
   animationId = requestAnimationFrame(gameLoop)
+}
+
+// ============ Keyboard Controls ============
+const handleKeydown = (e: KeyboardEvent) => {
+  if (gameMode.value === 'solo' && soloGame.value) {
+    handleSoloControls(e)
+  } else if (gameMode.value === 'duo' && duoGame.value) {
+    handleDuoControls(e)
+  }
+}
+
+const handleSoloControls = (e: KeyboardEvent) => {
+  if (!soloGame.value || soloGame.value.isGameOver) return
+  
+  switch (e.key) {
+    case 'ArrowLeft': soloGame.value.moveLeft(); break
+    case 'ArrowRight': soloGame.value.moveRight(); break
+    case 'ArrowDown': soloGame.value.moveDown(); break
+    case 'ArrowUp': soloGame.value.rotate(); break
+    case ' ': e.preventDefault(); soloGame.value.hardDrop(); break
+    case 'c': case 'C': soloGame.value.hold(); break
+    case 'p': case 'P': soloGame.value.togglePause(); break
+  }
+}
+
+const handleDuoControls = (e: KeyboardEvent) => {
+  if (!duoGame.value || duoGame.value.winner) return
+  
+  // Pause toggle
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+    duoGame.value.togglePause()
+    return
+  }
+  
+  if (duoGame.value.isPaused) return
+  
+  // Player 1: WASD + Q/E
+  switch (e.key.toLowerCase()) {
+    case 'a': duoGame.value.p1MoveLeft(); break
+    case 'd': duoGame.value.p1MoveRight(); break
+    case 's': duoGame.value.p1MoveDown(); break
+    case 'w': duoGame.value.p1Rotate(); break
+    case 'q': duoGame.value.p1Hold(); break
+    case 'e': duoGame.value.p1HardDrop(); break
+  }
+  
+  // Player 2: Arrow keys + ,/.
+  switch (e.key) {
+    case 'ArrowLeft': duoGame.value.p2MoveLeft(); break
+    case 'ArrowRight': duoGame.value.p2MoveRight(); break
+    case 'ArrowDown': duoGame.value.p2MoveDown(); break
+    case 'ArrowUp': duoGame.value.p2Rotate(); break
+    case ',': duoGame.value.p2Hold(); break
+    case '.': duoGame.value.p2HardDrop(); break
+  }
 }
 
 onMounted(() => {
   gameContainer.value?.focus()
-  animationId = requestAnimationFrame(gameLoop)
-  console.log('🎮 Game started!')
 })
 
 onUnmounted(() => {
@@ -246,134 +200,163 @@ onUnmounted(() => {
 
 <style scoped>
 .container {
-  max-width: 800px;
-  margin: 1rem auto;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 1rem;
   font-family: 'Segoe UI', sans-serif;
   text-align: center;
   outline: none;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
 }
 
 h1 {
   color: #00d4ff;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
 }
 
-.game-area {
+/* Mode Selection */
+.mode-select {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin-top: 4rem;
+}
+
+.mode-btn {
+  padding: 2rem 3rem;
+  font-size: 1.5rem;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mode-btn.solo {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.mode-btn.duo {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  color: white;
+}
+
+.mode-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Duo Area */
+.duo-area {
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  align-items: flex-start;
+  gap: 1.5rem;
   flex-wrap: wrap;
 }
 
-.board-container {
-  position: relative;
-}
-
-.game-canvas {
-  border: 2px solid #333;
-  border-radius: 4px;
-  background: #0a0a1a;
-}
-
-.pause-overlay,
-.gameover-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 4px;
-}
-
-.pause-overlay span,
-.gameover-overlay span {
-  font-size: 1.5rem;
-  color: #fff;
-  font-weight: bold;
-}
-
-.side-panel {
-  background: #16213e;
+.player-section {
+  background: rgba(22, 33, 62, 0.8);
   padding: 1rem;
-  border-radius: 12px;
-  text-align: center;
-  color: #fff;
-  min-width: 100px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
-.side-panel h4 {
-  margin: 0 0 0.5rem;
-  color: #9d4edd;
-  font-size: 0.8rem;
-  letter-spacing: 2px;
-}
-
-.piece-preview {
-  background: #0a0a1a;
-  border-radius: 8px;
-  padding: 0.5rem;
+.player-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  min-height: 80px;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
 }
 
-.mini-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.player-header.p1 {
+  background: linear-gradient(90deg, rgba(0, 212, 255, 0.3), transparent);
 }
 
-.mini-row {
-  display: flex;
-  gap: 2px;
+.player-header.p2 {
+  background: linear-gradient(90deg, transparent, rgba(255, 107, 107, 0.3));
 }
 
-.mini-cell {
-  width: 16px;
-  height: 16px;
-  border-radius: 2px;
-  border: 1px solid #222;
-}
-
-.empty-hint {
-  color: #555;
-  font-size: 1.5rem;
-}
-
-.stats {
-  margin: 1rem 0;
-  text-align: center;
-}
-
-.stats .score {
-  font-size: 1.5rem;
+.player-label {
+  font-size: 1.2rem;
   font-weight: bold;
-  color: #00d4ff;
-  margin: 0;
-}
-
-.stats p {
-  margin: 0.25rem 0;
-  font-size: 0.85rem;
-  color: #aaa;
+  color: white;
 }
 
 .controls-hint {
-  margin: 0.5rem 0;
-  color: #666;
+  font-size: 0.75rem;
+  color: #888;
 }
 
-.restart-btn {
-  width: 100%;
-  padding: 0.5rem;
+.player-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0.5rem;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.player-stats .score {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00d4ff;
+}
+
+/* VS Section */
+.vs-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  gap: 1rem;
+}
+
+.vs-text {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #9d4edd;
+  text-shadow: 0 0 20px rgba(157, 78, 221, 0.5);
+}
+
+.winner-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 12px;
+}
+
+.winner-text {
   font-size: 1.2rem;
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.pause-text {
+  font-size: 2rem;
+}
+
+.back-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #aaa;
+  border: 1px solid #555;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
 button {
@@ -384,7 +367,6 @@ button {
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
-  margin-top: 0.5rem;
   transition: transform 0.2s;
 }
 
