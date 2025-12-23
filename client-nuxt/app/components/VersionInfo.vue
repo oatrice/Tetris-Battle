@@ -1,16 +1,16 @@
 <template>
   <div class="version-info" :class="{ dev: versionInfo.isDev }">
     <span class="version">v{{ versionInfo.version }}</span>
-    <!-- Show hash and date only in dev mode -->
+    <!-- In Dev: always show HMR mode. In Prod: hide details -->
     <template v-if="versionInfo.isDev && showDetails">
-      <span class="hash">({{ hashDisplay }})</span>
-      <span class="date">{{ dateDisplay }}</span>
+      <span class="hash">(HMR)</span>
+      <span class="date">{{ currentTime }}</span>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useVersionInfo } from '~/composables/useVersionInfo'
 
 defineProps<{
@@ -19,22 +19,11 @@ defineProps<{
 
 const versionInfo = useVersionInfo()
 
-// HMR Detection: If hash is 'dev' or empty, show as HMR mode
-const isHMR = computed(() => {
-  const hash = versionInfo.commitHash
-  return !hash || hash === 'dev' || hash === 'now'
-})
+// Current time - updates on mount (HMR will re-mount and update this)
+const currentTime = ref('')
 
-const hashDisplay = computed(() => {
-  return isHMR.value ? 'Dev Changes (HMR)' : versionInfo.commitHash
-})
-
-const dateDisplay = computed(() => {
-  if (isHMR.value) {
-    // Show current time for HMR
-    return new Date().toLocaleString()
-  }
-  return versionInfo.commitDate
+onMounted(() => {
+  currentTime.value = new Date().toLocaleTimeString()
 })
 </script>
 
