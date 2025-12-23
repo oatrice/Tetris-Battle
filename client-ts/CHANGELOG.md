@@ -1,5 +1,21 @@
 # Changelog
 
+> ⚠️ **DEPRECATED**: This client (`client-ts`) has been superseded by `client-nuxt` as of v2.0.0.
+> Please see [client-nuxt/CHANGELOG.md](../client-nuxt/CHANGELOG.md) for the latest updates.
+
+---
+
+## [2.0.0] - 2025-12-23
+
+### 🚀 Migration to Nuxt.js
+
+This version marks the migration from `client-ts` (Vite) to `client-nuxt` (Nuxt.js).  
+All future development will continue in `client-nuxt`.
+
+See [client-nuxt/CHANGELOG.md](../client-nuxt/CHANGELOG.md) for v2.0.0+ changes.
+
+---
+
 ## [1.6.0] - 2025-12-23
 ### Added
 - **Pause Functionality for Duo Local Multiplayer**: Users can now pause and resume games in Duo Local Multiplayer mode.
