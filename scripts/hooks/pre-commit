@@ -2,7 +2,7 @@
 # Pre-commit Hook for Tetris Battle
 
 # TypeScript Client Directory
-TS_DIR="client-ts"
+TS_DIR="client-nuxt"
 
 # Check if directory exists relative to repo root
 if [ -d "$TS_DIR" ]; then
@@ -14,7 +14,7 @@ if [ -d "$TS_DIR" ]; then
         
         # 1. Run Tests
         echo "🧪 Running Tests..."
-        npm test -- run
+        npm test
         TEST_RESULT=$?
         if [ $TEST_RESULT -ne 0 ]; then
              echo "❌ Tests Failed!"

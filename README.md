@@ -2,18 +2,18 @@
 
 **🚧 Status: Migrating to TypeScript/Web Client 🚧**
 
-This project is currently being migrated from a C++/Raylib desktop application to a modern **TypeScript/Vite Web Application (PWA)** for better accessibility and cross-platform support.
+This project is currently being migrated from a C++/Raylib desktop application to a modern **Nuxt.js Web Application (PWA)** for better accessibility and cross-platform support.
 
-## 🌟 New TypeScript Client (Recommended)
+## 🌟 New Nuxt.js Client (Recommended)
 
-Please proceed to the `client-ts` directory for the latest version.
+Please proceed to the `client-nuxt` directory for the latest version.
 
-- **Directory:** [`/client-ts`](./client-ts)
-- **Tech Stack:** TypeScript, Vite, HTML5 Canvas
+- **Directory:** [`/client-nuxt`](./client-nuxt)
+- **Tech Stack:** Nuxt.js, TypeScript, HTML5 Canvas
 - **Features:** PWA (Offline Support), Mobile Controls, Modern UI
 - **Setup:**
   ```bash
-  cd client-ts
+  cd client-nuxt
   npm install
   npm run dev
   ```
