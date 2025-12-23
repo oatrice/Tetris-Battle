@@ -1,7 +1,9 @@
 /**
  * Version Info Composable
- * Provides version, commit hash, and timestamp from Nuxt runtimeConfig
+ * Provides version, commit hash, and timestamp
+ * Uses virtual:git-version module for dynamic HMR-aware git status
  */
+import { COMMIT_HASH, COMMIT_DATE, IS_DIRTY } from 'virtual:git-version'
 
 export interface VersionInfo {
     version: string
@@ -32,9 +34,10 @@ export function useVersionInfo(): VersionInfo {
 
     return {
         version: config.public.appVersion as string || '0.0.0',
-        commitHash: config.public.commitHash as string || 'dev',
-        commitDate: formatDate(config.public.commitDate as string || ''),
+        commitHash: COMMIT_HASH,
+        commitDate: formatDate(COMMIT_DATE),
         isDev: import.meta.dev,
-        isDirty: config.public.isDirty as boolean ?? false
+        isDirty: IS_DIRTY
     }
 }
+

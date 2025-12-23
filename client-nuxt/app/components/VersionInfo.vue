@@ -24,13 +24,13 @@ onMounted(() => {
   currentTime.value = new Date().toLocaleTimeString()
 })
 
-// In dev mode, show HMR indicator; in production, show commit hash
+// If dirty (uncommitted changes), show HMR mode
 const hashDisplay = computed(() => {
-  return versionInfo.isDev ? 'HMR12' : versionInfo.commitHash
+  return versionInfo.isDirty ? 'HMR' : versionInfo.commitHash
 })
 
 const dateDisplay = computed(() => {
-  return versionInfo.isDev ? currentTime.value : versionInfo.commitDate
+  return versionInfo.isDirty ? currentTime.value : versionInfo.commitDate
 })
 </script>
 
