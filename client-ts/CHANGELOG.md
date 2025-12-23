@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0] - 2025-12-23
+### Added
+- **Duo Local Multiplayer Mode**: Introduced a new game mode for local two-player competitive play.
+- **`DuoGame.vue` Component**: Added a dedicated component to manage the duo local multiplayer experience.
+- **`PlayerBoard.vue` Component**: Implemented a new component to display individual player information and game state in multiplayer.
+- **`MiniPiece.vue` Component**: Created a component to visually represent upcoming pieces for each player in the duo mode.
+
+### Changed
+- **Game Logic for Multiplayer**: Refactored core game logic in `Game.ts` and `Board.ts` to support multiple players.
+- **Tetromino Representation**: Updated `Tetromino.ts` and `shapes.ts` for multiplayer compatibility.
+- **Solo Game Integration**: Adjusted `SoloGame.vue` to work with the new multiplayer architecture.
+- **Testing Suite Updates**: Expanded and updated tests to cover the new multiplayer features.
+
 ## [1.4.0] - 2025-12-23
 ### Added
 - **Duo Local Multiplayer**: Implemented a new game mode allowing two players to compete locally on the same machine.
