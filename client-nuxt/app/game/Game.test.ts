@@ -220,4 +220,78 @@ describe('Game', () => {
             expect(game.isPaused).toBe(false)
         })
     })
+
+    describe('nextPiece', () => {
+        it('should have a next piece preview', () => {
+            expect(game.nextPiece).toBeDefined()
+        })
+
+        it('should have different piece after current locks', () => {
+            const currentType = game.currentPiece.type
+            const nextType = game.nextPiece.type
+
+            game.hardDrop()
+
+            // Current piece should now be what was the next piece
+            expect(game.currentPiece.type).toBe(nextType)
+        })
+
+        it('should always have a next piece ready', () => {
+            // Drop several pieces
+            for (let i = 0; i < 5; i++) {
+                expect(game.nextPiece).toBeDefined()
+                game.hardDrop()
+            }
+            expect(game.nextPiece).toBeDefined()
+        })
+    })
+
+    describe('holdPiece', () => {
+        it('should start with no held piece', () => {
+            expect(game.heldPiece).toBeNull()
+        })
+
+        it('should hold current piece when hold is called', () => {
+            const currentType = game.currentPiece.type
+
+            game.hold()
+
+            expect(game.heldPiece).toBeDefined()
+            expect(game.heldPiece!.type).toBe(currentType)
+        })
+
+        it('should swap held piece with current piece', () => {
+            const firstType = game.currentPiece.type
+            game.hold() // Hold first piece
+
+            game.hardDrop() // Lock to reset hold lock
+
+            const secondType = game.currentPiece.type
+            game.hold() // Swap with held piece
+
+            // Current should now be the first piece
+            expect(game.currentPiece.type).toBe(firstType)
+            // Held should be the second piece
+            expect(game.heldPiece!.type).toBe(secondType)
+        })
+
+        it('should not allow hold twice in same turn', () => {
+            game.hold() // First hold
+            const heldType = game.heldPiece!.type
+
+            game.hold() // Second hold should not work
+
+            expect(game.heldPiece!.type).toBe(heldType) // Should not change
+        })
+
+        it('should reset hold lock after piece locks', () => {
+            game.hold() // First hold
+            game.hardDrop() // Lock piece, reset hold lock
+
+            const newCurrentType = game.currentPiece.type
+            game.hold() // Should work now
+
+            expect(game.heldPiece!.type).toBe(newCurrentType)
+        })
+    })
 })

@@ -1,8 +1,30 @@
 <template>
   <div class="container" @keydown="handleKeydown" tabindex="0" ref="gameContainer">
-    <h1>🎮 Tetris Duo - Game Demo</h1>
+    <h1>🎮 Tetris Duo</h1>
     
     <div class="game-area">
+      <!-- Hold Piece -->
+      <div class="side-panel">
+        <h4>HOLD</h4>
+        <div class="piece-preview" :style="{ opacity: game.heldPiece ? 1 : 0.3 }">
+          <div v-if="game.heldPiece" class="mini-grid">
+            <div 
+              v-for="(row, y) in getPieceGrid(game.heldPiece)" 
+              :key="y" 
+              class="mini-row"
+            >
+              <div 
+                v-for="(cell, x) in row" 
+                :key="x" 
+                class="mini-cell"
+                :style="{ backgroundColor: cell ? game.heldPiece.color : 'transparent' }"
+              />
+            </div>
+          </div>
+          <span v-else class="empty-hint">C</span>
+        </div>
+      </div>
+
       <!-- Game Board -->
       <div class="board-container">
         <canvas 
@@ -20,25 +42,37 @@
         </div>
       </div>
 
-      <!-- Game Info -->
-      <div class="info-panel">
-        <h3>Score: {{ game.score }}</h3>
-        <p><strong>Level:</strong> {{ game.level }}</p>
-        <p><strong>Lines:</strong> {{ game.linesCleared }}</p>
-        <p><strong>Current Piece:</strong> {{ game.currentPiece.type }}</p>
-        
-        <div class="controls-info">
-          <h4>Controls:</h4>
-          <ul>
-            <li>← → Move</li>
-            <li>↓ Soft Drop</li>
-            <li>↑ Rotate</li>
-            <li>Space Hard Drop</li>
-            <li>P Pause</li>
-          </ul>
+      <!-- Next Piece & Info -->
+      <div class="side-panel">
+        <h4>NEXT</h4>
+        <div class="piece-preview">
+          <div class="mini-grid">
+            <div 
+              v-for="(row, y) in getPieceGrid(game.nextPiece)" 
+              :key="y" 
+              class="mini-row"
+            >
+              <div 
+                v-for="(cell, x) in row" 
+                :key="x" 
+                class="mini-cell"
+                :style="{ backgroundColor: cell ? game.nextPiece.color : 'transparent' }"
+              />
+            </div>
+          </div>
         </div>
         
-        <button @click="restartGame">🔄 New Game</button>
+        <div class="stats">
+          <p class="score">{{ game.score }}</p>
+          <p>Level {{ game.level }}</p>
+          <p>Lines {{ game.linesCleared }}</p>
+        </div>
+        
+        <div class="controls-hint">
+          <small>←→ ↓↑ Space Hold:C P</small>
+        </div>
+        
+        <button @click="restartGame" class="restart-btn">🔄</button>
       </div>
     </div>
   </div>
@@ -67,6 +101,22 @@ const restartGame = () => {
   game.value = new Game()
 }
 
+// Helper to create a 4x4 grid for piece preview
+const getPieceGrid = (piece: { getBlocks: () => { x: number, y: number }[] }) => {
+  const grid: boolean[][] = Array.from({ length: 4 }, () => Array(4).fill(false) as boolean[])
+  const blocks = piece.getBlocks()
+  const minX = Math.min(...blocks.map(b => b.x))
+  const minY = Math.min(...blocks.map(b => b.y))
+  
+  blocks.forEach(block => {
+    const row = block.y - minY
+    const col = block.x - minX
+    if (row >= 0 && row < 4 && col >= 0 && col < 4 && grid[row]) {
+      grid[row]![col] = true
+    }
+  })
+  return grid
+}
 const handleKeydown = (e: KeyboardEvent) => {
   if (game.value.isGameOver) return
   
@@ -86,6 +136,10 @@ const handleKeydown = (e: KeyboardEvent) => {
     case ' ':
       e.preventDefault()
       game.value.hardDrop()
+      break
+    case 'c':
+    case 'C':
+      game.value.hold()
       break
     case 'p':
     case 'P':
@@ -244,36 +298,82 @@ h1 {
   font-weight: bold;
 }
 
-.info-panel {
+.side-panel {
   background: #16213e;
-  padding: 1.5rem;
-  border-radius: 12px;
-  text-align: left;
-  color: #fff;
-  min-width: 200px;
-}
-
-.info-panel h3 {
-  color: #00d4ff;
-  margin-bottom: 1rem;
-}
-
-.controls-info {
-  margin: 1rem 0;
   padding: 1rem;
-  background: #1a1a2e;
-  border-radius: 8px;
+  border-radius: 12px;
+  text-align: center;
+  color: #fff;
+  min-width: 100px;
 }
 
-.controls-info ul {
-  list-style: none;
-  padding: 0;
+.side-panel h4 {
+  margin: 0 0 0.5rem;
+  color: #9d4edd;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+}
+
+.piece-preview {
+  background: #0a0a1a;
+  border-radius: 8px;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.mini-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mini-row {
+  display: flex;
+  gap: 2px;
+}
+
+.mini-cell {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid #222;
+}
+
+.empty-hint {
+  color: #555;
+  font-size: 1.5rem;
+}
+
+.stats {
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.stats .score {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00d4ff;
   margin: 0;
 }
 
-.controls-info li {
-  margin: 0.3rem 0;
-  font-size: 0.9rem;
+.stats p {
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.controls-hint {
+  margin: 0.5rem 0;
+  color: #666;
+}
+
+.restart-btn {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1.2rem;
 }
 
 button {
@@ -284,8 +384,7 @@ button {
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
-  width: 100%;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   transition: transform 0.2s;
 }
 

@@ -21,12 +21,15 @@ const SCORE_HARD_DROP_PER_CELL = 2
 export class Game {
     readonly board: Board
     currentPiece: Tetromino
+    nextPiece: Tetromino
+    heldPiece: Tetromino | null
     score: number
     level: number
     linesCleared: number
     isGameOver: boolean
     isPaused: boolean
     private pieceQueue: TetrominoType[]
+    private holdUsedThisTurn: boolean
 
     constructor() {
         this.board = new Board()
@@ -35,8 +38,11 @@ export class Game {
         this.linesCleared = 0
         this.isGameOver = false
         this.isPaused = false
+        this.heldPiece = null
+        this.holdUsedThisTurn = false
         this.pieceQueue = this.generatePieceQueue()
         this.currentPiece = this.spawnPiece()
+        this.nextPiece = this.spawnPiece()
     }
 
     /**
@@ -147,8 +153,39 @@ export class Game {
             this.level = Math.floor(this.linesCleared / 10) + 1
         }
 
-        // Spawn new piece
-        this.currentPiece = this.spawnPiece()
+        // Move next piece to current, spawn new next piece
+        this.currentPiece = this.nextPiece
+        this.nextPiece = this.spawnPiece()
+
+        // Reset hold lock
+        this.holdUsedThisTurn = false
+
+        // Check if new current piece can be placed (game over)
+        if (!this.canPlacePiece(this.currentPiece)) {
+            this.isGameOver = true
+        }
+    }
+
+    /**
+     * Hold current piece - swap with held piece or store if empty
+     */
+    hold(): void {
+        if (this.isGameOver || this.isPaused) return
+        if (this.holdUsedThisTurn) return // Can only hold once per turn
+
+        this.holdUsedThisTurn = true
+
+        if (this.heldPiece === null) {
+            // No held piece - store current, get next
+            this.heldPiece = new Tetromino(this.currentPiece.type)
+            this.currentPiece = this.nextPiece
+            this.nextPiece = this.spawnPiece()
+        } else {
+            // Swap current with held
+            const tempType = this.currentPiece.type
+            this.currentPiece = new Tetromino(this.heldPiece.type)
+            this.heldPiece = new Tetromino(tempType)
+        }
     }
 
     /**
