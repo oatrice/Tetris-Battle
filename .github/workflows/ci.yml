@@ -7,11 +7,11 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  build-ts:
+  build-nuxt:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./client-ts
+        working-directory: ./client-nuxt
     environment: production
     env:
       VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
@@ -28,7 +28,7 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        cache-dependency-path: client-ts/package-lock.json
+        cache-dependency-path: client-nuxt/package-lock.json
 
     - name: Install Dependencies
       run: npm ci
@@ -37,4 +37,4 @@ jobs:
       run: npm run build
 
     - name: Run Tests
-      run: npm test -- run
+      run: npm test

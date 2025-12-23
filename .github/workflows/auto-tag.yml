@@ -14,10 +14,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get Version from client-ts
+      - name: Get Version from client-nuxt
         id: get_version
         run: |
-          VERSION=$(node -p "require('./client-ts/package.json').version")
+          VERSION=$(node -p "require('./client-nuxt/package.json').version")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Create Git Tag
