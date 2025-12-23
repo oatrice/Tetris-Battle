@@ -1,179 +1,279 @@
 <template>
-  <div class="container">
-    <h1>🎮 Tetris Duo</h1>
+  <div class="container" @keydown="handleKeydown" tabindex="0" ref="gameContainer">
+    <h1>🎮 Tetris Duo - Game Demo</h1>
     
-    <!-- Board Demo -->
-    <section class="demo-section">
-      <h2>📦 Board Demo</h2>
-      <div class="board-info">
-        <p><strong>Width:</strong> {{ boardWidth }}</p>
-        <p><strong>Height:</strong> {{ boardHeight }}</p>
-        <p><strong>Cell (5, 10):</strong> {{ cellValue }}</p>
+    <div class="game-area">
+      <!-- Game Board -->
+      <div class="board-container">
+        <canvas 
+          ref="canvas" 
+          :width="canvasWidth" 
+          :height="canvasHeight"
+          class="game-canvas"
+        />
+        <div v-if="game.isPaused" class="pause-overlay">
+          <span>⏸️ PAUSED</span>
+        </div>
+        <div v-if="game.isGameOver" class="gameover-overlay">
+          <span>💀 GAME OVER</span>
+          <button @click="restartGame">🔄 Restart</button>
+        </div>
       </div>
-      <button @click="testSetCell">Set Cell (5, 10) = 1</button>
-    </section>
 
-    <!-- Tetromino Demo -->
-    <section class="demo-section">
-      <h2>🧩 Tetromino Demo</h2>
-      <div class="piece-display">
-        <div class="piece-info">
-          <p><strong>Type:</strong> {{ currentPiece.type }}</p>
-          <p><strong>Position:</strong> ({{ currentPiece.x }}, {{ currentPiece.y }})</p>
-          <p><strong>Rotation:</strong> {{ currentPiece.rotationIndex }}</p>
-          <p><strong>Color:</strong> <span :style="{ color: currentPiece.color }">{{ currentPiece.color }}</span></p>
+      <!-- Game Info -->
+      <div class="info-panel">
+        <h3>Score: {{ game.score }}</h3>
+        <p><strong>Level:</strong> {{ game.level }}</p>
+        <p><strong>Lines:</strong> {{ game.linesCleared }}</p>
+        <p><strong>Current Piece:</strong> {{ game.currentPiece.type }}</p>
+        
+        <div class="controls-info">
+          <h4>Controls:</h4>
+          <ul>
+            <li>← → Move</li>
+            <li>↓ Soft Drop</li>
+            <li>↑ Rotate</li>
+            <li>Space Hard Drop</li>
+            <li>P Pause</li>
+          </ul>
         </div>
-        <div class="piece-grid">
-          <div 
-            v-for="(row, rowIdx) in pieceGrid" 
-            :key="rowIdx" 
-            class="piece-row"
-          >
-            <div 
-              v-for="(cell, colIdx) in row" 
-              :key="colIdx" 
-              class="piece-cell"
-              :class="{ filled: cell }"
-              :style="{ backgroundColor: cell ? currentPiece.color : 'transparent' }"
-            />
-          </div>
-        </div>
+        
+        <button @click="restartGame">🔄 New Game</button>
       </div>
-      <div class="controls">
-        <button @click="changePiece">Next Piece</button>
-        <button @click="rotatePiece">Rotate ↻</button>
-      </div>
-    </section>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Board } from '~/game/Board'
-import { Tetromino, type TetrominoType } from '~/game/Tetromino'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { Game } from '~/game/Game'
+import { COLORS } from '~/game/shapes'
 
-// Board Demo
-const board = new Board()
-const boardWidth = ref(board.width)
-const boardHeight = ref(board.height)
-const cellValue = ref(board.getCell(5, 10))
+const CELL_SIZE = 24
+const BOARD_WIDTH = 10
+const BOARD_HEIGHT = 20
 
-const testSetCell = () => {
-  board.setCell(5, 10, 1)
-  cellValue.value = board.getCell(5, 10)
-  console.log('✅ Cell (5, 10) set to:', cellValue.value)
+const canvasWidth = BOARD_WIDTH * CELL_SIZE
+const canvasHeight = BOARD_HEIGHT * CELL_SIZE
+
+const canvas = ref<HTMLCanvasElement | null>(null)
+const gameContainer = ref<HTMLDivElement | null>(null)
+const game = ref(new Game())
+let animationId: number | null = null
+let lastUpdate = 0
+const DROP_INTERVAL = 1000 // 1 second per drop
+
+const restartGame = () => {
+  game.value = new Game()
 }
 
-// Tetromino Demo
-const pieceTypes: TetrominoType[] = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
-const pieceIndex = ref(0)
-const currentPiece = ref(new Tetromino(pieceTypes[0]!))
-
-const pieceGrid = computed(() => {
-  const grid: boolean[][] = Array.from({ length: 4 }, () => Array(4).fill(false) as boolean[])
-  const blocks = currentPiece.value.getBlocks()
-  const minX = Math.min(...blocks.map(b => b.x))
-  const minY = Math.min(...blocks.map(b => b.y))
+const handleKeydown = (e: KeyboardEvent) => {
+  if (game.value.isGameOver) return
   
-  blocks.forEach(block => {
-    const row = block.y - minY
-    const col = block.x - minX
-    if (grid[row]) {
-      grid[row]![col] = true
-    }
-  })
-  return grid
-})
-
-const changePiece = () => {
-  pieceIndex.value = (pieceIndex.value + 1) % pieceTypes.length
-  currentPiece.value = new Tetromino(pieceTypes[pieceIndex.value]!)
-  console.log('🧩 Changed to:', currentPiece.value.type)
+  switch (e.key) {
+    case 'ArrowLeft':
+      game.value.moveLeft()
+      break
+    case 'ArrowRight':
+      game.value.moveRight()
+      break
+    case 'ArrowDown':
+      game.value.moveDown()
+      break
+    case 'ArrowUp':
+      game.value.rotate()
+      break
+    case ' ':
+      e.preventDefault()
+      game.value.hardDrop()
+      break
+    case 'p':
+    case 'P':
+      game.value.togglePause()
+      break
+  }
+  renderGame()
 }
 
-const rotatePiece = () => {
-  currentPiece.value.rotate()
-  // Force reactivity update
-  currentPiece.value = currentPiece.value.clone()
-  console.log('↻ Rotated to index:', currentPiece.value.rotationIndex)
+const renderGame = () => {
+  const ctx = canvas.value?.getContext('2d')
+  if (!ctx) return
+
+  // Clear canvas
+  ctx.fillStyle = '#0a0a1a'
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+
+  // Draw grid
+  ctx.strokeStyle = '#1a1a3a'
+  for (let x = 0; x <= BOARD_WIDTH; x++) {
+    ctx.beginPath()
+    ctx.moveTo(x * CELL_SIZE, 0)
+    ctx.lineTo(x * CELL_SIZE, canvasHeight)
+    ctx.stroke()
+  }
+  for (let y = 0; y <= BOARD_HEIGHT; y++) {
+    ctx.beginPath()
+    ctx.moveTo(0, y * CELL_SIZE)
+    ctx.lineTo(canvasWidth, y * CELL_SIZE)
+    ctx.stroke()
+  }
+
+  // Draw locked blocks
+  for (let y = 0; y < BOARD_HEIGHT; y++) {
+    for (let x = 0; x < BOARD_WIDTH; x++) {
+      const cell = game.value.board.getCell(x, y)
+      if (cell > 0) {
+        const pieceTypes = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
+        const color = COLORS[pieceTypes[cell - 1]!] ?? '#888'
+        drawBlock(ctx, x, y, color)
+      }
+    }
+  }
+
+  // Draw ghost piece
+  const ghost = game.value.getGhostPiece()
+  const ghostBlocks = ghost.getBlocks()
+  ctx.globalAlpha = 0.3
+  ghostBlocks.forEach(block => {
+    drawBlock(ctx, block.x, block.y, game.value.currentPiece.color)
+  })
+  ctx.globalAlpha = 1.0
+
+  // Draw current piece
+  const blocks = game.value.currentPiece.getBlocks()
+  blocks.forEach(block => {
+    drawBlock(ctx, block.x, block.y, game.value.currentPiece.color)
+  })
+}
+
+const drawBlock = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string) => {
+  const padding = 1
+  ctx.fillStyle = color
+  ctx.fillRect(
+    x * CELL_SIZE + padding,
+    y * CELL_SIZE + padding,
+    CELL_SIZE - padding * 2,
+    CELL_SIZE - padding * 2
+  )
+  
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.2)'
+  ctx.fillRect(
+    x * CELL_SIZE + padding,
+    y * CELL_SIZE + padding,
+    CELL_SIZE - padding * 2,
+    4
+  )
+}
+
+const gameLoop = (timestamp: number) => {
+  if (!game.value.isPaused && !game.value.isGameOver) {
+    if (timestamp - lastUpdate > DROP_INTERVAL) {
+      game.value.moveDown()
+      lastUpdate = timestamp
+    }
+  }
+  renderGame()
+  animationId = requestAnimationFrame(gameLoop)
 }
 
 onMounted(() => {
-  console.log('🎮 Tetris Duo - Demo Initialized!')
-  console.log('📦 Board:', board.width, 'x', board.height)
-  console.log('🧩 Tetromino:', currentPiece.value.type, 'at', currentPiece.value.x, currentPiece.value.y)
+  gameContainer.value?.focus()
+  animationId = requestAnimationFrame(gameLoop)
+  console.log('🎮 Game started!')
+})
+
+onUnmounted(() => {
+  if (animationId) {
+    cancelAnimationFrame(animationId)
+  }
 })
 </script>
 
 <style scoped>
 .container {
-  max-width: 600px;
-  margin: 2rem auto;
-  padding: 2rem;
+  max-width: 800px;
+  margin: 1rem auto;
+  padding: 1rem;
   font-family: 'Segoe UI', sans-serif;
   text-align: center;
+  outline: none;
 }
 
 h1 {
   color: #00d4ff;
-  margin-bottom: 2rem;
-}
-
-h2 {
-  color: #9d4edd;
   margin-bottom: 1rem;
 }
 
-.demo-section {
-  background: #16213e;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.board-info, .piece-info {
-  background: #1a1a2e;
-  padding: 1rem;
-  border-radius: 8px;
-  margin: 1rem 0;
-  color: #fff;
-}
-
-.piece-display {
+.game-area {
   display: flex;
-  align-items: center;
   justify-content: center;
   gap: 2rem;
   flex-wrap: wrap;
 }
 
-.piece-grid {
+.board-container {
+  position: relative;
+}
+
+.game-canvas {
+  border: 2px solid #333;
+  border-radius: 4px;
+  background: #0a0a1a;
+}
+
+.pause-overlay,
+.gameover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.piece-row {
-  display: flex;
-  gap: 2px;
-}
-
-.piece-cell {
-  width: 24px;
-  height: 24px;
-  border: 1px solid #333;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
   border-radius: 4px;
 }
 
-.piece-cell.filled {
-  box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.3);
+.pause-overlay span,
+.gameover-overlay span {
+  font-size: 1.5rem;
+  color: #fff;
+  font-weight: bold;
 }
 
-.controls {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 1rem;
+.info-panel {
+  background: #16213e;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: left;
+  color: #fff;
+  min-width: 200px;
+}
+
+.info-panel h3 {
+  color: #00d4ff;
+  margin-bottom: 1rem;
+}
+
+.controls-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #1a1a2e;
+  border-radius: 8px;
+}
+
+.controls-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.controls-info li {
+  margin: 0.3rem 0;
+  font-size: 0.9rem;
 }
 
 button {
@@ -184,11 +284,12 @@ button {
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
+  width: 100%;
+  margin-top: 1rem;
   transition: transform 0.2s;
 }
 
 button:hover {
-  transform: scale(1.05);
+  transform: scale(1.02);
 }
 </style>
-
