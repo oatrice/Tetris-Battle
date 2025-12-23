@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.0.1] - 2025-12-23
+
+### Added
+- **Version Display**: Added a visible display for the current game version in the UI.
+- **Version Positioning**: Introduced a new setting to control the position of the version display.
+
 ## [3.0.0] - 2025-12-23
 
 ### 🚀 Major Release - Nuxt.js Migration
