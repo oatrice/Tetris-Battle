@@ -20,7 +20,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      appVersion: '2.0.0',
+      appVersion: '3.0.0',
       commitHash: gitInfo.commitHash,
       commitDate: gitInfo.commitDate
     }
