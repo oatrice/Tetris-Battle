@@ -1,32 +1,71 @@
 # Changelog
 
-> ⚠️ **DEPRECATED**: This client (`client-ts`) has been superseded by `client-nuxt` as of v2.0.0.
-> Please see [client-nuxt/CHANGELOG.md](../client-nuxt/CHANGELOG.md) for the latest updates.
-
----
-
-## [2.0.0] - 2025-12-23
-
-### 🚀 Migration to Nuxt.js
-
-This version marks the migration from `client-ts` (Vite) to `client-nuxt` (Nuxt.js).  
-All future development will continue in `client-nuxt`.
-
-See [client-nuxt/CHANGELOG.md](../client-nuxt/CHANGELOG.md) for v2.0.0+ changes.
-
+## [2.3.0] - 2025-12-20
 ### Added
-- **Duo Local Multiplayer Mode**: Two players can compete locally on the same machine.
-- **Pause/Resume for Duo Mode**: Users can pause and resume games in multiplayer.
-- **Game Over State for Duo Mode**: Proper game over display for multiplayer.
-- **Visual Indicators for Player Turns**: Clear visual cues for current player.
-- **New Components**: `DuoGame.vue`, `PlayerBoard.vue`, `MiniPiece.vue`
+- **PWA Authentication Loading State**: Implemented a dedicated loading state for PWA authentication, providing a clearer user experience during the authentication process.
+
+## [2.2.1] - 2025-12-20
+### Changed
+- **Refined P2P Connection UI**: Improved the user interface for P2P connections, providing clearer feedback and more intuitive controls for establishing and managing peer-to-peer sessions.
+- **Optimized WebRTC Sync**: Enhanced the WebRTC synchronization logic for more robust and efficient data transfer in cooperative modes.
+- **Updated Game Logic**: Made minor adjustments to game logic for smoother gameplay and better integration with new cooperative features.
+- **Enhanced Firebase Signaling**: Improved the reliability and efficiency of Firebase-based signaling for initiating and managing P2P connections.
+- **Streamlined Hybrid Sync**: Optimized the hybrid synchronization mechanism to better balance local and remote updates.
+
+## [2.2.0] - 2025-12-19
+### Added
+- **🌐 P2P Offline Cooperative Mode**: Enables local multiplayer sessions where two players can play cooperatively on a shared board without an internet connection. This feature utilizes local network discovery and connection for peer-to-peer communication.
+- **📊 Network Statistics Display**: Introduced a new overlay that displays P2P network statistics, including ping, packet loss, and bandwidth usage, to aid in debugging and performance monitoring of the offline cooperative mode.
+
+## [2.1.0] - 2025-12-19
+### Added
+- **📱 Mobile Touch Controls for Coop Mode**: Full gesture support for mobile players in Cooperative Mode.
+    - Swipe L/R to move pieces.
+    - Swipe Down for Hard Drop.
+    - Swipe Up to Hold.
+    - Tap to Rotate.
+    - Long Press for Soft Drop.
+    - DAS (Delayed Auto Shift) via continuous swipe.
+- **Testing**: Added comprehensive TDD tests for `CoopInputHandler` touch controls (12 test cases).
+
+## [2.0.0] - 2025-12-19
+### Added
+- **🎮 Coop Mode (2 Players)**: Complete implementation of Cooperative Multiplayer on a shared board.
+    - **Core Gameplay**:
+        - Shared 24x12 horizontal board (P1: Left, P2: Right).
+        - Dual independent falling pieces with simultaneous control.
+        - `CoopGame` controller for loop, scoring, and level progression.
+        - `CoopInputHandler` for managing input for both players.
+
+    - **Networking & Synchronization**:
+
+        - **Real-time Sync**: `CoopSync` ensures state consistency between players (utilizing Firebase Realtime Database).
+        - **Pause/Resume Sync**: Robust synchronization of pause states between clients.
+        - **Room Management**: Create and join rooms easily with `RoomManager`.
+    - **Rendering**: `CoopRenderer` for the wider board and zone visualization.
+    - **Deterministic Gameplay**: `DeterministicPieces` and enhanced `SeededRandom` for consistent piece sequences.
+- **UI Refinements**:
+    - **Next Piece Panel**: Improved styling and visual hierarchy.
+    - **Login Flow**: Optimized visibility of login elements.
+- **Testing**: Comprehensive TDD tests for Coop components (`CoopBoard`, `DualPieceController`).
 
 ### Changed
-- **Game Logic Refactoring**: Core logic in `Game.ts` and `Board.ts` supports multiple players.
-- **Tetromino Representation**: Updated for multiplayer compatibility.
-- **Testing Suite**: Expanded tests for multiplayer functionality.
+- **Documentation**: Updated README and CHANGELOG to reflect the major version milestone.
+- **Mobile UI**: Adjusted margins and layout for player names and login addresses to ensure visibility on small screens.
+- **Coop Optimizations**:
+    - Increased sync interval to 200ms for smoother performance.
+    - Improved robustness of packet handling and state reconciliation.
+    - `CoopInputHandler` supports flexible keybindings.
+- **Environment**: Added `VITE_FIREBASE_DATABASE_URL` requirement.
 
----
+### Fixed
+- **Coop Sync Issues**:
+    - Resolved critical issue where P1's piece wasn't rendering for P2.
+    - Fixed race conditions in rapid piece drops and input handling.
+    - Adjusted `CoopSync` to correctly use Firebase Auth current user.
+- **Rendering Artifacts**: Fixed visual glitches in `CoopRenderer` (collision detection, zone divider).
+- **Service & Environment**: Fixed `process.env` usage for Vite compatibility.
+- **Auth UI**: Fixed login UI discrepancies on mobile.
 
 ## [1.3.5] - 2025-12-19
 ### Changed

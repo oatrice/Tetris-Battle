@@ -452,7 +452,10 @@ export class Game {
             this.playerName = state.playerName || 'Player';
             this.ghostPieceEnabled = state.ghostPieceEnabled !== undefined ? state.ghostPieceEnabled : true;
             this.gameOver = state.gameOver || false;
-            this.isPaused = state.isPaused || false;
+
+            // Bug Fix: เมื่อ load state จากการเริ่มเกมใหม่ ให้ unpause ทันที
+            // ยกเว้นถ้าเกม game over แล้ว
+            this.isPaused = state.gameOver ? (state.isPaused || false) : false;
 
             if (state.holdPiece) {
                 this.holdPiece = new Tetromino(state.holdPiece.type);

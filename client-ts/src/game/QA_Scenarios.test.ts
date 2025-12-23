@@ -100,10 +100,11 @@ describe('Advanced QA Scenario Tests', () => {
         // Simulate "Solo Mode" click which calls startGame(false) -> loadState()
         newUI.startGame();
 
-        // Verify UI Button Text
+        // Bug Fix Applied: เมื่อเริ่มเกมใหม่จะ unpause โดยอัตโนมัติ
+        // ดังนั้นปุ่มควรแสดง "Pause" และเกมไม่ควร paused
         const pauseBtn = root.querySelector('#pauseBtn');
-        expect(pauseBtn?.textContent).toBe('Resume');
-        expect(newGame.isPaused).toBe(true);
+        expect(pauseBtn?.textContent).toBe('Pause');
+        expect(newGame.isPaused).toBe(false);
     });
 
     // 4. AutoSave_QuitToHome_MinimalState

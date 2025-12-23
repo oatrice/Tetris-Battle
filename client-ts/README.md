@@ -9,6 +9,10 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
 - **Game Modes:**
     - **Classic Solo Mode**: Standard Tetris gameplay.
     - **Special Mode**: Features "Cascade Gravity" and **Hold Mechanic**.
+    - **🎮 Coop Mode (2 Players)**: Cooperative multiplayer on a shared 24x12 horizontal board.
+        - Real-time synchronization via Firebase Realtime Database.
+        - Create or join rooms with friends.
+        - Independent piece control for each player.
     - **Offline Support**: Full gameplay, Auto-Save without internet.
     - **Leaderboard**: 
         - **Local**: Offline leaderboard for personal bests.
@@ -30,7 +34,7 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
 
 ### Prerequisites
 - Node.js v18+
-- Firebase Project (for Google Auth)
+- Firebase Project (for Google Auth & Coop Mode)
 
 ### Configuration
 1. Copy `.env.example` to `.env`:
@@ -40,8 +44,11 @@ Old C++/Raylib client is being migrated to this **TypeScript + HTML5 Canvas** ve
 2. Fill in your Firebase configuration keys in `.env`:
    ```env
    VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_DATABASE_URL=https://your-project.firebaseio.com  # Required for Coop Mode
    ...
    ```
+   
+   **Note:** `VITE_FIREBASE_DATABASE_URL` is required for Coop Mode. Get it from Firebase Console → Realtime Database.
 
 ### Installation
 ```bash

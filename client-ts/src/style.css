@@ -54,13 +54,22 @@ canvas {
   aspect-ratio: 300/600;
   /* Preserve aspect ratio context (10x20 grid) */
   object-fit: contain;
-  border: 4px solid #333;
   /* Thicker border */
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  /* Nice shadow for depth */
   flex-shrink: 0;
   /* Prevent shrinking below minimal logic */
+}
+
+#coopCanvas {
+  aspect-ratio: 2/1;
+  /* Horizontal 2:1 */
+  max-width: 90vw;
+  /* Make it wider */
+  max-height: 80vh;
   background-color: #000;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  /* Nice shadow for depth */
+  height: auto;
+  border: 4px solid #3596a2;
 }
 
 #game-container {
@@ -318,7 +327,7 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(36, 36, 36, 0.98);
+  background-color: #242424;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -361,4 +370,139 @@ canvas {
 
 .menu-btn:active {
   transform: translateY(0);
+}
+
+/* Landscape Warning Overlay used in Coop Mode */
+#landscape-warning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  /* Slight transparency */
+  z-index: 2147483647;
+  display: none;
+  /* Hidden by default */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #ffffff !important;
+  /* Force White */
+  font-family: sans-serif;
+  pointer-events: auto;
+}
+
+/* Force visibility of content */
+#landscape-warning * {
+  z-index: 2147483648;
+  position: relative;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block;
+  /* Ensure text block */
+}
+
+#landscape-warning .icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  animation: rotate-phone 2s infinite ease-in-out;
+}
+
+@keyframes rotate-phone {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-90deg);
+  }
+
+  75% {
+    transform: rotate(-90deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Show warning ONLY IF: 
+   1. The .force-landscape class is active on body
+   2. AND The device is in portrait mode
+*/
+body.force-landscape #landscape-warning {
+  display: none;
+  /* Default hidden */
+}
+
+/* CSS Controlled by JS for robustness */
+body.force-landscape #landscape-warning.show {
+  display: flex !important;
+}
+
+/* =========================================
+   Coop Mode Landscape Optimization
+   ========================================= */
+body.force-landscape #app {
+  padding: 0;
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+  /* Prevent scrolling, force fit */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Hide Title in Coop Mode to save space */
+body.force-landscape h1 {
+  display: none !important;
+}
+
+body.force-landscape #coop-ui-container {
+  margin: 0 !important;
+  padding: 0 10px !important;
+  width: 100%;
+  height: 100%;
+  gap: 10px !important;
+  box-sizing: border-box;
+}
+
+/* Making the main board responsive */
+body.force-landscape #coopCanvas {
+  max-height: 95dvh;
+  /* Maximize vertical space usage */
+  max-width: 70vw;
+  /* Leave room for side panels */
+  width: auto;
+  height: auto;
+  border-width: 2px !important;
+}
+
+/* Side Panels Optimization */
+body.force-landscape .panel-box {
+  padding: 5px !important;
+  min-width: auto !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  /* Enable visibility over game */
+  border: none;
+}
+
+body.force-landscape .panel-box h3 {
+  font-size: 0.7rem !important;
+  margin-bottom: 2px !important;
+}
+
+body.force-landscape .panel-box canvas {
+  /* Next Piece Canvas */
+  width: 50px !important;
+  height: 50px !important;
+}
+
+body.force-landscape .stat-value {
+  font-size: 1rem !important;
 }

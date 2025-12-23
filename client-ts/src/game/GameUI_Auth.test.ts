@@ -36,11 +36,12 @@ describe('GameUI Auth Integration', () => {
         };
     });
 
-    it('should create a login button on initialization', () => {
+    it('should create a login button on initialization with loading state', () => {
         const ui = new GameUI(mockGame, document.body);
         ui.init();
-        const loginBtn = document.getElementById('login-btn');
+        const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
         expect(loginBtn).toBeTruthy();
+        // After init + immediate callback, should show proper login text
         expect(loginBtn?.textContent).toBe('Login with Google');
     });
 
@@ -91,7 +92,7 @@ describe('GameUI Auth Integration', () => {
         expect(mockGame.setPlayerName).toHaveBeenCalledWith('Player'); // Default or stored name? logic might differ
         expect(mockGame.setPlayerMetadata).toHaveBeenCalledWith(undefined, undefined);
     });
-    it('should initially hide login button while waiting for auth state (loading)', () => {
+    it('should initially show login button with loading state while waiting for auth state', () => {
         // Override mock to simulate delay
         const delayedAuth = {
             onAuthStateChanged: vi.fn(), // No immediate callback
@@ -101,9 +102,11 @@ describe('GameUI Auth Integration', () => {
         const ui = new GameUI(mockGame, document.body);
         ui.init();
 
-        const loginBtn = document.getElementById('login-btn');
-        // valid check: initially hidden
-        expect(loginBtn?.style.display).toBe('none');
+        const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
+        // Should show loading state
+        expect(loginBtn?.style.display).toBe('block');
+        expect(loginBtn?.textContent).toBe('🔄 Loading Auth...');
+        expect(loginBtn?.disabled).toBe(true);
     });
 
     it('should show login button if auth resolves to null (no user)', () => {
