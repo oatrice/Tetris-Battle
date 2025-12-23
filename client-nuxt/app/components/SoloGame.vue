@@ -17,6 +17,9 @@
           :width="canvasWidth" 
           :height="canvasHeight"
           class="game-canvas"
+          @touchstart.prevent="handleTouchStart"
+          @touchmove.prevent="handleTouchMove"
+          @touchend.prevent="handleTouchEnd"
         />
         <div v-if="game.isPaused && !game.isGameOver" class="overlay">⏸️ PAUSED</div>
         <div v-if="game.isGameOver" class="overlay game-over">
@@ -45,6 +48,7 @@
 import { ref, onMounted, watch, defineAsyncComponent } from 'vue'
 import { Game } from '~/game/Game'
 import { COLORS } from '~/game/shapes'
+import { InputHandler, GameAction } from '~/game/InputHandler'
 
 const MiniPiece = defineAsyncComponent(() => import('./MiniPiece.vue'))
 
@@ -61,6 +65,50 @@ const canvasWidth = BOARD_WIDTH * CELL_SIZE
 const canvasHeight = BOARD_HEIGHT * CELL_SIZE
 
 const canvas = ref<HTMLCanvasElement | null>(null)
+const inputHandler = new InputHandler()
+
+// ============ Touch Handlers ============
+const handleTouchStart = (event: TouchEvent) => {
+  inputHandler.handleTouchStart(event)
+}
+
+const handleTouchMove = (event: TouchEvent) => {
+  const action = inputHandler.handleTouchMove(event)
+  if (action) executeAction(action)
+}
+
+const handleTouchEnd = (event: TouchEvent) => {
+  const action = inputHandler.handleTouchEnd(event)
+  if (action) executeAction(action)
+}
+
+const executeAction = (action: GameAction) => {
+  if (props.game.isGameOver) return
+  
+  switch (action) {
+    case GameAction.MOVE_LEFT:
+      props.game.moveLeft()
+      break
+    case GameAction.MOVE_RIGHT:
+      props.game.moveRight()
+      break
+    case GameAction.ROTATE_CW:
+      props.game.rotate()
+      break
+    case GameAction.SOFT_DROP:
+      props.game.moveDown()
+      break
+    case GameAction.HARD_DROP:
+      props.game.hardDrop()
+      break
+    case GameAction.HOLD:
+      props.game.hold()
+      break
+    case GameAction.PAUSE:
+      props.game.togglePause()
+      break
+  }
+}
 
 const renderGame = () => {
   const ctx = canvas.value?.getContext('2d')
