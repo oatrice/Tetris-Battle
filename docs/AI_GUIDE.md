@@ -24,7 +24,7 @@ trigger: always_on
 *   **Security:** ห้าม Hardcode Secret Keys
 
 ### TypeScript (Client - Web/Canvas)
-*   **Frameworks:** Vite, HTML5 Canvas (Game Loop), DOM (UI Overlay).
+*   **Frameworks:** Nuxt.js, HTML5 Canvas (Game Loop), DOM (UI Overlay).
 *   **Testing:** Vitest + JSDOM. เน้น TDD Circle (Red -> Green -> Refactor) สำหรับทั้ง Logic (`Game.ts`) และ UI (`GameUI.test.ts`).
 *   **PWA:** Ensure Service Worker updates correctly (`updateViaCache: 'none'`).
 *   **Style:** Functional + OOP Hybrid.
@@ -47,8 +47,8 @@ trigger: always_on
 
 ## ✅ 4. Definition of Done (DoD)
 *   **Tests:** All tests passed (Green state).
-*   **Docs:** Updated [CHANGELOG.md](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-ts/CHANGELOG.md:0:0-0:0) & [README.md](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-ts/README.md:0:0-0:0) if applicable.
-*   **Versioning:** Bump version in [package.json](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-ts/package.json:0:0-0:0) if a new feature is completed.
+*   **Docs:** Updated [CHANGELOG.md](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-nuxt/CHANGELOG.md:0:0-0:0) & [README.md](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-nuxt/README.md:0:0-0:0) if applicable.
+*   **Versioning:** Bump version in [package.json](cci:7://file:///Users/oatrice/Software-projects/Tetris-Battle/client-nuxt/package.json:0:0-0:0) if a new feature is completed.
 
 *   **Build Check:** Run `npm test` and `npm run build` whenever the version is bumped to ensure the code is stable and production build is valid.
 *   **Runtime Check:** Run `npm run dev` and verify that the game loads and runs correctly in the browser.

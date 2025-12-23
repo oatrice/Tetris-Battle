@@ -3,7 +3,7 @@
 
 # TypeScript Client Directory
 REPO_ROOT=$(git rev-parse --show-toplevel)
-TS_DIR="$REPO_ROOT/client-ts"
+TS_DIR="$REPO_ROOT/client-nuxt"
 
 if [ -d "$TS_DIR" ]; then
     echo "✅ Commit Successful"
@@ -12,7 +12,7 @@ if [ -d "$TS_DIR" ]; then
     echo "📅 Commit Timestamp: $COMMIT_DATE"
     
     # Kill any existing dev servers on common ports to prevent duplicates
-    PIDS=$(lsof -t -i:5173 -i:5174 -i:5175)
+    PIDS=$(lsof -t -i:3000 -i:3001 -i:3002)
     if [ -n "$PIDS" ]; then
         echo "🛑 Killing existing dev servers (PIDs: $PIDS)..."
         echo "$PIDS" | xargs kill -9
