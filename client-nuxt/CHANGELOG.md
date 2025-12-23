@@ -5,6 +5,11 @@
 ### Added
 - **Version Display**: Added a visible display for the current game version in the UI.
 - **Version Positioning**: Introduced a new setting to control the position of the version display.
+- **Dynamic HMR Detection**: Implemented a custom Vite plugin (`gitVersionPlugin.ts`) that:
+  - Detects uncommitted changes (dirty state) in real-time during development
+  - Shows `HMR` indicator when there are uncommitted changes
+  - Shows commit hash when code is committed
+  - Re-evaluates git status on every file change via `handleHotUpdate()`
 
 ## [3.0.0] - 2025-12-23
 
