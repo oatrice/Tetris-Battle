@@ -1,6 +1,27 @@
 # Changelog
 
-## [2.3.0] - 2025-12-20
+> ⚠️ **DEPRECATED**: This client (`client-ts`) has been superseded by `client-nuxt` as of v2.0.0.
+> Please see [client-nuxt/CHANGELOG.md](../client-nuxt/CHANGELOG.md) for the latest updates.
+
+---
+
+## [1.6.1] - 2025-12-23
+
+### Added
+- **Nuxt.js Migration**: The project has been refactored and migrated to Nuxt.js. All future development and updates will be handled in the `client-nuxt` package.
+
+### Changed
+- **Project Structure**: Updated `package.json` to reflect the migration and dependencies for Nuxt.js.
+
+## [2.0.0] - 2025-12-23
+
+### 🚀 Migration to Nuxt.js
+
+This version marks the migration from `client-ts` (Vite) to `client-nuxt` (Nuxt.js).  
+All future development will continue in `client-nuxt`.
+
+See [client-nuxt/CHANGELOG.md](../client-nuxt/CHANGELOG.md) for v2.0.0+ changes.
+
 ### Added
 - **PWA Authentication Loading State**: Implemented a dedicated loading state for PWA authentication, providing a clearer user experience during the authentication process.
 

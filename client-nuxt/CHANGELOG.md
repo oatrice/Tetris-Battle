@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0] - 2025-12-23
+## [3.0.0] - 2025-12-23
 
 ### 🚀 Major Release - Nuxt.js Migration
 
