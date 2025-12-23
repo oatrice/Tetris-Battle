@@ -24,5 +24,7 @@ export default defineNuxtConfig({
       commitHash: gitInfo.commitHash,
       commitDate: gitInfo.commitDate
     }
-  }
+  },
+
+  css: ['~/assets/css/global.css']
 })

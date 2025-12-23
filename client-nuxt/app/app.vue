@@ -4,10 +4,14 @@
     
     <!-- Mode Selection -->
     <div v-if="!gameMode" class="mode-select">
-      <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
-      <button @click="startDuo" class="mode-btn duo">👥 Duo (Local)</button>
-      <VersionInfo :showDetails="true" class="home-version" />
+      <div class="mode-buttons">
+        <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
+        <button @click="startDuo" class="mode-btn duo">👥 Duo (Local)</button>
+      </div>
     </div>
+    
+    <!-- Version Info at Bottom -->
+    <VersionInfo v-if="!gameMode" :showDetails="true" class="home-version" />
 
     <!-- Solo Mode -->
     <div v-else-if="gameMode === 'solo'" class="game-area">
@@ -202,14 +206,15 @@ onUnmounted(() => {
 
 <style scoped>
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
   padding: 1rem;
   font-family: 'Segoe UI', sans-serif;
   text-align: center;
   outline: none;
-  min-height: 100vh;
   background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  box-sizing: border-box;
 }
 
 h1 {
@@ -227,10 +232,10 @@ h1 {
 }
 
 .mode-btn {
-  padding: 2rem 3rem;
-  font-size: 1.5rem;
+  padding: 1.25rem 2.5rem;
+  font-size: 1.25rem;
   border: none;
-  border-radius: 16px;
+  border-radius: 12px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -378,14 +383,25 @@ button:hover {
 
 /* Version Info */
 .home-version {
-  position: absolute;
-  bottom: 1rem;
+  position: fixed;
+  bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 10;
 }
 
 .mode-select {
-  position: relative;
-  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 150px);
+}
+
+.mode-buttons {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 </style>
