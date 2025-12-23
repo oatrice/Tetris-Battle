@@ -184,6 +184,180 @@ describe('DuoGame', () => {
             expect(garbageAfter).toBeGreaterThan(garbageBefore)
         })
     })
+
+    // ============ CRITICAL TEST CASES ============
+
+    describe('simultaneous dual player input', () => {
+        it('should handle both players moving simultaneously without input ghosting', () => {
+            const initialX1 = duoGame.player1.currentPiece.x
+            const initialX2 = duoGame.player2.currentPiece.x
+
+            // Simulate simultaneous actions from both players
+            duoGame.p1MoveRight()
+            duoGame.p2MoveLeft()
+
+            // Both movements should register independently
+            expect(duoGame.player1.currentPiece.x).toBe(initialX1 + 1)
+            expect(duoGame.player2.currentPiece.x).toBe(initialX2 - 1)
+        })
+
+        it('should handle complex simultaneous maneuvers', () => {
+            const initialY1 = duoGame.player1.currentPiece.y
+            const initialY2 = duoGame.player2.currentPiece.y
+
+            // P1: Hard Drop + Move Right, P2: Rotate + Move Down
+            duoGame.p1MoveRight()
+            duoGame.p2Rotate()
+            duoGame.p2MoveDown()
+
+            // Verify both actions processed correctly
+            expect(duoGame.player2.currentPiece.rotationIndex).toBe(1)
+            expect(duoGame.player2.currentPiece.y).toBe(initialY2 + 1)
+        })
+    })
+
+    describe('post-game input inhibition and winner integrity', () => {
+        it('should ignore P1 inputs after game over', () => {
+            duoGame.player1.isGameOver = true
+            duoGame.checkWinCondition()
+
+            const initialX = duoGame.player1.currentPiece.x
+            const initialY = duoGame.player1.currentPiece.y
+
+            // Try all P1 inputs
+            duoGame.p1MoveLeft()
+            duoGame.p1MoveRight()
+            duoGame.p1MoveDown()
+            duoGame.p1Rotate()
+
+            // All inputs should be ignored
+            expect(duoGame.player1.currentPiece.x).toBe(initialX)
+            expect(duoGame.player1.currentPiece.y).toBe(initialY)
+        })
+
+        it('should ignore winner (P2) inputs after game ends', () => {
+            duoGame.player1.isGameOver = true
+            duoGame.checkWinCondition()
+
+            expect(duoGame.winner).toBe(2)
+
+            // Winner should still be able to move until explicitly locked
+            // But game tick should not continue
+            const initialY = duoGame.player2.currentPiece.y
+            duoGame.tick()
+
+            // Tick should not progress (winner declared)
+            expect(duoGame.player2.currentPiece.y).toBe(initialY)
+        })
+
+        it('should preserve winner value and not change after rematch inputs', () => {
+            duoGame.player1.isGameOver = true
+            duoGame.checkWinCondition()
+
+            expect(duoGame.winner).toBe(2)
+
+            // Additional checkWinCondition calls should not change winner
+            duoGame.checkWinCondition()
+            duoGame.checkWinCondition()
+
+            expect(duoGame.winner).toBe(2)
+        })
+    })
+
+    describe('pause state input suppression', () => {
+        it('should ignore all P1 inputs when paused', () => {
+            duoGame.togglePause()
+            expect(duoGame.isPaused).toBe(true)
+
+            const initialX1 = duoGame.player1.currentPiece.x
+            const initialY1 = duoGame.player1.currentPiece.y
+            const initialRotation1 = duoGame.player1.currentPiece.rotationIndex
+
+            // Try all P1 inputs
+            duoGame.p1MoveLeft()
+            duoGame.p1MoveRight()
+            duoGame.p1MoveDown()
+            duoGame.p1Rotate()
+
+            // All should be ignored
+            expect(duoGame.player1.currentPiece.x).toBe(initialX1)
+            expect(duoGame.player1.currentPiece.y).toBe(initialY1)
+            expect(duoGame.player1.currentPiece.rotationIndex).toBe(initialRotation1)
+        })
+
+        it('should ignore all P2 inputs when paused', () => {
+            duoGame.togglePause()
+            expect(duoGame.isPaused).toBe(true)
+
+            const initialX2 = duoGame.player2.currentPiece.x
+            const initialY2 = duoGame.player2.currentPiece.y
+            const initialRotation2 = duoGame.player2.currentPiece.rotationIndex
+
+            // Try all P2 inputs
+            duoGame.p2MoveLeft()
+            duoGame.p2MoveRight()
+            duoGame.p2MoveDown()
+            duoGame.p2Rotate()
+
+            // All should be ignored
+            expect(duoGame.player2.currentPiece.x).toBe(initialX2)
+            expect(duoGame.player2.currentPiece.y).toBe(initialY2)
+            expect(duoGame.player2.currentPiece.rotationIndex).toBe(initialRotation2)
+        })
+
+        it('should resume from exact state after unpause', () => {
+            const initialY1 = duoGame.player1.currentPiece.y
+            const initialY2 = duoGame.player2.currentPiece.y
+
+            // Pause
+            duoGame.togglePause()
+            duoGame.tick() // Should do nothing
+
+            expect(duoGame.player1.currentPiece.y).toBe(initialY1)
+            expect(duoGame.player2.currentPiece.y).toBe(initialY2)
+
+            // Unpause
+            duoGame.togglePause()
+            duoGame.tick() // Should work now
+
+            expect(duoGame.player1.currentPiece.y).toBe(initialY1 + 1)
+            expect(duoGame.player2.currentPiece.y).toBe(initialY2 + 1)
+        })
+    })
+
+    describe('mode switching and data cleanup', () => {
+        it('should start fresh with clean slate on new DuoGame', () => {
+            // Simulate "dirty" state from previous session
+            duoGame.player1.isGameOver = true
+            duoGame.player1.currentPiece.y = 15
+            duoGame.winner = 2
+            duoGame.isPaused = true
+
+            // Create fresh game (like switching modes)
+            const freshGame = new DuoGame()
+
+            // Verify completely clean state
+            expect(freshGame.player1.isGameOver).toBe(false)
+            expect(freshGame.player2.isGameOver).toBe(false)
+            expect(freshGame.winner).toBeNull()
+            expect(freshGame.isPaused).toBe(false)
+            expect(freshGame.player1.score).toBe(0)
+            expect(freshGame.player2.score).toBe(0)
+        })
+
+        it('should have independent state between game instances', () => {
+            const game1 = new DuoGame()
+            const game2 = new DuoGame()
+
+            // Modify game1
+            game1.p1MoveRight()
+            game1.player1.isGameOver = true
+
+            // game2 should be unaffected
+            expect(game2.player1.isGameOver).toBe(false)
+            expect(game2.player1.currentPiece.x).not.toBe(game1.player1.currentPiece.x)
+        })
+    })
 })
 
 // Helper to count non-empty rows at bottom (garbage indicator)

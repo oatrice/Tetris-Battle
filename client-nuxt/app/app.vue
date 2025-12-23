@@ -6,6 +6,7 @@
     <div v-if="!gameMode" class="mode-select">
       <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
       <button @click="startDuo" class="mode-btn duo">👥 Duo (Local)</button>
+      <VersionInfo :showDetails="true" class="home-version" />
     </div>
 
     <!-- Solo Mode -->
@@ -73,6 +74,7 @@ import { DuoGame } from '~/game/DuoGame'
 // Async components
 const SoloGame = defineAsyncComponent(() => import('~/components/SoloGame.vue'))
 const PlayerBoard = defineAsyncComponent(() => import('~/components/PlayerBoard.vue'))
+const VersionInfo = defineAsyncComponent(() => import('~/components/VersionInfo.vue'))
 
 type GameMode = 'solo' | 'duo' | null
 
@@ -372,5 +374,18 @@ button {
 
 button:hover {
   transform: scale(1.02);
+}
+
+/* Version Info */
+.home-version {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.mode-select {
+  position: relative;
+  min-height: 60vh;
 }
 </style>

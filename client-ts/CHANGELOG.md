@@ -14,46 +14,19 @@ All future development will continue in `client-nuxt`.
 
 See [client-nuxt/CHANGELOG.md](../client-nuxt/CHANGELOG.md) for v2.0.0+ changes.
 
+### Added
+- **Duo Local Multiplayer Mode**: Two players can compete locally on the same machine.
+- **Pause/Resume for Duo Mode**: Users can pause and resume games in multiplayer.
+- **Game Over State for Duo Mode**: Proper game over display for multiplayer.
+- **Visual Indicators for Player Turns**: Clear visual cues for current player.
+- **New Components**: `DuoGame.vue`, `PlayerBoard.vue`, `MiniPiece.vue`
+
+### Changed
+- **Game Logic Refactoring**: Core logic in `Game.ts` and `Board.ts` supports multiple players.
+- **Tetromino Representation**: Updated for multiplayer compatibility.
+- **Testing Suite**: Expanded tests for multiplayer functionality.
+
 ---
-
-## [1.6.0] - 2025-12-23
-### Added
-- **Pause Functionality for Duo Local Multiplayer**: Users can now pause and resume games in Duo Local Multiplayer mode.
-- **Game Over State for Duo Local Multiplayer**: Implemented the game over state and appropriate display for Duo Local Multiplayer.
-- **Visual Indicators for Player Turns**: Added clear visual cues to indicate whose turn it is in Duo Local Multiplayer.
-
-### Changed
-- **Improved Multiplayer Game Flow**: Refined the turn-based flow and game progression for Duo Local Multiplayer.
-- **UI Enhancements for Multiplayer**: Made minor UI adjustments to better accommodate the Duo Local Multiplayer experience.
-
-## [1.5.0] - 2025-12-23
-### Added
-- **Duo Local Multiplayer Mode**: Introduced a new game mode for local two-player competitive play.
-- **`DuoGame.vue` Component**: Added a dedicated component to manage the duo local multiplayer experience.
-- **`PlayerBoard.vue` Component**: Implemented a new component to display individual player information and game state in multiplayer.
-- **`MiniPiece.vue` Component**: Created a component to visually represent upcoming pieces for each player in the duo mode.
-
-### Changed
-- **Game Logic for Multiplayer**: Refactored core game logic in `Game.ts` and `Board.ts` to support multiple players.
-- **Tetromino Representation**: Updated `Tetromino.ts` and `shapes.ts` for multiplayer compatibility.
-- **Solo Game Integration**: Adjusted `SoloGame.vue` to work with the new multiplayer architecture.
-- **Testing Suite Updates**: Expanded and updated tests to cover the new multiplayer features.
-
-## [1.4.0] - 2025-12-23
-### Added
-- **Duo Local Multiplayer**: Implemented a new game mode allowing two players to compete locally on the same machine.
-- **New Game Mode Component**: Introduced `DuoGame.vue` to manage the logic and rendering for the duo local multiplayer mode.
-- **Player Boards**: Added `PlayerBoard.vue` component to display individual player game states in multiplayer.
-- **Mini Piece Display**: Introduced `MiniPiece.vue` to visually represent upcoming pieces for each player.
-
-### Changed
-- **Game Logic Refactoring**: Refactored core game logic in `Game.ts` and `Board.ts` to support multiple players and distinct game states.
-- **Tetromino Representation**: Updated `Tetromino.ts` and `shapes.ts` to accommodate potential future expansions and ensure compatibility with multiplayer.
-- **Component Structure**: Adjusted `SoloGame.vue` to integrate seamlessly with the new multiplayer architecture.
-- **Testing Suite**: Expanded and updated tests in `Game.test.ts`, `Board.test.ts`, and `DuoGame.test.ts` to cover the new multiplayer functionality.
-- **Nuxt Configuration**: Updated `nuxt.config.ts` to include any necessary configurations for the new game mode.
-- **Dependencies**: Updated `package.json` and `package-lock.json` with any new dependencies or version changes.
-- **Build Configuration**: Adjusted `vitest.config.ts` and `tsconfig.json` to ensure proper build and testing environments for the new features.
 
 ## [1.3.5] - 2025-12-19
 ### Changed
