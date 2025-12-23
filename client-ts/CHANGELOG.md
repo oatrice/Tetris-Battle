@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.6.0] - 2025-12-23
+### Added
+- **Pause Functionality for Duo Local Multiplayer**: Users can now pause and resume games in Duo Local Multiplayer mode.
+- **Game Over State for Duo Local Multiplayer**: Implemented the game over state and appropriate display for Duo Local Multiplayer.
+- **Visual Indicators for Player Turns**: Added clear visual cues to indicate whose turn it is in Duo Local Multiplayer.
+
+### Changed
+- **Improved Multiplayer Game Flow**: Refined the turn-based flow and game progression for Duo Local Multiplayer.
+- **UI Enhancements for Multiplayer**: Made minor UI adjustments to better accommodate the Duo Local Multiplayer experience.
+
 ## [1.5.0] - 2025-12-23
 ### Added
 - **Duo Local Multiplayer Mode**: Introduced a new game mode for local two-player competitive play.
