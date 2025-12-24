@@ -98,7 +98,7 @@ const canvasHeight = BOARD_HEIGHT * CELL_SIZE
 const canvas = ref<HTMLCanvasElement | null>(null)
 const inputHandler = new InputHandler()
 const selectedEffect = ref<EffectType>(EffectType.EXPLOSION)
-const showGhost = ref(true)
+const showGhost = ref(false)
 const effectLabels = EFFECT_LABELS
 
 const onEffectChange = () => {
@@ -286,7 +286,7 @@ onMounted(() => {
   border-radius: 12px;
   text-align: center;
   color: #fff;
-  min-width: 90px;
+  min-width: 150px;
 }
 
 .side-panel h4 {
@@ -297,7 +297,7 @@ onMounted(() => {
 }
 
 .side-panel-spacer {
-  width: 80px;
+  width: 100px;
 }
 
 .piece-preview {

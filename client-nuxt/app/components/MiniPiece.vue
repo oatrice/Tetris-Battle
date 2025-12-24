@@ -1,6 +1,6 @@
 <template>
   <div class="mini-grid">
-    <div v-for="(row, y) in grid" :key="y" class="mini-row">
+    <div v-for="(row, y) in trimmedGrid" :key="y" class="mini-row">
       <div 
         v-for="(cell, x) in row" 
         :key="x" 
@@ -30,19 +30,34 @@ const props = withDefaults(defineProps<{
   size: 14
 })
 
-const grid = computed(() => {
-  const g: boolean[][] = Array.from({ length: 4 }, () => Array(4).fill(false) as boolean[])
+/**
+ * Create trimmed grid - only includes rows/cols that have blocks
+ */
+const trimmedGrid = computed(() => {
   const blocks = props.piece.getBlocks()
+  if (blocks.length === 0) return [[]]
+  
   const minX = Math.min(...blocks.map(b => b.x))
+  const maxX = Math.max(...blocks.map(b => b.x))
   const minY = Math.min(...blocks.map(b => b.y))
+  const maxY = Math.max(...blocks.map(b => b.y))
+  
+  const width = maxX - minX + 1
+  const height = maxY - minY + 1
+  
+  // Create grid with exact dimensions
+  const g: boolean[][] = Array.from({ length: height }, () => 
+    Array(width).fill(false) as boolean[]
+  )
   
   blocks.forEach(block => {
     const row = block.y - minY
     const col = block.x - minX
-    if (row >= 0 && row < 4 && col >= 0 && col < 4 && g[row]) {
+    if (g[row]) {
       g[row]![col] = true
     }
   })
+  
   return g
 })
 </script>
@@ -51,6 +66,8 @@ const grid = computed(() => {
 .mini-grid {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 1px;
 }
 
