@@ -37,8 +37,8 @@
                  <span class="countdown-number">{{ onlineGame.countdown === 0 ? 'GO!' : onlineGame.countdown }}</span>
              </div>
              <div v-if="onlineGame.isPaused" class="overlay-content">
-                 <span class="paused-text">PAUSED</span>
-                 <span class="sub-text">Press 'P' to Resume</span>
+                 <span class="paused-text">GAME PAUSED</span>
+                 <span class="sub-text">Press 'P' or Button to Resume</span>
              </div>
           </div>
       </div>
@@ -108,6 +108,7 @@ const emit = defineEmits(['back'])
 // Name Input State
 const showNameInput = ref(true)
 const playerName = ref('')
+// Computed state for waiting for opponent
 const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected)
 
 const joinGame = () => {

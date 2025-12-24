@@ -228,6 +228,7 @@ func (c *Client) handleMessage(msg Message) {
 
 	case "game_state", "attack", "game_over", "pause", "resume":
 		if c.room != nil {
+			log.Printf("Action from %s: %s", c.name, msg.Type)
 			c.room.broadcast(c, msg)
 		}
 	}

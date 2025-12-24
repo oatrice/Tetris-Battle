@@ -156,7 +156,7 @@ const startGameLoop = () => {
       } else if (gameMode.value === 'duo' && duoGame.value) {
         duoGame.value.tick()
       } else if (gameMode.value === 'online' && onlineGame.value && !onlineGame.value.isGameOver && onlineGame.value.isOpponentConnected) {
-         if (onlineGame.value.countdown === null) {
+         if (onlineGame.value.countdown === null && !onlineGame.value.isPaused) {
              onlineGame.value.moveDown()
          }
       }
@@ -194,6 +194,9 @@ const handleSoloControls = (e: KeyboardEvent) => {
 
 const handleOnlineControls = (e: KeyboardEvent) => {
   if (!onlineGame.value || onlineGame.value.isGameOver || !onlineGame.value.isOpponentConnected) return
+  // NOTE: We do NOT return if countdown !== null because pause should work? 
+  // Wait, original design said no controls during countdown. 
+  // Let's keep it safe: if countdown, no controls interact (pause isn't useful in countdown).
   if (onlineGame.value.countdown !== null) return
   
   switch (e.key) {
@@ -216,6 +219,11 @@ const handleOnlineControls = (e: KeyboardEvent) => {
     case 'C': 
     case 'q':
     case 'Q': onlineGame.value.hold(); break
+
+    // Pause
+    case 'p':
+    case 'P':
+    case 'Escape': onlineGame.value.togglePause(); break
   }
 }
 
