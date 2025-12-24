@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.2.1] - 2025-12-24
+
+### Added
+- **On-screen Buttons Hold Panel**: Introduced a new panel for on-screen buttons that supports a hold action.
+
 ## [3.2.0] - 2025-12-24
 
 ### Added
