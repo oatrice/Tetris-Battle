@@ -5,13 +5,32 @@
  * - After line clears, floating blocks drop individually with animation
  * - Chain reactions: if dropping creates new lines, they clear too
  * - Chain bonus: longer chains = more points
- * - Explosion particle effects for line clears
+ * - Multiple visual effect types for line clears
  */
 import { Game } from './Game'
 import { applyGravity, clearLinesOnly } from './CascadeGravity'
 import { calculateScore } from './LineClearing'
 
 const PIECE_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
+const CELL_SIZE = 24
+const BOARD_WIDTH = 10
+
+// Effect types
+export enum EffectType {
+    EXPLOSION = 'explosion',  // Particles explode outward
+    SPARKLE = 'sparkle',      // Sparkles float up
+    WAVE = 'wave',            // Wave ripples from center
+    SHATTER = 'shatter',      // Square fragments fall
+    CLASSIC = 'classic'       // Simple flash only
+}
+
+export const EFFECT_LABELS: Record<EffectType, string> = {
+    [EffectType.EXPLOSION]: '🎆 Explosion',
+    [EffectType.SPARKLE]: '✨ Sparkle',
+    [EffectType.WAVE]: '🌊 Wave',
+    [EffectType.SHATTER]: '💥 Shatter',
+    [EffectType.CLASSIC]: '⚡ Classic'
+}
 
 // Effect colors based on lines cleared
 const EFFECT_COLORS: Record<number, string> = {
@@ -21,16 +40,19 @@ const EFFECT_COLORS: Record<number, string> = {
     4: '#FFF176', // Yellow (Tetris!)
 }
 
-// Particle interface for explosion effect
+// Particle interface for various effects
 export interface Particle {
     x: number
     y: number
-    vx: number // velocity x
-    vy: number // velocity y
+    vx: number
+    vy: number
     size: number
     color: string
-    life: number // 0-1, decreases over time
+    life: number
     gravity: number
+    rotation?: number      // For shatter effect
+    rotationSpeed?: number
+    isSquare?: boolean     // For shatter effect
 }
 
 export interface LineClearEffect {
@@ -40,17 +62,29 @@ export interface LineClearEffect {
     color: string
 }
 
-export type GameEffect = LineClearEffect | { type: 'PARTICLES' }
+export interface WaveEffect {
+    type: 'WAVE'
+    centerX: number
+    centerY: number
+    radius: number
+    maxRadius: number
+    color: string
+    life: number
+}
+
+export type GameEffect = LineClearEffect | WaveEffect
 
 export class SpecialGame extends Game {
     chainCount: number = 0
     isCascading: boolean = false
-    effects: LineClearEffect[] = []
+    effects: GameEffect[] = []
     particles: Particle[] = []
+    effectType: EffectType = EffectType.EXPLOSION
+
     private cascadeTimer: number = 0
-    private readonly CASCADE_DELAY: number = 150 // ms per gravity step
-    private readonly EFFECT_DURATION: number = 300 // ms
-    private readonly PARTICLE_LIFETIME: number = 800 // ms
+    private readonly CASCADE_DELAY: number = 150
+    private readonly EFFECT_DURATION: number = 300
+    private readonly PARTICLE_LIFETIME: number = 800
 
     constructor() {
         super()
@@ -58,27 +92,55 @@ export class SpecialGame extends Game {
     }
 
     /**
-     * Create explosion particles for each cell in cleared lines
+     * Set the visual effect type
+     */
+    setEffectType(type: EffectType): void {
+        this.effectType = type
+    }
+
+    /**
+     * Create particles based on current effect type
+     */
+    private createParticles(indices: number[], linesCount: number): void {
+        switch (this.effectType) {
+            case EffectType.EXPLOSION:
+                this.createExplosionParticles(indices, linesCount)
+                break
+            case EffectType.SPARKLE:
+                this.createSparkleParticles(indices, linesCount)
+                break
+            case EffectType.WAVE:
+                this.createWaveEffect(indices, linesCount)
+                break
+            case EffectType.SHATTER:
+                this.createShatterParticles(indices, linesCount)
+                break
+            case EffectType.CLASSIC:
+                // No particles, just flash
+                break
+        }
+    }
+
+    /**
+     * 🎆 EXPLOSION - Particles explode outward
      */
     private createExplosionParticles(indices: number[], linesCount: number): void {
         const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
         const particlesPerCell = linesCount >= 4 ? 8 : (linesCount >= 2 ? 5 : 3)
 
         indices.forEach(y => {
-            // Create particles for each cell in the row
-            for (let x = 0; x < 10; x++) {
+            for (let x = 0; x < BOARD_WIDTH; x++) {
                 for (let i = 0; i < particlesPerCell; i++) {
-                    // Random direction explosion
                     const angle = Math.random() * Math.PI * 2
                     const speed = 2 + Math.random() * 4
 
                     this.particles.push({
-                        x: x * 24 + 12, // Center of cell (CELL_SIZE = 24)
-                        y: y * 24 + 12,
+                        x: x * CELL_SIZE + CELL_SIZE / 2,
+                        y: y * CELL_SIZE + CELL_SIZE / 2,
                         vx: Math.cos(angle) * speed,
-                        vy: Math.sin(angle) * speed - 2, // Bias upward
+                        vy: Math.sin(angle) * speed - 2,
                         size: 3 + Math.random() * 4,
-                        color: this.randomizeColor(color),
+                        color: Math.random() > 0.7 ? '#ffffff' : color,
                         life: 1.0,
                         gravity: 0.15
                     })
@@ -88,15 +150,88 @@ export class SpecialGame extends Game {
     }
 
     /**
-     * Slightly randomize color for variety
+     * ✨ SPARKLE - Sparkles float upward
      */
-    private randomizeColor(baseColor: string): string {
-        // Add some random brightness variation
-        const variation = Math.random() * 0.3 - 0.15
-        if (Math.random() > 0.7) {
-            return '#ffffff' // Some white sparkles
-        }
-        return baseColor
+    private createSparkleParticles(indices: number[], linesCount: number): void {
+        const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
+        const particlesPerCell = linesCount >= 4 ? 6 : 4
+
+        indices.forEach(y => {
+            for (let x = 0; x < BOARD_WIDTH; x++) {
+                for (let i = 0; i < particlesPerCell; i++) {
+                    this.particles.push({
+                        x: x * CELL_SIZE + Math.random() * CELL_SIZE,
+                        y: y * CELL_SIZE + CELL_SIZE / 2,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: -2 - Math.random() * 3,  // Float up
+                        size: 2 + Math.random() * 3,
+                        color: Math.random() > 0.5 ? '#ffffff' : color,
+                        life: 1.0,
+                        gravity: -0.02  // Negative gravity = float up
+                    })
+                }
+            }
+        })
+    }
+
+    /**
+     * 🌊 WAVE - Ripple wave from center
+     */
+    private createWaveEffect(indices: number[], linesCount: number): void {
+        const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
+
+        indices.forEach(y => {
+            this.effects.push({
+                type: 'WAVE',
+                centerX: BOARD_WIDTH * CELL_SIZE / 2,
+                centerY: y * CELL_SIZE + CELL_SIZE / 2,
+                radius: 0,
+                maxRadius: BOARD_WIDTH * CELL_SIZE,
+                color,
+                life: 1.0
+            })
+        })
+    }
+
+    /**
+     * 💥 SHATTER - Square fragments fall down
+     */
+    private createShatterParticles(indices: number[], linesCount: number): void {
+        const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
+        const fragmentsPerCell = 4
+
+        indices.forEach(y => {
+            for (let x = 0; x < BOARD_WIDTH; x++) {
+                for (let i = 0; i < fragmentsPerCell; i++) {
+                    const offsetX = (i % 2) * (CELL_SIZE / 2)
+                    const offsetY = Math.floor(i / 2) * (CELL_SIZE / 2)
+
+                    this.particles.push({
+                        x: x * CELL_SIZE + offsetX + CELL_SIZE / 4,
+                        y: y * CELL_SIZE + offsetY + CELL_SIZE / 4,
+                        vx: (Math.random() - 0.5) * 3,
+                        vy: -1 - Math.random() * 2,
+                        size: CELL_SIZE / 2 - 2,
+                        color: Math.random() > 0.3 ? color : this.darkenColor(color),
+                        life: 1.0,
+                        gravity: 0.25,
+                        rotation: Math.random() * Math.PI,
+                        rotationSpeed: (Math.random() - 0.5) * 0.3,
+                        isSquare: true
+                    })
+                }
+            }
+        })
+    }
+
+    /**
+     * Darken a hex color
+     */
+    private darkenColor(hex: string): string {
+        const r = Math.max(0, parseInt(hex.slice(1, 3), 16) - 40)
+        const g = Math.max(0, parseInt(hex.slice(3, 5), 16) - 40)
+        const b = Math.max(0, parseInt(hex.slice(5, 7), 16) - 40)
+        return `rgb(${r},${g},${b})`
     }
 
     /**
@@ -105,6 +240,7 @@ export class SpecialGame extends Game {
     private addLineClearEffects(indices: number[], linesCount: number): void {
         const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
 
+        // Always add flash effect
         indices.forEach(y => {
             this.effects.push({
                 type: 'LINE_CLEAR',
@@ -114,8 +250,8 @@ export class SpecialGame extends Game {
             })
         })
 
-        // Create explosion particles
-        this.createExplosionParticles(indices, linesCount)
+        // Create particles based on effect type
+        this.createParticles(indices, linesCount)
     }
 
     /**
@@ -124,18 +260,33 @@ export class SpecialGame extends Game {
     update(deltaTime: number): void {
         // Update line clear effects
         this.effects = this.effects.filter(e => {
-            e.timeLeft -= deltaTime
-            return e.timeLeft > 0
+            if (e.type === 'LINE_CLEAR') {
+                e.timeLeft -= deltaTime
+                return e.timeLeft > 0
+            } else if (e.type === 'WAVE') {
+                e.radius += deltaTime * 0.5  // Expand wave
+                e.life -= deltaTime / 600
+                return e.life > 0 && e.radius < e.maxRadius
+            }
+            return false
         })
 
         // Update particles
-        const dt = deltaTime / 16 // Normalize to ~60fps
+        const dt = deltaTime / 16
         this.particles = this.particles.filter(p => {
             p.x += p.vx * dt
             p.y += p.vy * dt
-            p.vy += p.gravity * dt // Apply gravity
+            p.vy += p.gravity * dt
             p.life -= deltaTime / this.PARTICLE_LIFETIME
-            p.size *= 0.98 // Shrink over time
+
+            if (p.rotation !== undefined && p.rotationSpeed !== undefined) {
+                p.rotation += p.rotationSpeed * dt
+            }
+
+            if (!p.isSquare) {
+                p.size *= 0.98
+            }
+
             return p.life > 0 && p.size > 0.5
         })
 
@@ -147,21 +298,15 @@ export class SpecialGame extends Game {
             this.cascadeTimer = 0
 
             if (!moved) {
-                // Gravity settled - check for chain reaction
                 const result = clearLinesOnly(this.board)
                 if (result.count > 0) {
                     this.chainCount++
                     this.linesCleared += result.count
                     this.score += calculateScore(result.count, this.level) * this.chainCount
                     this.level = Math.floor(this.linesCleared / 10) + 1
-
-                    // Add visual effects for chain
                     this.addLineClearEffects(result.indices, result.count)
-
                     console.log('[SpecialGame] Chain', this.chainCount, '- lines:', result.count)
-                    // Continue cascading
                 } else {
-                    // Done cascading
                     this.isCascading = false
                     this.spawnNextPiece()
                     console.log('[SpecialGame] Cascade complete')
@@ -170,9 +315,6 @@ export class SpecialGame extends Game {
         }
     }
 
-    /**
-     * Spawn next piece after cascade completes
-     */
     private spawnNextPiece(): void {
         this.currentPiece = this.nextPiece
         this.nextPiece = this.spawnPiece()
@@ -183,9 +325,6 @@ export class SpecialGame extends Game {
         }
     }
 
-    /**
-     * Override lockPiece to start animated cascade instead of instant
-     */
     protected override lockPiece(): void {
         const blocks = this.currentPiece.getBlocks()
         const pieceColorIndex = PIECE_TYPES.indexOf(this.currentPiece.type) + 1
@@ -194,7 +333,6 @@ export class SpecialGame extends Game {
             this.board.setCell(block.x, block.y, pieceColorIndex)
         })
 
-        // Clear lines (without gravity - that's handled by update())
         const result = clearLinesOnly(this.board)
         console.log('[SpecialGame] lockPiece - initial lines:', result.count)
 
@@ -203,11 +341,7 @@ export class SpecialGame extends Game {
             this.linesCleared += result.count
             this.score += calculateScore(result.count, this.level)
             this.level = Math.floor(this.linesCleared / 10) + 1
-
-            // Add visual effects
             this.addLineClearEffects(result.indices, result.count)
-
-            // Start cascade animation
             this.isCascading = true
             this.cascadeTimer = 0
         } else {
