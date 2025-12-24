@@ -34,6 +34,7 @@
             <span class="stat-label">P2 WINS</span>
             <span class="stat-value">{{ stats.p2Wins }}</span>
         </div>
+        <button class="reset-icon" @click="resetStats" title="Reset Wins">🗑️</button>
       </div>
 
       <!-- Winner Overlay -->
@@ -42,7 +43,10 @@
 
         <!-- Match Result Save Form -->
         <div class="match-save-section">
-            <div v-if="matchSaved" class="saved-msg">✅ Match Saved</div>
+            <div v-if="matchSaved" class="saved-group">
+                <div class="saved-msg">✅ Match Saved</div>
+                <button @click="emit('show-leaderboard')" class="view-leaderboard-btn">🏆 View Leaderboard</button>
+            </div>
             <div v-else class="save-form">
                 <div class="player-inputs">
                     <input v-model="p1Name" placeholder="P1 Name" class="hs-input p1-in" />
@@ -52,6 +56,7 @@
                 <button @click="saveMatch" class="save-match-btn">💾 Save Result</button>
             </div>
         </div>
+
 
         <button @click="emit('restart')" class="restart-btn">🔄 Rematch</button>
       </div>
@@ -94,7 +99,7 @@ const props = defineProps<{
   duoGame: DuoGame
 }>()
 
-const emit = defineEmits(['restart', 'back'])
+const emit = defineEmits(['restart', 'back', 'show-leaderboard'])
 
 // Stats
 const stats = ref({ p1Wins: 0, p2Wins: 0 })
@@ -149,6 +154,12 @@ const saveMatch = () => {
     })
     
     matchSaved.value = true
+}
+
+const resetStats = () => {
+    if (confirm('Reset win counts?')) {
+        stats.value = DuoStatsService.resetStats()
+    }
 }
 </script>
 
@@ -392,5 +403,50 @@ const saveMatch = () => {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
+}
+
+.reset-icon {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s, transform 0.2s;
+    margin-left: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 50%;
+}
+
+.reset-icon:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.saved-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+.view-leaderboard-btn {
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    color: #1a1a1a;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.view-leaderboard-btn:hover {
+    transform: scale(1.05);
 }
 </style>

@@ -14,8 +14,9 @@
     
     <!-- Leaderboard Modal -->
     <Leaderboard 
-      v-if="showLeaderboard && !gameMode" 
+      v-if="showLeaderboard" 
       @close="showLeaderboard = false" 
+      :initialTab="gameMode || 'solo'"
     />
 
     <!-- Version Info at Bottom -->
@@ -31,6 +32,7 @@
       <DuoGameComponent 
         :duoGame="duoGame!" 
         @restart="restartDuo" 
+        @show-leaderboard="showLeaderboard = true"
         @back="backToMenu" 
       />
     </div>
