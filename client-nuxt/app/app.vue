@@ -7,9 +7,9 @@
       <div class="mode-buttons">
         <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
         <button @click="startSpecial" class="mode-btn special">✨ Special</button>
-        <button @click="startDuo" class="mode-btn duo">👥 Duo (Local)</button>
+        <button @click="startDuo" class="mode-btn duo">👥 Duo</button>
+        <button @click="showLeaderboard = true" class="mode-btn leaderboard">🏆 Leaderboard</button>
       </div>
-      <button @click="showLeaderboard = true" class="leaderboard-btn">🏆 Leaderboard</button>
     </div>
     
     <!-- Leaderboard Modal -->
@@ -298,22 +298,9 @@ h1 {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
-.leaderboard-btn {
-  margin-top: 1.5rem;
-  padding: 0.8rem 2rem;
-  font-size: 1rem;
+.mode-btn.leaderboard {
   background: linear-gradient(135deg, #ffd700, #ffaa00);
   color: #1a1a2e;
-  font-weight: bold;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.leaderboard-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
 }
 
 /* Duo Area */
@@ -460,9 +447,9 @@ button:hover {
 }
 
 .mode-buttons {
-  display: flex;
-  gap: 2rem;
-  justify-content: center;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  max-width: 400px;
 }
 </style>

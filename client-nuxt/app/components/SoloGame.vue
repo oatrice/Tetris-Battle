@@ -31,17 +31,44 @@
           <span>💀 GAME OVER</span>
           
           <!-- High Score Input -->
-          <div v-if="isNewHighScore && !scoreSaved" class="high-score-form">
-            <span class="high-score-label">🎉 NEW HIGH SCORE!</span>
-            <input 
-              v-model="playerName" 
-              type="text" 
-              placeholder="Your name" 
-              maxlength="12"
-              class="name-input"
-              @keyup.enter="saveHighScore"
-            />
-            <button @click="saveHighScore" class="save-btn">Save</button>
+          <!-- High Score Input -->
+          <div v-if="isNewHighScore" class="high-score-form">
+            <span class="high-score-label">
+              {{ highScoreLabel }}
+            </span>
+            
+            <!-- Case 1: Already Saved (Auto-saved) -->
+            <div v-if="scoreSaved && !isEditingName" class="saved-feedback">
+              <span class="saved-text">✅ Saved as <span class="highlight-name">{{ savedPlayerName }}</span></span>
+              <button @click="isEditingName = true" class="edit-btn" title="Edit Name">✏️</button>
+            </div>
+            
+            <!-- Case 2: Editing Name (After auto-save) -->
+            <div v-else-if="scoreSaved && isEditingName" class="edit-saved-form">
+               <input 
+                v-model="playerName" 
+                type="text" 
+                placeholder="New name" 
+                maxlength="12"
+                class="name-input"
+                @keyup.enter="updateSavedName"
+              />
+              <button @click="updateSavedName" class="save-btn">Update</button>
+              <button @click="isEditingName = false" class="cancel-btn">Cancel</button>
+            </div>
+
+            <!-- Case 3: New Player (First time) -->
+            <div v-else-if="!scoreSaved && !savedPlayerName" class="new-player-form">
+              <input 
+                v-model="playerName" 
+                type="text" 
+                placeholder="Enter your name" 
+                maxlength="12"
+                class="name-input"
+                @keyup.enter="saveHighScore"
+              />
+              <button @click="saveHighScore" class="save-btn">Save</button>
+            </div>
           </div>
           
           <div class="game-over-buttons">
@@ -131,10 +158,23 @@ const showGhost = ref(false)
 const effectLabels = EFFECT_LABELS
 
 // ============ High Score & Leaderboard ============
+const PLAYER_NAME_KEY = 'tetris-player-name'
 const showLeaderboard = ref(false)
 const playerName = ref('')
 const scoreSaved = ref(false)
 const savedRank = ref<number | null>(null)
+const isEditingName = ref(false)
+const currentEntryId = ref<string | null>(null)
+
+// Load saved player name from localStorage
+// Using ref for manual update to ensure UI reactivity
+const savedPlayerName = ref('')
+
+onMounted(() => {
+    if (typeof localStorage !== 'undefined') {
+        savedPlayerName.value = localStorage.getItem(PLAYER_NAME_KEY) || ''
+    }
+})
 
 const gameMode = computed<GameMode>(() => props.isSpecialMode ? 'special' : 'solo')
 
@@ -142,11 +182,27 @@ const isNewHighScore = computed(() => {
   return props.game.isGameOver && LeaderboardService.isHighScore(props.game.score, gameMode.value)
 })
 
-const saveHighScore = () => {
-  if (!playerName.value.trim()) return
+const highScoreLabel = computed(() => {
+  if (!isNewHighScore.value) return ''
   
-  const rank = LeaderboardService.addScore({
-    playerName: playerName.value.trim(),
+  const rank = LeaderboardService.getPotentialRank(props.game.score, gameMode.value)
+  return rank === 1 ? '🏆 NEW RECORD!' : '🎉 TOP 10 ENTRY!'
+})
+
+const saveHighScore = () => {
+  // Use saved name if available and not editing, otherwise use input
+  const nameToSave = (savedPlayerName.value && !isEditingName.value) 
+    ? savedPlayerName.value 
+    : playerName.value.trim()
+  
+  if (!nameToSave) return
+  
+  // Save name to localStorage for next time
+  localStorage.setItem(PLAYER_NAME_KEY, nameToSave)
+  savedPlayerName.value = nameToSave
+  
+  const result = LeaderboardService.addScore({
+    playerName: nameToSave,
     score: props.game.score,
     level: props.game.level,
     lines: props.game.linesCleared,
@@ -154,8 +210,38 @@ const saveHighScore = () => {
   }, gameMode.value)
   
   scoreSaved.value = true
-  savedRank.value = rank
+  savedRank.value = result.rank
+  currentEntryId.value = result.id
 }
+
+const updateSavedName = () => {
+    if (!playerName.value.trim()) return
+
+    // Update local storage
+    localStorage.setItem(PLAYER_NAME_KEY, playerName.value.trim())
+    savedPlayerName.value = playerName.value.trim()
+    
+    // Update existing entry if we have ID
+    if (currentEntryId.value) {
+        LeaderboardService.updateEntryName(currentEntryId.value, playerName.value.trim(), gameMode.value)
+    } else {
+        // Fallback if no ID (shouldn't happen in flow)
+        saveHighScore()
+    }
+
+    isEditingName.value = false
+    scoreSaved.value = true
+}
+
+
+
+// Auto-save watch
+watch(isNewHighScore, (newVal) => {
+    if (newVal && savedPlayerName.value && !scoreSaved.value) {
+        // Auto-save immediately
+        saveHighScore()
+    }
+})
 
 // Reset high score state when game restarts
 watch(() => props.game.isGameOver, (isOver) => {
@@ -163,6 +249,8 @@ watch(() => props.game.isGameOver, (isOver) => {
     scoreSaved.value = false
     savedRank.value = null
     playerName.value = ''
+    isEditingName.value = false
+    currentEntryId.value = null
   }
 })
 
@@ -564,6 +652,59 @@ button {
   color: #666;
 }
 
+/* Saved Feedback */
+.saved-feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: rgba(0, 255, 136, 0.15);
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  animation: pulse 2s infinite;
+}
+
+.saved-text {
+  color: #00ff88;
+  font-size: 1rem;
+}
+
+.highlight-name {
+  font-weight: bold;
+  color: #fff;
+  text-decoration: underline;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+}
+
+.edit-saved-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.new-player-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #666;
+  color: #ccc;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.edit-btn:hover, .cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .name-input:focus {
   border-color: #00d4ff;
   box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
@@ -586,5 +727,36 @@ button {
 
 .leaderboard-btn {
   background: linear-gradient(135deg, #9d4edd, #764ba2);
+}
+
+/* Saved Name Row */
+.saved-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.current-name {
+  padding: 0.5rem 1rem;
+  background: #1a1a3a;
+  border: 2px solid #00d4ff;
+  border-radius: 8px;
+  color: #00d4ff;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.edit-btn {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #666;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.edit-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 </style>

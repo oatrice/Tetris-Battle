@@ -10,6 +10,7 @@
 export type GameMode = 'solo' | 'special'
 
 export interface LeaderboardEntry {
+    id: string    // Unique ID for update capability
     playerName: string
     score: number
     level: number
@@ -41,49 +42,80 @@ export class LeaderboardService {
     }
 
     /**
-     * Add a new score to the leaderboard
-     * Returns the rank (1-10) if added, null if score didn't qualify
+     * Add a score to the leaderboard.
+     * Returns the rank of the new score (1-10), or null if not in top 10.
+     * Returns the ID of the new entry as well if needed (tuple would be better but let's stick to rank for now, 
+     * actually we need ID now. Let's return object)
      */
-    static addScore(entry: LeaderboardEntry, mode: GameMode = 'solo'): number | null {
+    static addScore(entry: Omit<LeaderboardEntry, 'id'>, mode: GameMode = 'solo'): { rank: number | null, id: string | null } {
         const leaderboard = this.getLeaderboard(mode)
+        const id = crypto.randomUUID()
+        const newEntry: LeaderboardEntry = { ...entry, id }
 
-        // Check if score qualifies
-        if (leaderboard.length >= this.MAX_ENTRIES) {
-            const lowestScore = leaderboard[leaderboard.length - 1]!.score
-            if (entry.score <= lowestScore) {
-                return null
-            }
-        }
-
-        // Add entry and sort
-        leaderboard.push(entry)
+        leaderboard.push(newEntry)
         leaderboard.sort((a, b) => b.score - a.score)
 
-        // Limit to MAX_ENTRIES
-        const trimmed = leaderboard.slice(0, this.MAX_ENTRIES)
+        if (leaderboard.length > this.MAX_ENTRIES) {
+            leaderboard.pop() // Remove lowest score
+        }
 
-        // Save to localStorage
-        localStorage.setItem(this.getStorageKey(mode), JSON.stringify(trimmed))
+        const rank = leaderboard.findIndex(e => e.id === id) + 1
 
-        // Find and return rank
-        const rank = trimmed.findIndex(e => e === entry) + 1
-        return rank > 0 ? rank : null
+        // If rank is 0 (not found? shouldn't happen unless popped) or > MAX_ENTRIES (popped)
+        if (rank === 0) {
+            return { rank: null, id: null }
+        }
+
+        localStorage.setItem(this.getStorageKey(mode), JSON.stringify(leaderboard))
+        return { rank, id }
+    }
+
+    /**
+     * Update player name for an existing entry by ID
+     */
+    static updateEntryName(id: string, newName: string, mode: GameMode = 'solo'): boolean {
+        const leaderboard = this.getLeaderboard(mode)
+        const entryIndex = leaderboard.findIndex(e => e.id === id)
+
+        if (entryIndex !== -1) {
+            leaderboard[entryIndex].playerName = newName
+            localStorage.setItem(this.getStorageKey(mode), JSON.stringify(leaderboard))
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Check rank for a score (returns 1-11, where 11 means not on leaderboard)
+     */
+    static getPotentialRank(score: number, mode: GameMode = 'solo'): number {
+        if (score <= 0) return this.MAX_ENTRIES + 1
+
+        const leaderboard = this.getLeaderboard(mode)
+
+        // If empty, it's rank 1
+        if (leaderboard.length === 0) return 1
+
+        // Find position where score is greater
+        const index = leaderboard.findIndex(entry => score > entry.score)
+
+        if (index !== -1) {
+            return index + 1
+        }
+
+        // If not found better, check if slots available
+        if (leaderboard.length < this.MAX_ENTRIES) {
+            return leaderboard.length + 1
+        }
+
+        return this.MAX_ENTRIES + 1
     }
 
     /**
      * Check if a score qualifies for the leaderboard
      */
     static isHighScore(score: number, mode: GameMode = 'solo'): boolean {
-        const leaderboard = this.getLeaderboard(mode)
-
-        // If leaderboard not full, any score qualifies
-        if (leaderboard.length < this.MAX_ENTRIES) {
-            return true
-        }
-
-        // Otherwise, must beat the lowest score
-        const lowestScore = leaderboard[leaderboard.length - 1]!.score
-        return score > lowestScore
+        return this.getPotentialRank(score, mode) <= this.MAX_ENTRIES
     }
 
     /**

@@ -54,9 +54,10 @@ describe('LeaderboardService', () => {
                 date: '2024-01-01',
             }
 
-            const rank = LeaderboardService.addScore(entry)
+            const result = LeaderboardService.addScore(entry)
 
-            expect(rank).toBe(1)
+            expect(result.rank).toBe(1)
+            expect(result.id).toBeTruthy()
             expect(LeaderboardService.getLeaderboard()).toHaveLength(1)
         })
 
@@ -71,7 +72,7 @@ describe('LeaderboardService', () => {
             })
 
             // Add lower score
-            const rank = LeaderboardService.addScore({
+            const result = LeaderboardService.addScore({
                 playerName: 'NewPlayer',
                 score: 3000,
                 level: 3,
@@ -79,7 +80,7 @@ describe('LeaderboardService', () => {
                 date: '2024-01-02',
             })
 
-            expect(rank).toBe(2)
+            expect(result.rank).toBe(2)
         })
 
         it('should limit leaderboard to 10 entries', () => {
@@ -95,7 +96,7 @@ describe('LeaderboardService', () => {
             }
 
             // Add 11th entry with lower score than all others
-            const rank = LeaderboardService.addScore({
+            const result = LeaderboardService.addScore({
                 playerName: 'LowScore',
                 score: 100,
                 level: 1,
@@ -103,7 +104,8 @@ describe('LeaderboardService', () => {
                 date: '2024-01-01',
             })
 
-            expect(rank).toBeNull()
+            expect(result.rank).toBeNull()
+            expect(result.id).toBeNull()
             expect(LeaderboardService.getLeaderboard()).toHaveLength(10)
         })
 
@@ -120,7 +122,7 @@ describe('LeaderboardService', () => {
             }
 
             // Add entry with score between existing scores
-            const rank = LeaderboardService.addScore({
+            const result = LeaderboardService.addScore({
                 playerName: 'MiddlePlayer',
                 score: 5500,
                 level: 5,
@@ -128,11 +130,43 @@ describe('LeaderboardService', () => {
                 date: '2024-01-02',
             })
 
-            expect(rank).toBe(6) // 10000, 9000, 8000, 7000, 6000, 5500, ...
+            expect(result.rank).toBe(6) // 10000, 9000, 8000, 7000, 6000, 5500, ...
+            expect(result.id).toBeTruthy()
 
             const leaderboard = LeaderboardService.getLeaderboard()
             expect(leaderboard).toHaveLength(10)
             expect(leaderboard.find(e => e.score === 1000)).toBeUndefined() // Lowest pushed out
+        })
+    })
+
+    describe('getPotentialRank', () => {
+        it('should return 1 for empty leaderboard', () => {
+            expect(LeaderboardService.getPotentialRank(100)).toBe(1)
+        })
+
+        it('should return 1 for new highest score', () => {
+            LeaderboardService.addScore({ playerName: 'P1', score: 1000, level: 1, lines: 1, date: '2024-01-01' })
+            expect(LeaderboardService.getPotentialRank(2000)).toBe(1)
+        })
+
+        it('should return correct rank for middle score', () => {
+            LeaderboardService.addScore({ playerName: 'P1', score: 3000, level: 1, lines: 1, date: '2024-01-01' })
+            LeaderboardService.addScore({ playerName: 'P2', score: 1000, level: 1, lines: 1, date: '2024-01-01' })
+
+            // 3000, 1000 -> 2000 should be rank 2 (insert between 3000 and 1000)
+            // Wait, logic:
+            // 3000 (Rank 1)
+            // 2000 (Rank 2) -> New
+            // 1000 (Rank 3)
+            expect(LeaderboardService.getPotentialRank(2000)).toBe(2)
+        })
+
+        it('should return 11 (Max+1) for score too low when full', () => {
+            for (let i = 0; i < 10; i++) {
+                LeaderboardService.addScore({ playerName: `P${i}`, score: (i + 1) * 1000, level: 1, lines: 1, date: '2024-01-01' })
+            }
+            // Lowest is 1000
+            expect(LeaderboardService.getPotentialRank(500)).toBe(11)
         })
     })
 
@@ -167,6 +201,11 @@ describe('LeaderboardService', () => {
             })
 
             expect(LeaderboardService.isHighScore(100)).toBe(true) // Even low score qualifies
+        })
+
+        it('should return false for zero or negative scores', () => {
+            expect(LeaderboardService.isHighScore(0)).toBe(false)
+            expect(LeaderboardService.isHighScore(-100)).toBe(false)
         })
     })
 
