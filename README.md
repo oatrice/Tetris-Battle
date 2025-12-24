@@ -10,13 +10,45 @@ Please proceed to the `client-nuxt` directory for the latest version.
 
 - **Directory:** [`/client-nuxt`](./client-nuxt)
 - **Tech Stack:** Nuxt.js, TypeScript, HTML5 Canvas
-- **Features:** PWA (Offline Support), Mobile Controls, Modern UI
 - **Setup:**
   ```bash
   cd client-nuxt
   npm install
   npm run dev
   ```
+
+### Features
+
+| Mode | Description |
+|------|-------------|
+| 🎯 **Solo** | Classic Tetris gameplay |
+| ✨ **Special** | Cascade gravity with chain reactions + visual effects |
+| 🎮 **Duo** | Local 2-player mode |
+
+### Special Mode Features
+- **Cascade Gravity** - Blocks fall individually (Puyo-style)
+- **Chain Reactions** - Combos give bonus points
+- **5 Visual Effects** - Explosion, Sparkle, Wave, Shatter, Classic
+- **Hold Piece** - Press `C` to swap (Special mode only)
+
+### Controls
+| Key | Action |
+|-----|--------|
+| ← → | Move |
+| ↑ | Rotate |
+| ↓ | Soft Drop |
+| Space | Hard Drop |
+| C | Hold (Special) |
+| P | Pause |
+| 👻 Button | Toggle Ghost |
+| 🏠 Button | Back to Menu |
+
+### Mobile Controls
+- **Swipe Left/Right** - Move
+- **Swipe Down** - Hard Drop
+- **Swipe Up** - Hold
+- **Tap** - Rotate
+- **Long Press** - Soft Drop
 
 ---
 
