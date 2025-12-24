@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.3.0] - 2025-12-24
+
+### Added
+- **Leaderboard Integration**: Implemented integration with a leaderboard system to display and track player scores.
+
 ## [3.2.1] - 2025-12-24
 
 ### Added
