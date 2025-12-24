@@ -28,8 +28,8 @@ export class Game {
     linesCleared: number
     isGameOver: boolean
     isPaused: boolean
-    private pieceQueue: TetrominoType[]
-    private holdUsedThisTurn: boolean
+    protected pieceQueue: TetrominoType[]
+    protected holdUsedThisTurn: boolean
 
     constructor() {
         this.board = new Board()
@@ -61,7 +61,7 @@ export class Game {
     /**
      * Spawn a new piece at the top of the board
      */
-    private spawnPiece(): Tetromino {
+    protected spawnPiece(): Tetromino {
         if (this.pieceQueue.length === 0) {
             this.pieceQueue = this.generatePieceQueue()
         }
@@ -136,7 +136,7 @@ export class Game {
         return moved
     }
 
-    private lockPiece(): void {
+    protected lockPiece(): void {
         const blocks = this.currentPiece.getBlocks()
         const pieceColorIndex = PIECE_TYPES.indexOf(this.currentPiece.type) + 1
 

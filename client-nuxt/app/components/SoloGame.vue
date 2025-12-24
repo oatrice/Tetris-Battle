@@ -12,11 +12,17 @@
 
       <!-- Board -->
       <div class="board-section">
+        <div class="mode-label" :class="{ special: isSpecialMode }">
+          {{ isSpecialMode ? '✨ SPECIAL' : '🎯 SOLO' }}
+        </div>
         <canvas 
           ref="canvas" 
           :width="canvasWidth" 
           :height="canvasHeight"
           class="game-canvas"
+          @touchstart.prevent="handleTouchStart"
+          @touchmove.prevent="handleTouchMove"
+          @touchend.prevent="handleTouchEnd"
         />
         <div v-if="game.isPaused && !game.isGameOver" class="overlay">⏸️ PAUSED</div>
         <div v-if="game.isGameOver" class="overlay game-over">
@@ -35,6 +41,9 @@
           <p class="score">{{ game.score }}</p>
           <p>Level {{ game.level }}</p>
           <p>Lines {{ game.linesCleared }}</p>
+          <p v-if="isSpecialMode && 'chainCount' in game && (game as any).chainCount > 0" class="chain">
+            🔥 {{ (game as any).chainCount }}-Chain!
+          </p>
         </div>
       </div>
     </div>
@@ -45,11 +54,13 @@
 import { ref, onMounted, watch, defineAsyncComponent } from 'vue'
 import { Game } from '~/game/Game'
 import { COLORS } from '~/game/shapes'
+import { InputHandler, GameAction } from '~/game/InputHandler'
 
 const MiniPiece = defineAsyncComponent(() => import('./MiniPiece.vue'))
 
 const props = defineProps<{
   game: Game
+  isSpecialMode?: boolean
 }>()
 
 defineEmits(['restart'])
@@ -61,6 +72,50 @@ const canvasWidth = BOARD_WIDTH * CELL_SIZE
 const canvasHeight = BOARD_HEIGHT * CELL_SIZE
 
 const canvas = ref<HTMLCanvasElement | null>(null)
+const inputHandler = new InputHandler()
+
+// ============ Touch Handlers ============
+const handleTouchStart = (event: TouchEvent) => {
+  inputHandler.handleTouchStart(event)
+}
+
+const handleTouchMove = (event: TouchEvent) => {
+  const action = inputHandler.handleTouchMove(event)
+  if (action) executeAction(action)
+}
+
+const handleTouchEnd = (event: TouchEvent) => {
+  const action = inputHandler.handleTouchEnd(event)
+  if (action) executeAction(action)
+}
+
+const executeAction = (action: GameAction) => {
+  if (props.game.isGameOver) return
+  
+  switch (action) {
+    case GameAction.MOVE_LEFT:
+      props.game.moveLeft()
+      break
+    case GameAction.MOVE_RIGHT:
+      props.game.moveRight()
+      break
+    case GameAction.ROTATE_CW:
+      props.game.rotate()
+      break
+    case GameAction.SOFT_DROP:
+      props.game.moveDown()
+      break
+    case GameAction.HARD_DROP:
+      props.game.hardDrop()
+      break
+    case GameAction.HOLD:
+      props.game.hold()
+      break
+    case GameAction.PAUSE:
+      props.game.togglePause()
+      break
+  }
+}
 
 const renderGame = () => {
   const ctx = canvas.value?.getContext('2d')
@@ -190,6 +245,28 @@ onMounted(() => {
   position: relative;
 }
 
+.mode-label {
+  text-align: center;
+  padding: 0.4rem 0.8rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.mode-label.special {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 5px rgba(240, 147, 251, 0.5); }
+  to { box-shadow: 0 0 15px rgba(245, 87, 108, 0.8); }
+}
+
 .game-canvas {
   border: 2px solid #333;
   border-radius: 4px;
@@ -214,6 +291,18 @@ onMounted(() => {
 
 .game-over span {
   color: #ff6b6b;
+}
+
+.chain {
+  color: #f5576c;
+  font-weight: bold;
+  font-size: 0.9rem;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.7; transform: scale(1.05); }
 }
 
 button {

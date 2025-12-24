@@ -6,6 +6,7 @@
     <div v-if="!gameMode" class="mode-select">
       <div class="mode-buttons">
         <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
+        <button @click="startSpecial" class="mode-btn special">✨ Special</button>
         <button @click="startDuo" class="mode-btn duo">👥 Duo (Local)</button>
       </div>
     </div>
@@ -14,8 +15,8 @@
     <VersionInfo v-if="!gameMode" :showDetails="true" class="home-version" />
 
     <!-- Solo Mode -->
-    <div v-else-if="gameMode === 'solo'" class="game-area">
-      <SoloGame :game="soloGame!" @restart="restartSolo" />
+    <div v-else-if="gameMode === 'solo' || gameMode === 'special'" class="game-area">
+      <SoloGame :game="soloGame!" @restart="restartGame" :isSpecialMode="gameMode === 'special'" />
     </div>
 
     <!-- Duo Mode -->
@@ -73,6 +74,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { Game } from '~/game/Game'
+import { SpecialGame } from '~/game/SpecialGame'
 import { DuoGame } from '~/game/DuoGame'
 
 // Async components
@@ -80,7 +82,7 @@ const SoloGame = defineAsyncComponent(() => import('~/components/SoloGame.vue'))
 const PlayerBoard = defineAsyncComponent(() => import('~/components/PlayerBoard.vue'))
 const VersionInfo = defineAsyncComponent(() => import('~/components/VersionInfo.vue'))
 
-type GameMode = 'solo' | 'duo' | null
+type GameMode = 'solo' | 'special' | 'duo' | null
 
 const gameContainer = ref<HTMLDivElement | null>(null)
 const gameMode = ref<GameMode>(null)
@@ -98,14 +100,24 @@ const startSolo = () => {
   startGameLoop()
 }
 
+const startSpecial = () => {
+  gameMode.value = 'special'
+  soloGame.value = new SpecialGame()
+  startGameLoop()
+}
+
 const startDuo = () => {
   gameMode.value = 'duo'
   duoGame.value = new DuoGame()
   startGameLoop()
 }
 
-const restartSolo = () => {
-  soloGame.value = new Game()
+const restartGame = () => {
+  if (gameMode.value === 'special') {
+    soloGame.value = new SpecialGame()
+  } else {
+    soloGame.value = new Game()
+  }
 }
 
 const restartDuo = () => {
@@ -123,11 +135,28 @@ const backToMenu = () => {
 }
 
 // ============ Game Loop ============
+let lastFrameTime = 0
+
 const startGameLoop = () => {
+  lastFrameTime = 0
+  
   const gameLoop = (timestamp: number) => {
+    // Calculate deltaTime for animations
+    const deltaTime = lastFrameTime > 0 ? timestamp - lastFrameTime : 0
+    lastFrameTime = timestamp
+    
+    // Update Special mode cascade animation
+    if (gameMode.value === 'special' && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
+      (soloGame.value as SpecialGame).update(deltaTime)
+    }
+    
+    // Auto drop (every DROP_INTERVAL)
     if (timestamp - lastUpdate > DROP_INTERVAL) {
-      if (gameMode.value === 'solo' && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
-        soloGame.value.moveDown()
+      if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
+        // Skip auto-drop if cascading
+        if (gameMode.value !== 'special' || !(soloGame.value as SpecialGame).isCascading) {
+          soloGame.value.moveDown()
+        }
       } else if (gameMode.value === 'duo' && duoGame.value) {
         duoGame.value.tick()
       }
@@ -140,7 +169,7 @@ const startGameLoop = () => {
 
 // ============ Keyboard Controls ============
 const handleKeydown = (e: KeyboardEvent) => {
-  if (gameMode.value === 'solo' && soloGame.value) {
+  if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value) {
     handleSoloControls(e)
   } else if (gameMode.value === 'duo' && duoGame.value) {
     handleDuoControls(e)
@@ -242,6 +271,11 @@ h1 {
 
 .mode-btn.solo {
   background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.mode-btn.special {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
   color: white;
 }
 
