@@ -1,5 +1,12 @@
 # Tetris Battle
 
+![Version](https://img.shields.io/badge/version-3.2.1-blue)
+![Nuxt](https://img.shields.io/badge/Nuxt-4.x-00DC82?logo=nuxt.js)
+![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)
+![License](https://img.shields.io/badge/license-MIT-green)
+![PWA](https://img.shields.io/badge/PWA-ready-5A0FC8?logo=pwa)
+
 **🚧 Status: Migrating to TypeScript/Web Client 🚧**
 
 This project is currently being migrated from a C++/Raylib desktop application to a modern **Nuxt.js Web Application (PWA)** for better accessibility and cross-platform support.
