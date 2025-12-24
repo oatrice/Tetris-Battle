@@ -9,8 +9,15 @@
         <button @click="startSpecial" class="mode-btn special">✨ Special</button>
         <button @click="startDuo" class="mode-btn duo">👥 Duo (Local)</button>
       </div>
+      <button @click="showLeaderboard = true" class="leaderboard-btn">🏆 Leaderboard</button>
     </div>
     
+    <!-- Leaderboard Modal -->
+    <Leaderboard 
+      v-if="showLeaderboard && !gameMode" 
+      @close="showLeaderboard = false" 
+    />
+
     <!-- Version Info at Bottom -->
     <VersionInfo v-if="!gameMode" :showDetails="true" class="home-version" />
 
@@ -81,6 +88,7 @@ import { DuoGame } from '~/game/DuoGame'
 const SoloGame = defineAsyncComponent(() => import('~/components/SoloGame.vue'))
 const PlayerBoard = defineAsyncComponent(() => import('~/components/PlayerBoard.vue'))
 const VersionInfo = defineAsyncComponent(() => import('~/components/VersionInfo.vue'))
+const Leaderboard = defineAsyncComponent(() => import('~/components/Leaderboard.vue'))
 
 type GameMode = 'solo' | 'special' | 'duo' | null
 
@@ -88,6 +96,7 @@ const gameContainer = ref<HTMLDivElement | null>(null)
 const gameMode = ref<GameMode>(null)
 const soloGame = ref<Game | null>(null)
 const duoGame = ref<DuoGame | null>(null)
+const showLeaderboard = ref(false)
 
 let animationId: number | null = null
 let lastUpdate = 0
@@ -287,6 +296,24 @@ h1 {
 .mode-btn:hover {
   transform: scale(1.05);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.leaderboard-btn {
+  margin-top: 1.5rem;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #1a1a2e;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.leaderboard-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
 }
 
 /* Duo Area */

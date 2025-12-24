@@ -29,7 +29,25 @@
         <div v-if="game.isPaused && !game.isGameOver" class="overlay">⏸️ PAUSED</div>
         <div v-if="game.isGameOver" class="overlay game-over">
           <span>💀 GAME OVER</span>
-          <button @click="$emit('restart')">🔄 Restart</button>
+          
+          <!-- High Score Input -->
+          <div v-if="isNewHighScore && !scoreSaved" class="high-score-form">
+            <span class="high-score-label">🎉 NEW HIGH SCORE!</span>
+            <input 
+              v-model="playerName" 
+              type="text" 
+              placeholder="Your name" 
+              maxlength="12"
+              class="name-input"
+              @keyup.enter="saveHighScore"
+            />
+            <button @click="saveHighScore" class="save-btn">Save</button>
+          </div>
+          
+          <div class="game-over-buttons">
+            <button @click="$emit('restart')">🔄 Restart</button>
+            <button @click="showLeaderboard = true" class="leaderboard-btn">🏆 Leaderboard</button>
+          </div>
         </div>
       </div>
 
@@ -70,17 +88,26 @@
         </div>
       </div>
     </div>
+    
+    <!-- Leaderboard Modal -->
+    <Leaderboard 
+      v-if="showLeaderboard" 
+      :highlightRank="savedRank ?? undefined"
+      @close="showLeaderboard = false" 
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, defineAsyncComponent } from 'vue'
+import { ref, onMounted, watch, defineAsyncComponent, computed } from 'vue'
 import { Game } from '~/game/Game'
 import { SpecialGame, EffectType, EFFECT_LABELS, type LineClearEffect, type WaveEffect, type Particle } from '~/game/SpecialGame'
 import { COLORS } from '~/game/shapes'
 import { InputHandler, GameAction } from '~/game/InputHandler'
+import { LeaderboardService } from '~/services/LeaderboardService'
 
 const MiniPiece = defineAsyncComponent(() => import('./MiniPiece.vue'))
+const Leaderboard = defineAsyncComponent(() => import('./Leaderboard.vue'))
 
 const props = defineProps<{
   game: Game
@@ -100,6 +127,40 @@ const inputHandler = new InputHandler()
 const selectedEffect = ref<EffectType>(EffectType.EXPLOSION)
 const showGhost = ref(false)
 const effectLabels = EFFECT_LABELS
+
+// ============ High Score & Leaderboard ============
+const showLeaderboard = ref(false)
+const playerName = ref('')
+const scoreSaved = ref(false)
+const savedRank = ref<number | null>(null)
+
+const isNewHighScore = computed(() => {
+  return props.game.isGameOver && LeaderboardService.isHighScore(props.game.score)
+})
+
+const saveHighScore = () => {
+  if (!playerName.value.trim()) return
+  
+  const rank = LeaderboardService.addScore({
+    playerName: playerName.value.trim(),
+    score: props.game.score,
+    level: props.game.level,
+    lines: props.game.linesCleared,
+    date: new Date().toISOString()
+  })
+  
+  scoreSaved.value = true
+  savedRank.value = rank
+}
+
+// Reset high score state when game restarts
+watch(() => props.game.isGameOver, (isOver) => {
+  if (!isOver) {
+    scoreSaved.value = false
+    savedRank.value = null
+    playerName.value = ''
+  }
+})
 
 const onEffectChange = () => {
   if (props.isSpecialMode && 'setEffectType' in props.game) {
@@ -460,5 +521,66 @@ button {
 
 .ctrl-btn:active {
   background: #3a3a5a;
+}
+
+/* High Score Form */
+.high-score-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  padding: 0.8rem;
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.high-score-label {
+  color: #ffd700;
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  animation: glow 1s ease-in-out infinite alternate;
+}
+
+.name-input {
+  width: 150px;
+  padding: 0.5rem;
+  font-size: 1rem;
+  text-align: center;
+  background: #1a1a3a;
+  color: white;
+  border: 2px solid #9d4edd;
+  border-radius: 8px;
+  outline: none;
+}
+
+.name-input::placeholder {
+  color: #666;
+}
+
+.name-input:focus {
+  border-color: #00d4ff;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.save-btn {
+  padding: 0.4rem 1.5rem;
+  font-size: 0.9rem;
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #1a1a2e;
+  font-weight: bold;
+}
+
+.game-over-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.leaderboard-btn {
+  background: linear-gradient(135deg, #9d4edd, #764ba2);
 }
 </style>
