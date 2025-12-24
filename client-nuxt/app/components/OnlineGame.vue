@@ -1,9 +1,21 @@
 <template>
   <div class="online-area">
+    <!-- Name Input Overlay -->
+    <div v-if="showNameInput" class="name-overlay">
+        <div class="name-box">
+            <h2>Enter Your Name</h2>
+            <input v-model="playerName" @keyup.enter="joinGame" placeholder="Display Name..." maxlength="10" />
+            <div class="btn-group">
+                <button @click="joinGame" class="join-btn" :disabled="!playerName">Join Game</button>
+                <button @click="emit('back')" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Local Player (You) -->
     <div class="player-section">
       <div class="player-header p1">
-        <span class="player-label">YOU</span>
+        <span class="player-label">{{ playerName || 'YOU' }}</span>
         <span class="controls-hint">WASD + Q/E or Arrows</span>
       </div>
       <PlayerBoard 
@@ -22,13 +34,12 @@
     <div class="vs-section">
       <span class="vs-text">ONLINE</span>
       
-      <div v-if="!onlineGame.isOpponentConnected" class="status-box waiting">
+      <div v-if="isWaiting" class="status-box waiting">
           <div class="spinner"></div>
           <span>Waiting for Opponent...</span>
       </div>
-      <div v-else class="status-box connected">
+      <div v-else-if="onlineGame.isOpponentConnected" class="status-box connected">
           <span>🟢 Connected</span>
-          <span class="opponent-id" v-if="onlineGame.opponentId">vs {{ onlineGame.opponentId.slice(-4) }}</span>
       </div>
       
       <div v-if="onlineGame.isGameOver" class="game-over-box">
@@ -36,13 +47,13 @@
           <button @click="emit('back')" class="back-btn">Exit</button>
       </div>
 
-     <button v-if="!onlineGame.isGameOver" @click="emit('back')" class="back-btn small">Quit</button>
+     <button v-if="!onlineGame.isGameOver && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
     </div>
 
     <!-- Remote Player (Opponent) -->
     <div class="player-section opponent-section">
       <div class="player-header p2">
-        <span class="player-label">OPPONENT</span>
+        <span class="player-label">{{ onlineGame.opponentName || 'OPPONENT' }}</span>
          <div class="opponent-score">{{ onlineGame.getOpponentScore() }}</div>
       </div>
       
@@ -59,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { ref, onMounted, onUnmounted, defineAsyncComponent, computed } from 'vue'
 import { OnlineGame } from '~/game/OnlineGame'
 import { COLORS } from '~/game/shapes'
 
@@ -70,6 +81,17 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['back'])
+
+// Name Input State
+const showNameInput = ref(true)
+const playerName = ref('')
+const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected)
+
+const joinGame = () => {
+    if (!playerName.value.trim()) return
+    props.onlineGame.joinGame(playerName.value.trim())
+    showNameInput.value = false
+}
 
 const CELL_SIZE = 24
 const BOARD_WIDTH = 10
@@ -137,14 +159,18 @@ const drawBlock = (ctx: CanvasRenderingContext2D, x: number, y: number, color: s
 
 onMounted(() => {
     frameId = requestAnimationFrame(render)
+    // Check local storage for name
+    if (typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem('tetris-username')
+        if (saved) playerName.value = saved
+    }
 })
 
 onUnmounted(() => {
     if (frameId) cancelAnimationFrame(frameId)
-    // Cleanup socket handled by component destruction? 
-    // Ideally OnlineGame handles it, but we can double check.
-    // props.onlineGame.cleanup() is better called by parent or unmount here?
-    // Let's assume parent manages lifecycle or game logic does.
+    // Save name
+    if (playerName.value) localStorage.setItem('tetris-username', playerName.value)
+    
     props.onlineGame.cleanup()
 })
 </script>
@@ -156,7 +182,76 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 2rem;
   padding: 1rem;
+  position: relative;
 }
+
+.name-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 5rem;
+    z-index: 100;
+    border-radius: 12px;
+}
+
+.name-box {
+    background: #1a1a2e;
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+}
+
+.name-box input {
+    padding: 0.8rem;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: #0f0c29;
+    color: white;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.btn-group {
+    display: flex;
+    gap: 1rem;
+}
+
+.join-btn {
+    background: #00ff88;
+    color: #004400;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.join-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cancel-btn {
+    background: transparent;
+    border: 1px solid #666;
+    color: #aaa;
+    padding: 0.8rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Existing styles... */
 
 .player-section {
   display: flex;

@@ -151,6 +151,7 @@ type Client struct {
 	conn *websocket.Conn
 	send chan []byte
 	id   string
+	name string
 	room *Room
 }
 
@@ -207,6 +208,16 @@ func (c *Client) writePump() {
 func (c *Client) handleMessage(msg Message) {
 	switch msg.Type {
 	case "join_game":
+		// Extract name from payload
+		if payloadMap, ok := msg.Payload.(map[string]interface{}); ok {
+			if name, ok := payloadMap["name"].(string); ok {
+				c.name = name
+			}
+		}
+		if c.name == "" {
+			c.name = "Player " + c.id[len(c.id)-4:]
+		}
+
 		c.hub.mu.Lock()
 		if c.hub.waitingClient != nil {
 			// Match found!
@@ -227,10 +238,10 @@ func (c *Client) handleMessage(msg Message) {
 			c.hub.mu.Unlock()
 
 			// Notify Start
-			c.sendGameStart(opponent.id)
-			opponent.sendGameStart(c.id)
+			c.sendGameStart(opponent.id, opponent.name)
+			opponent.sendGameStart(c.id, c.name)
 
-			log.Printf("Match started: %s vs %s", c.id, opponent.id)
+			log.Printf("Match started: %s (%s) vs %s (%s)", c.id, c.name, opponent.id, opponent.name)
 
 		} else {
 			// Wait
@@ -257,10 +268,13 @@ func (c *Client) sendIdentity() {
 	})
 }
 
-func (c *Client) sendGameStart(opponentID string) {
+func (c *Client) sendGameStart(opponentID string, opponentName string) {
 	c.send <- toJson(Message{
-		Type:    "game_start",
-		Payload: map[string]string{"opponentId": opponentID},
+		Type: "game_start",
+		Payload: map[string]string{
+			"opponentId":   opponentID,
+			"opponentName": opponentName,
+		},
 	})
 }
 
