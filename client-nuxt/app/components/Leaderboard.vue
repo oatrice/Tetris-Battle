@@ -3,9 +3,25 @@
     <div class="leaderboard-modal">
       <h2>🏆 Leaderboard</h2>
       
+      <!-- Mode Tabs -->
+      <div class="mode-tabs">
+        <button 
+          :class="['tab', { active: activeTab === 'solo' }]" 
+          @click="activeTab = 'solo'"
+        >
+          🎯 Solo
+        </button>
+        <button 
+          :class="['tab', { active: activeTab === 'special' }]" 
+          @click="activeTab = 'special'"
+        >
+          ✨ Special
+        </button>
+      </div>
+      
       <div v-if="entries.length === 0" class="empty-state">
         <p>ยังไม่มีสถิติ</p>
-        <p class="hint">เล่น Solo mode เพื่อบันทึกคะแนน!</p>
+        <p class="hint">เล่น {{ activeTab === 'solo' ? 'Solo' : 'Special' }} mode เพื่อบันทึกคะแนน!</p>
       </div>
 
       <table v-else class="leaderboard-table">
@@ -22,7 +38,7 @@
           <tr 
             v-for="(entry, index) in entries" 
             :key="index"
-            :class="{ highlight: highlightRank === index + 1, 'top-three': index < 3 }"
+            :class="{ highlight: highlightRank === index + 1 && highlightMode === activeTab, 'top-three': index < 3 }"
           >
             <td class="rank">
               <span v-if="index === 0">🥇</span>
@@ -46,16 +62,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { LeaderboardService, type LeaderboardEntry } from '~/services/LeaderboardService'
+import { ref, computed } from 'vue'
+import { LeaderboardService, type LeaderboardEntry, type GameMode } from '~/services/LeaderboardService'
 
-defineProps<{
+const props = defineProps<{
   highlightRank?: number
+  highlightMode?: GameMode
+  initialTab?: GameMode
 }>()
 
 defineEmits(['close'])
 
-const entries = computed<LeaderboardEntry[]>(() => LeaderboardService.getLeaderboard())
+const activeTab = ref<GameMode>(props.initialTab ?? 'solo')
+const entries = computed<LeaderboardEntry[]>(() => LeaderboardService.getLeaderboard(activeTab.value))
 </script>
 
 <style scoped>
@@ -100,6 +119,36 @@ h2 {
   text-align: center;
   font-size: 1.5rem;
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #888;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #bbb;
+}
+
+.tab.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: transparent;
+  font-weight: bold;
 }
 
 .empty-state {

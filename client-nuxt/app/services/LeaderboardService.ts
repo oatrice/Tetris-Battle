@@ -2,10 +2,12 @@
  * LeaderboardService - Manages high scores in localStorage
  * 
  * Features:
- * - Store top 10 scores
+ * - Store top 10 scores per game mode (Solo / Special)
  * - Persist to localStorage
  * - Sort by score descending
  */
+
+export type GameMode = 'solo' | 'special'
 
 export interface LeaderboardEntry {
     playerName: string
@@ -16,14 +18,18 @@ export interface LeaderboardEntry {
 }
 
 export class LeaderboardService {
-    private static STORAGE_KEY = 'tetris-solo-leaderboard'
+    private static STORAGE_KEY_PREFIX = 'tetris-leaderboard-'
     private static MAX_ENTRIES = 10
 
+    private static getStorageKey(mode: GameMode): string {
+        return `${this.STORAGE_KEY_PREFIX}${mode}`
+    }
+
     /**
-     * Get all leaderboard entries sorted by score descending
+     * Get all leaderboard entries for a mode, sorted by score descending
      */
-    static getLeaderboard(): LeaderboardEntry[] {
-        const data = localStorage.getItem(this.STORAGE_KEY)
+    static getLeaderboard(mode: GameMode = 'solo'): LeaderboardEntry[] {
+        const data = localStorage.getItem(this.getStorageKey(mode))
         if (!data) return []
 
         try {
@@ -38,8 +44,8 @@ export class LeaderboardService {
      * Add a new score to the leaderboard
      * Returns the rank (1-10) if added, null if score didn't qualify
      */
-    static addScore(entry: LeaderboardEntry): number | null {
-        const leaderboard = this.getLeaderboard()
+    static addScore(entry: LeaderboardEntry, mode: GameMode = 'solo'): number | null {
+        const leaderboard = this.getLeaderboard(mode)
 
         // Check if score qualifies
         if (leaderboard.length >= this.MAX_ENTRIES) {
@@ -57,7 +63,7 @@ export class LeaderboardService {
         const trimmed = leaderboard.slice(0, this.MAX_ENTRIES)
 
         // Save to localStorage
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(trimmed))
+        localStorage.setItem(this.getStorageKey(mode), JSON.stringify(trimmed))
 
         // Find and return rank
         const rank = trimmed.findIndex(e => e === entry) + 1
@@ -67,8 +73,8 @@ export class LeaderboardService {
     /**
      * Check if a score qualifies for the leaderboard
      */
-    static isHighScore(score: number): boolean {
-        const leaderboard = this.getLeaderboard()
+    static isHighScore(score: number, mode: GameMode = 'solo'): boolean {
+        const leaderboard = this.getLeaderboard(mode)
 
         // If leaderboard not full, any score qualifies
         if (leaderboard.length < this.MAX_ENTRIES) {
@@ -81,9 +87,15 @@ export class LeaderboardService {
     }
 
     /**
-     * Clear all leaderboard entries
+     * Clear leaderboard entries for a mode (or all if no mode specified)
      */
-    static clear(): void {
-        localStorage.removeItem(this.STORAGE_KEY)
+    static clear(mode?: GameMode): void {
+        if (mode) {
+            localStorage.removeItem(this.getStorageKey(mode))
+        } else {
+            localStorage.removeItem(this.getStorageKey('solo'))
+            localStorage.removeItem(this.getStorageKey('special'))
+        }
     }
 }
+

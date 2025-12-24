@@ -93,6 +93,8 @@
     <Leaderboard 
       v-if="showLeaderboard" 
       :highlightRank="savedRank ?? undefined"
+      :highlightMode="gameMode"
+      :initialTab="gameMode"
       @close="showLeaderboard = false" 
     />
   </div>
@@ -104,7 +106,7 @@ import { Game } from '~/game/Game'
 import { SpecialGame, EffectType, EFFECT_LABELS, type LineClearEffect, type WaveEffect, type Particle } from '~/game/SpecialGame'
 import { COLORS } from '~/game/shapes'
 import { InputHandler, GameAction } from '~/game/InputHandler'
-import { LeaderboardService } from '~/services/LeaderboardService'
+import { LeaderboardService, type GameMode } from '~/services/LeaderboardService'
 
 const MiniPiece = defineAsyncComponent(() => import('./MiniPiece.vue'))
 const Leaderboard = defineAsyncComponent(() => import('./Leaderboard.vue'))
@@ -134,8 +136,10 @@ const playerName = ref('')
 const scoreSaved = ref(false)
 const savedRank = ref<number | null>(null)
 
+const gameMode = computed<GameMode>(() => props.isSpecialMode ? 'special' : 'solo')
+
 const isNewHighScore = computed(() => {
-  return props.game.isGameOver && LeaderboardService.isHighScore(props.game.score)
+  return props.game.isGameOver && LeaderboardService.isHighScore(props.game.score, gameMode.value)
 })
 
 const saveHighScore = () => {
@@ -147,7 +151,7 @@ const saveHighScore = () => {
     level: props.game.level,
     lines: props.game.linesCleared,
     date: new Date().toISOString()
-  })
+  }, gameMode.value)
   
   scoreSaved.value = true
   savedRank.value = rank

@@ -35,9 +35,9 @@ describe('LeaderboardService', () => {
                 { playerName: 'Alice', score: 1000, level: 2, lines: 10, date: '2024-01-01' },
                 { playerName: 'Bob', score: 2000, level: 4, lines: 20, date: '2024-01-02' },
             ]
-            localStorage.setItem('tetris-solo-leaderboard', JSON.stringify(entries))
+            localStorage.setItem('tetris-leaderboard-solo', JSON.stringify(entries))
 
-            const leaderboard = LeaderboardService.getLeaderboard()
+            const leaderboard = LeaderboardService.getLeaderboard('solo')
 
             expect(leaderboard[0]!.playerName).toBe('Bob')
             expect(leaderboard[1]!.playerName).toBe('Alice')
@@ -183,6 +183,74 @@ describe('LeaderboardService', () => {
             LeaderboardService.clear()
 
             expect(LeaderboardService.getLeaderboard()).toEqual([])
+        })
+    })
+
+    describe('mode separation', () => {
+        it('should store solo and special scores separately', () => {
+            LeaderboardService.addScore({
+                playerName: 'SoloPlayer',
+                score: 1000,
+                level: 1,
+                lines: 10,
+                date: '2024-01-01',
+            }, 'solo')
+
+            LeaderboardService.addScore({
+                playerName: 'SpecialPlayer',
+                score: 2000,
+                level: 2,
+                lines: 20,
+                date: '2024-01-01',
+            }, 'special')
+
+            const soloBoard = LeaderboardService.getLeaderboard('solo')
+            const specialBoard = LeaderboardService.getLeaderboard('special')
+
+            expect(soloBoard).toHaveLength(1)
+            expect(soloBoard[0]!.playerName).toBe('SoloPlayer')
+            expect(specialBoard).toHaveLength(1)
+            expect(specialBoard[0]!.playerName).toBe('SpecialPlayer')
+        })
+
+        it('should check high score per mode', () => {
+            // Fill solo leaderboard
+            for (let i = 0; i < 10; i++) {
+                LeaderboardService.addScore({
+                    playerName: `Player${i}`,
+                    score: (i + 1) * 1000,
+                    level: 1,
+                    lines: 10,
+                    date: '2024-01-01',
+                }, 'solo')
+            }
+
+            // Special leaderboard is empty
+            expect(LeaderboardService.isHighScore(500, 'solo')).toBe(false)
+            expect(LeaderboardService.isHighScore(500, 'special')).toBe(true)
+        })
+
+        it('should clear specific mode only', () => {
+            LeaderboardService.addScore({
+                playerName: 'SoloPlayer',
+                score: 1000,
+                level: 1,
+                lines: 10,
+                date: '2024-01-01',
+            }, 'solo')
+
+            LeaderboardService.addScore({
+                playerName: 'SpecialPlayer',
+                score: 2000,
+                level: 2,
+                lines: 20,
+                date: '2024-01-01',
+            }, 'special')
+
+            LeaderboardService.clear('solo')
+
+            expect(LeaderboardService.getLeaderboard('solo')).toEqual([])
+            expect(LeaderboardService.getLeaderboard('special')).toHaveLength(1)
         })
     })
 })
