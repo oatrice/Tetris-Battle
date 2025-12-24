@@ -8,6 +8,7 @@
         <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
         <button @click="startSpecial" class="mode-btn special">✨ Special</button>
         <button @click="startDuo" class="mode-btn duo">👥 Duo</button>
+        <button @click="startOnline" class="mode-btn online">🌐 Online</button>
         <button @click="showLeaderboard = true" class="mode-btn leaderboard">🏆 Leaderboard</button>
       </div>
     </div>
@@ -36,28 +37,38 @@
         @back="backToMenu" 
       />
     </div>
+
+    <!-- Online Mode -->
+    <div v-else-if="gameMode === 'online'" class="online-area">
+      <OnlineGameComponent 
+        :onlineGame="onlineGame!" 
+        @back="backToMenu" 
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { ref, onMounted, onUnmounted, defineAsyncComponent, reactive } from 'vue'
 import { Game } from '~/game/Game'
 import { SpecialGame } from '~/game/SpecialGame'
 import { DuoGame } from '~/game/DuoGame'
+import { OnlineGame } from '~/game/OnlineGame'
 
 // Async components
 const SoloGame = defineAsyncComponent(() => import('~/components/SoloGame.vue'))
 const DuoGameComponent = defineAsyncComponent(() => import('~/components/DuoGame.vue'))
-const PlayerBoard = defineAsyncComponent(() => import('~/components/PlayerBoard.vue'))
+const OnlineGameComponent = defineAsyncComponent(() => import('~/components/OnlineGame.vue'))
 const VersionInfo = defineAsyncComponent(() => import('~/components/VersionInfo.vue'))
 const Leaderboard = defineAsyncComponent(() => import('~/components/Leaderboard.vue'))
 
-type GameMode = 'solo' | 'special' | 'duo' | null
+type GameMode = 'solo' | 'special' | 'duo' | 'online' | null
 
 const gameContainer = ref<HTMLDivElement | null>(null)
 const gameMode = ref<GameMode>(null)
 const soloGame = ref<Game | null>(null)
 const duoGame = ref<DuoGame | null>(null)
+const onlineGame = ref<OnlineGame | null>(null)
 const showLeaderboard = ref(false)
 
 let animationId: number | null = null
@@ -67,38 +78,53 @@ const DROP_INTERVAL = 1000
 // ============ Mode Selection ============
 const startSolo = () => {
   gameMode.value = 'solo'
-  soloGame.value = new Game()
+  soloGame.value = reactive(new Game()) as Game
   startGameLoop()
 }
 
 const startSpecial = () => {
   gameMode.value = 'special'
-  soloGame.value = new SpecialGame()
+  soloGame.value = reactive(new SpecialGame()) as SpecialGame
   startGameLoop()
 }
 
 const startDuo = () => {
   gameMode.value = 'duo'
-  duoGame.value = new DuoGame()
+  duoGame.value = reactive(new DuoGame()) as DuoGame
+  startGameLoop()
+}
+
+const startOnline = () => {
+  gameMode.value = 'online'
+  const game = reactive(new OnlineGame()) as OnlineGame
+  game.init() // Call init on the reactive proxy
+  onlineGame.value = game
   startGameLoop()
 }
 
 const restartGame = () => {
   if (gameMode.value === 'special') {
-    soloGame.value = new SpecialGame()
+    soloGame.value = reactive(new SpecialGame()) as SpecialGame
   } else {
-    soloGame.value = new Game()
+    soloGame.value = reactive(new Game()) as Game
   }
 }
 
 const restartDuo = () => {
-  duoGame.value = new DuoGame()
+  duoGame.value = reactive(new DuoGame()) as DuoGame
 }
 
 const backToMenu = () => {
+  // Cleanup
+  if (onlineGame.value) {
+      onlineGame.value.cleanup()
+  }
+  
   gameMode.value = null
   soloGame.value = null
   duoGame.value = null
+  onlineGame.value = null
+  
   if (animationId) {
     cancelAnimationFrame(animationId)
     animationId = null
@@ -121,15 +147,18 @@ const startGameLoop = () => {
       (soloGame.value as SpecialGame).update(deltaTime)
     }
     
-    // Auto drop (every DROP_INTERVAL)
+    // Auto drop
     if (timestamp - lastUpdate > DROP_INTERVAL) {
       if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
-        // Skip auto-drop if cascading
         if (gameMode.value !== 'special' || !(soloGame.value as SpecialGame).isCascading) {
           soloGame.value.moveDown()
         }
       } else if (gameMode.value === 'duo' && duoGame.value) {
         duoGame.value.tick()
+      } else if (gameMode.value === 'online' && onlineGame.value && !onlineGame.value.isGameOver && onlineGame.value.isOpponentConnected) {
+         if (onlineGame.value.countdown === null && !onlineGame.value.isPaused) {
+             onlineGame.value.moveDown()
+         }
       }
       lastUpdate = timestamp
     }
@@ -144,6 +173,8 @@ const handleKeydown = (e: KeyboardEvent) => {
     handleSoloControls(e)
   } else if (gameMode.value === 'duo' && duoGame.value) {
     handleDuoControls(e)
+  } else if (gameMode.value === 'online' && onlineGame.value) {
+    handleOnlineControls(e)
   }
 }
 
@@ -161,6 +192,41 @@ const handleSoloControls = (e: KeyboardEvent) => {
   }
 }
 
+const handleOnlineControls = (e: KeyboardEvent) => {
+  if (!onlineGame.value || onlineGame.value.isGameOver || !onlineGame.value.isOpponentConnected) return
+  // NOTE: We do NOT return if countdown !== null because pause should work? 
+  // Wait, original design said no controls during countdown. 
+  // Let's keep it safe: if countdown, no controls interact (pause isn't useful in countdown).
+  if (onlineGame.value.countdown !== null) return
+  
+  switch (e.key) {
+    case 'ArrowLeft': 
+    case 'a': onlineGame.value.moveLeft(); break
+    
+    case 'ArrowRight': 
+    case 'd': onlineGame.value.moveRight(); break
+    
+    case 'ArrowDown': 
+    case 's': onlineGame.value.moveDown(); break
+    
+    case 'ArrowUp': 
+    case 'w': onlineGame.value.rotate(); break
+    
+    case ' ': 
+    case 'Enter': e.preventDefault(); onlineGame.value.hardDrop(); break
+    
+    case 'c': 
+    case 'C': 
+    case 'q':
+    case 'Q': onlineGame.value.hold(); break
+
+    // Pause
+    case 'p':
+    case 'P':
+    case 'Escape': onlineGame.value.togglePause(); break
+  }
+}
+
 const handleDuoControls = (e: KeyboardEvent) => {
   if (!duoGame.value || duoGame.value.winner) return
   
@@ -172,7 +238,7 @@ const handleDuoControls = (e: KeyboardEvent) => {
   
   if (duoGame.value.isPaused) return
   
-  // Player 1: WASD + Q/E
+  // Player 1
   switch (e.key.toLowerCase()) {
     case 'a': duoGame.value.p1MoveLeft(); break
     case 'd': duoGame.value.p1MoveRight(); break
@@ -182,7 +248,7 @@ const handleDuoControls = (e: KeyboardEvent) => {
     case 'e': duoGame.value.p1HardDrop(); break
   }
   
-  // Player 2: Arrow keys + ,/.
+  // Player 2
   switch (e.key) {
     case 'ArrowLeft': duoGame.value.p2MoveLeft(); break
     case 'ArrowRight': duoGame.value.p2MoveRight(); break
@@ -226,18 +292,25 @@ h1 {
 /* Mode Selection */
 .mode-select {
   display: flex;
-  gap: 2rem;
   justify-content: center;
   margin-top: 4rem;
 }
 
+.mode-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  max-width: 500px;
+}
+
 .mode-btn {
-  padding: 1.25rem 2.5rem;
+  padding: 1.5rem 2.5rem;
   font-size: 1.25rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 16px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  font-weight: bold;
 }
 
 .mode-btn.solo {
@@ -251,7 +324,12 @@ h1 {
 }
 
 .mode-btn.duo {
-  background: linear-gradient(135deg, #f093fb, #f5576c);
+  background: linear-gradient(135deg, #43e97b, #38f9d7);
+  color: #1a1a2e;
+}
+
+.mode-btn.online {
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
   color: white;
 }
 
@@ -263,10 +341,11 @@ h1 {
 .mode-btn.leaderboard {
   background: linear-gradient(135deg, #ffd700, #ffaa00);
   color: #1a1a2e;
+  grid-column: span 2;
 }
 
-/* Duo Area */
-.duo-area {
+/* Duos */
+.duo-area, .online-area {
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -274,144 +353,9 @@ h1 {
   flex-wrap: wrap;
 }
 
-.player-section {
-  background: rgba(22, 33, 62, 0.8);
-  padding: 1rem;
-  border-radius: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.player-header {
+/* Global Styles */
+.game-area {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-}
-
-.player-header.p1 {
-  background: linear-gradient(90deg, rgba(0, 212, 255, 0.3), transparent);
-}
-
-.player-header.p2 {
-  background: linear-gradient(90deg, transparent, rgba(255, 107, 107, 0.3));
-}
-
-.player-label {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: white;
-}
-
-.controls-hint {
-  font-size: 0.75rem;
-  color: #888;
-}
-
-.player-stats {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 0.5rem;
-  color: #aaa;
-  font-size: 0.9rem;
-}
-
-.player-stats .score {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #00d4ff;
-}
-
-/* VS Section */
-.vs-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  min-width: 80px;
-  gap: 1rem;
-}
-
-.vs-text {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #9d4edd;
-  text-shadow: 0 0 20px rgba(157, 78, 221, 0.5);
-}
-
-.winner-overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 12px;
-}
-
-.winner-text {
-  font-size: 1.2rem;
-  color: #ffd700;
-  font-weight: bold;
-}
-
-.pause-text {
-  font-size: 2rem;
-}
-
-.back-btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  background: rgba(255, 255, 255, 0.1);
-  color: #aaa;
-  border: 1px solid #555;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-button {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: transform 0.2s;
-}
-
-button:hover {
-  transform: scale(1.02);
-}
-
-/* Version Info */
-.home-version {
-  position: fixed;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-}
-
-.mode-select {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 150px);
-}
-
-.mode-buttons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  max-width: 400px;
 }
 </style>

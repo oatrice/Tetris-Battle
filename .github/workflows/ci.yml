@@ -7,8 +7,24 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
+  # Go Server Tests
+  test-server:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+    
+    - name: Run Go Server Tests
+      run: go test -v ./...
+
+  # Nuxt Client Build & Test
   build-nuxt:
     runs-on: ubuntu-latest
+    needs: test-server  # run after server tests pass
     defaults:
       run:
         working-directory: ./client-nuxt

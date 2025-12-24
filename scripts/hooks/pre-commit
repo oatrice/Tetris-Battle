@@ -1,6 +1,24 @@
 #!/bin/sh
 # Pre-commit Hook for Tetris Battle
 
+# ============ Go Server Tests ============
+echo "🔍 Checking Go Server..."
+
+# Check if go.mod exists (indicates Go project)
+if [ -f "go.mod" ]; then
+    echo "🧪 Running Go Server Tests..."
+    go test -v ./...
+    GO_RESULT=$?
+    if [ $GO_RESULT -ne 0 ]; then
+        echo "❌ Go Server Tests Failed!"
+        exit 1
+    fi
+    echo "✅ Go Server Tests Passed!"
+else
+    echo "⚠️ Warning: go.mod not found. Skipping Go tests."
+fi
+
+# ============ TypeScript Client ============
 # TypeScript Client Directory
 TS_DIR="client-nuxt"
 

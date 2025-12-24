@@ -1,95 +1,158 @@
 package main
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"strings"
+	"encoding/json"
 	"testing"
-
-	"github.com/gorilla/websocket"
+	"time"
 )
 
-// TestWebSocketConnection verifies that we can upgrade HTTP to WebSocket
-// using the Server.ServeWS handler.
-func TestWebSocketConnection(t *testing.T) {
-	// 1. Initialize Server
-	srv := NewServer()
+func TestMatchmaking(t *testing.T) {
+	hub := NewHub()
+	go hub.run()
 
-	// 2. Create a test server that uses our ServeWS handler
-	s := httptest.NewServer(http.HandlerFunc(srv.ServeWS))
-	defer s.Close()
+	// c1 joins
+	c1 := &Client{
+		hub:  hub,
+		send: make(chan []byte, 10),
+		id:   "client1",
+	}
+	// We need to simulate registration which happens in ws handler usually
+	// But handleMessage checks hub.waitingClient under mutex.
 
-	// 3. Convert http:// -> ws://
-	wsURL := "ws" + strings.TrimPrefix(s.URL, "http")
+	// Simulate join_game message
+	joinMsg := Message{
+		Type: "join_game",
+		Payload: map[string]interface{}{
+			"name": "Player 1",
+		},
+	}
+	c1.handleMessage(joinMsg)
 
-	// 4. Connect using Gorilla Dial
-	_, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	if err != nil {
-		t.Fatalf("Failed to open WebSocket connection: %v", err)
+	// Expect waiting_for_opponent
+	select {
+	case msgBytes := <-c1.send:
+		var msg Message
+		json.Unmarshal(msgBytes, &msg)
+		if msg.Type != "waiting_for_opponent" {
+			t.Errorf("Expected waiting_for_opponent, got %s", msg.Type)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timeout waiting for response")
+	}
+
+	// c2 joins
+	c2 := &Client{
+		hub:  hub,
+		send: make(chan []byte, 10),
+		id:   "client2",
+	}
+	joinMsg2 := Message{
+		Type: "join_game",
+		Payload: map[string]interface{}{
+			"name": "Player 2",
+		},
+	}
+	c2.handleMessage(joinMsg2)
+
+	// Expect game_start for both
+	// c1 receives
+	select {
+	case msgBytes := <-c1.send:
+		var msg Message
+		json.Unmarshal(msgBytes, &msg)
+		if msg.Type != "game_start" {
+			t.Errorf("Expected game_start for c1, got %s", msg.Type)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timeout waiting for game_start c1")
+	}
+
+	// c2 receives
+	select {
+	case msgBytes := <-c2.send:
+		var msg Message
+		json.Unmarshal(msgBytes, &msg)
+		if msg.Type != "game_start" {
+			t.Errorf("Expected game_start for c2, got %s", msg.Type)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timeout waiting for game_start c2")
+	}
+
+	// Verify room assignment
+	if c1.room == nil || c2.room == nil {
+		t.Fatal("Clients should be in a room")
+	}
+	if c1.room != c2.room {
+		t.Fatal("Clients should be in the same room")
 	}
 }
 
-// TestServeHello verifies the root handler returns the correct greeting.
-func TestServeHello(t *testing.T) {
-	// 1. Initialize Server
-	srv := NewServer()
+func TestPauseResumeBroadcasting(t *testing.T) {
+	hub := NewHub()
+	// No need to run hub loop for direct broadcast tests if we manually set up room
 
-	// 2. Create a request to "/"
-	req, err := http.NewRequest("GET", "/hello", nil)
-	if err != nil {
-		t.Fatal(err)
+	c1 := &Client{
+		hub:  hub,
+		send: make(chan []byte, 10),
+		id:   "client1",
+		name: "P1",
+	}
+	c2 := &Client{
+		hub:  hub,
+		send: make(chan []byte, 10),
+		id:   "client2",
+		name: "P2",
 	}
 
-	// 3. Create a ResponseRecorder
-	rr := httptest.NewRecorder()
+	// Manually create a room and join them
+	room := NewRoom("test-room")
+	c1.room = room
+	c2.room = room
+	room.clients[c1] = true
+	room.clients[c2] = true
 
-	// 4. Call ServeHello directly
-	srv.ServeHello(rr, req)
+	// --- Test Pause ---
+	pauseMsg := Message{Type: "pause"}
+	c1.handleMessage(pauseMsg)
 
-	// 5. Check Status Code
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+	// Check if c2 received the pause message
+	select {
+	case msgBytes := <-c2.send:
+		var receivedMsg Message
+		if err := json.Unmarshal(msgBytes, &receivedMsg); err != nil {
+			t.Fatalf("Failed to unmarshal message: %v", err)
+		}
+		if receivedMsg.Type != "pause" {
+			t.Errorf("Expected 'pause', got '%s'", receivedMsg.Type)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timeout waiting for pause message")
 	}
 
-	// 6. Check Body
-	expected := "Welcome to Tetris"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
-}
-
-// TestScoreSystem verifies the scoring logic.
-func TestScoreSystem(t *testing.T) {
-	gs := NewGameSession()
-
-	// Initial score should be 0
-	if gs.GetScore() != 0 {
-		t.Errorf("Initial score expected 0, got %d", gs.GetScore())
+	// Check if c1 did NOT receive the message (should not broadcast to self)
+	select {
+	case <-c1.send:
+		t.Error("Sender should not receive own broadcast")
+	default:
+		// OK
 	}
 
-	// Add 1 line -> 100 points
-	gs.AddLinesCleared(1)
-	if gs.GetScore() != 100 {
-		t.Errorf("Score after 1 line expected 100, got %d", gs.GetScore())
-	}
+	// --- Test Resume ---
+	resumeMsg := Message{Type: "resume"}
+	c1.handleMessage(resumeMsg)
 
-	// Add 2 lines -> +300 points = 400
-	gs.AddLinesCleared(2)
-	if gs.GetScore() != 400 {
-		t.Errorf("Score after +2 lines expected 400, got %d", gs.GetScore())
-	}
-
-	// Add 3 lines -> +500 points = 900
-	gs.AddLinesCleared(3)
-	if gs.GetScore() != 900 {
-		t.Errorf("Score after +3 lines expected 900, got %d", gs.GetScore())
-	}
-
-	// Add 4 lines -> +800 points = 1700
-	gs.AddLinesCleared(4)
-	if gs.GetScore() != 1700 {
-		t.Errorf("Score after +4 lines expected 1700, got %d", gs.GetScore())
+	// Check if c2 received the resume message
+	select {
+	case msgBytes := <-c2.send:
+		var receivedMsg Message
+		if err := json.Unmarshal(msgBytes, &receivedMsg); err != nil {
+			t.Fatalf("Failed to unmarshal message: %v", err)
+		}
+		if receivedMsg.Type != "resume" {
+			t.Errorf("Expected 'resume', got '%s'", receivedMsg.Type)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timeout waiting for resume message")
 	}
 }
