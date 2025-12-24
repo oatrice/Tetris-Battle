@@ -125,10 +125,10 @@ function isLineComplete(board: Board, y: number): boolean {
 /**
  * Find and clear complete lines WITHOUT shifting rows down
  * This leaves "floating" blocks that gravity will handle
- * @returns number of lines cleared
+ * @returns object with count and indices of cleared lines
  */
-export function clearLinesOnly(board: Board): number {
-    let linesCleared = 0
+export function clearLinesOnly(board: Board): { count: number; indices: number[] } {
+    const indices: number[] = []
 
     for (let y = board.height - 1; y >= 0; y--) {
         if (isLineComplete(board, y)) {
@@ -136,11 +136,11 @@ export function clearLinesOnly(board: Board): number {
             for (let x = 0; x < board.width; x++) {
                 board.setCell(x, y, 0)
             }
-            linesCleared++
+            indices.push(y)
         }
     }
 
-    return linesCleared
+    return { count: indices.length, indices }
 }
 
 /**
@@ -155,16 +155,16 @@ export function cascadeClear(board: Board, level: number = 1): CascadeResult {
     let totalScore = 0
 
     // First line clear (no shifting - just remove the line)
-    let lines = clearLinesOnly(board)
-    console.log('[cascadeClear] Initial lines cleared:', lines)
+    let result = clearLinesOnly(board)
+    console.log('[cascadeClear] Initial lines cleared:', result.count)
 
-    while (lines > 0) {
+    while (result.count > 0) {
         chainCount++
-        totalLinesCleared += lines
+        totalLinesCleared += result.count
 
         // Calculate score with chain bonus
         const chainMultiplier = chainCount
-        totalScore += calculateScore(lines, level) * chainMultiplier
+        totalScore += calculateScore(result.count, level) * chainMultiplier
 
         // Apply gravity until stable (blocks fall one by one)
         let gravitySteps = 0
@@ -174,7 +174,7 @@ export function cascadeClear(board: Board, level: number = 1): CascadeResult {
         console.log('[cascadeClear] Chain', chainCount, '- gravity steps:', gravitySteps)
 
         // Check for new lines (chain reaction)
-        lines = clearLinesOnly(board)
+        result = clearLinesOnly(board)
     }
 
     console.log('[cascadeClear] Final result - lines:', totalLinesCleared, 'chains:', chainCount)

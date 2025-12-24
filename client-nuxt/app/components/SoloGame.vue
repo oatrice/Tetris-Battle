@@ -45,6 +45,15 @@
             🔥 {{ (game as any).chainCount }}-Chain!
           </p>
         </div>
+        <!-- Effect Selector (Special mode only) -->
+        <div v-if="isSpecialMode" class="effect-selector">
+          <label>Effect:</label>
+          <select v-model="selectedEffect" @change="onEffectChange">
+            <option v-for="(label, type) in effectLabels" :key="type" :value="type">
+              {{ label }}
+            </option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
@@ -53,6 +62,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, defineAsyncComponent } from 'vue'
 import { Game } from '~/game/Game'
+import { SpecialGame, EffectType, EFFECT_LABELS, type LineClearEffect, type WaveEffect, type Particle } from '~/game/SpecialGame'
 import { COLORS } from '~/game/shapes'
 import { InputHandler, GameAction } from '~/game/InputHandler'
 
@@ -73,6 +83,14 @@ const canvasHeight = BOARD_HEIGHT * CELL_SIZE
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const inputHandler = new InputHandler()
+const selectedEffect = ref<EffectType>(EffectType.EXPLOSION)
+const effectLabels = EFFECT_LABELS
+
+const onEffectChange = () => {
+  if (props.isSpecialMode && 'setEffectType' in props.game) {
+    (props.game as SpecialGame).setEffectType(selectedEffect.value)
+  }
+}
 
 // ============ Touch Handlers ============
 const handleTouchStart = (event: TouchEvent) => {
@@ -159,6 +177,55 @@ const renderGame = () => {
 
   // Current piece
   props.game.currentPiece.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
+
+  // Line clear effects (Special mode only)
+  if (props.isSpecialMode && 'effects' in props.game) {
+    const specialGame = props.game as SpecialGame
+    
+    // Flash effect
+    specialGame.effects.forEach(effect => {
+      if (effect.type === 'LINE_CLEAR') {
+        const alpha = effect.timeLeft / 300
+        ctx.fillStyle = effect.color
+        ctx.globalAlpha = alpha * 0.6
+        ctx.fillRect(0, effect.y * CELL_SIZE, canvasWidth, CELL_SIZE)
+        ctx.globalAlpha = 1.0
+      } else if (effect.type === 'WAVE') {
+        // Wave ripple effect
+        ctx.beginPath()
+        ctx.arc(effect.centerX, effect.centerY, effect.radius, 0, Math.PI * 2)
+        ctx.strokeStyle = effect.color
+        ctx.lineWidth = 4
+        ctx.globalAlpha = effect.life * 0.8
+        ctx.stroke()
+        ctx.globalAlpha = 1.0
+      }
+    })
+
+    // Particles
+    if ('particles' in specialGame) {
+      specialGame.particles.forEach(p => {
+        ctx.globalAlpha = p.life
+        ctx.fillStyle = p.color
+        
+        if (p.isSquare && p.rotation !== undefined) {
+          // Shatter effect - rotating squares
+          ctx.save()
+          ctx.translate(p.x, p.y)
+          ctx.rotate(p.rotation)
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size)
+          ctx.restore()
+        } else {
+          // Circle particles
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+          ctx.fill()
+        }
+        
+        ctx.globalAlpha = 1.0
+      })
+    }
+  }
 }
 
 const drawBlock = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string) => {
@@ -313,5 +380,34 @@ button {
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.9rem;
+}
+
+.effect-selector {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #333;
+}
+
+.effect-selector label {
+  display: block;
+  font-size: 0.7rem;
+  color: #888;
+  margin-bottom: 0.3rem;
+}
+
+.effect-selector select {
+  width: 100%;
+  padding: 0.4rem;
+  font-size: 0.8rem;
+  background: #1a1a3a;
+  color: white;
+  border: 1px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.effect-selector select:focus {
+  outline: none;
+  border-color: #9d4edd;
 }
 </style>

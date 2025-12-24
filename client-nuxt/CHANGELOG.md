@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0] - 2025-12-24
+
+### Added
+- **Visual Effect System**: Introduced a new visual effect system for enhanced graphical feedback and immersion.
+- **Customizable Effects**: Added the ability to customize various parameters of the visual effects.
+- **Performance Optimizations**: Implemented optimizations for the visual effect system to ensure smooth performance.
+
 ## [3.1.0] - 2025-12-24
 
 ### Added

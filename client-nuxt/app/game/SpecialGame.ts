@@ -5,29 +5,60 @@
  * - After line clears, floating blocks drop individually with animation
  * - Chain reactions: if dropping creates new lines, they clear too
  * - Chain bonus: longer chains = more points
+ * - Multiple visual effect types for line clears
  */
 import { Game } from './Game'
-import { Tetromino } from './Tetromino'
 import { applyGravity, clearLinesOnly } from './CascadeGravity'
 import { calculateScore } from './LineClearing'
+import { EffectSystem, EffectType, EFFECT_LABELS, type Particle, type GameEffect, type LineClearEffect, type WaveEffect } from './EffectSystem'
 
 const PIECE_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
+
+// Re-export for consumers
+export { EffectType, EFFECT_LABELS, type Particle, type GameEffect, type LineClearEffect, type WaveEffect }
 
 export class SpecialGame extends Game {
     chainCount: number = 0
     isCascading: boolean = false
+
+    // Effect system handles all visual effects
+    readonly effectSystem = new EffectSystem()
+
     private cascadeTimer: number = 0
-    private readonly CASCADE_DELAY: number = 500 // ms per gravity step
+    private readonly CASCADE_DELAY: number = 150
 
     constructor() {
         super()
         this.chainCount = 0
     }
 
+    // Delegate effect properties to effectSystem
+    get particles(): Particle[] {
+        return this.effectSystem.particles
+    }
+
+    get effects(): GameEffect[] {
+        return this.effectSystem.effects
+    }
+
+    get effectType(): EffectType {
+        return this.effectSystem.effectType
+    }
+
+    /**
+     * Set the visual effect type
+     */
+    setEffectType(type: EffectType): void {
+        this.effectSystem.setEffectType(type)
+    }
+
     /**
      * Update cascade gravity animation (call from game loop with deltaTime)
      */
     update(deltaTime: number): void {
+        // Update effects
+        this.effectSystem.update(deltaTime)
+
         if (!this.isCascading) return
 
         this.cascadeTimer += deltaTime
@@ -36,17 +67,18 @@ export class SpecialGame extends Game {
             this.cascadeTimer = 0
 
             if (!moved) {
-                // Gravity settled - check for chain reaction
-                const lines = clearLinesOnly(this.board)
-                if (lines > 0) {
+                const result = clearLinesOnly(this.board)
+                if (result.count > 0) {
                     this.chainCount++
-                    this.linesCleared += lines
-                    this.score += calculateScore(lines, this.level) * this.chainCount
+                    this.linesCleared += result.count
+                    this.score += calculateScore(result.count, this.level) * this.chainCount
                     this.level = Math.floor(this.linesCleared / 10) + 1
-                    console.log('[SpecialGame] Chain', this.chainCount, '- lines:', lines)
-                    // Continue cascading
+
+                    // Create visual effects
+                    this.effectSystem.createEffects(result.indices, result.count)
+
+                    console.log('[SpecialGame] Chain', this.chainCount, '- lines:', result.count)
                 } else {
-                    // Done cascading
                     this.isCascading = false
                     this.spawnNextPiece()
                     console.log('[SpecialGame] Cascade complete')
@@ -55,9 +87,6 @@ export class SpecialGame extends Game {
         }
     }
 
-    /**
-     * Spawn next piece after cascade completes
-     */
     private spawnNextPiece(): void {
         this.currentPiece = this.nextPiece
         this.nextPiece = this.spawnPiece()
@@ -68,9 +97,6 @@ export class SpecialGame extends Game {
         }
     }
 
-    /**
-     * Override lockPiece to start animated cascade instead of instant
-     */
     protected override lockPiece(): void {
         const blocks = this.currentPiece.getBlocks()
         const pieceColorIndex = PIECE_TYPES.indexOf(this.currentPiece.type) + 1
@@ -79,17 +105,18 @@ export class SpecialGame extends Game {
             this.board.setCell(block.x, block.y, pieceColorIndex)
         })
 
-        // Clear lines (without gravity - that's handled by update())
-        const lines = clearLinesOnly(this.board)
-        console.log('[SpecialGame] lockPiece - initial lines:', lines)
+        const result = clearLinesOnly(this.board)
+        console.log('[SpecialGame] lockPiece - initial lines:', result.count)
 
-        if (lines > 0) {
+        if (result.count > 0) {
             this.chainCount = 1
-            this.linesCleared += lines
-            this.score += calculateScore(lines, this.level)
+            this.linesCleared += result.count
+            this.score += calculateScore(result.count, this.level)
             this.level = Math.floor(this.linesCleared / 10) + 1
 
-            // Start cascade animation
+            // Create visual effects
+            this.effectSystem.createEffects(result.indices, result.count)
+
             this.isCascading = true
             this.cascadeTimer = 0
         } else {
