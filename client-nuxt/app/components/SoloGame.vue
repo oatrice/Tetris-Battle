@@ -38,6 +38,9 @@
           <p class="score">{{ game.score }}</p>
           <p>Level {{ game.level }}</p>
           <p>Lines {{ game.linesCleared }}</p>
+          <p v-if="isSpecialMode && 'chainCount' in game && (game as any).chainCount > 0" class="chain">
+            🔥 {{ (game as any).chainCount }}-Chain!
+          </p>
         </div>
       </div>
     </div>
@@ -54,6 +57,7 @@ const MiniPiece = defineAsyncComponent(() => import('./MiniPiece.vue'))
 
 const props = defineProps<{
   game: Game
+  isSpecialMode?: boolean
 }>()
 
 defineEmits(['restart'])
@@ -262,6 +266,18 @@ onMounted(() => {
 
 .game-over span {
   color: #ff6b6b;
+}
+
+.chain {
+  color: #f5576c;
+  font-weight: bold;
+  font-size: 0.9rem;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.7; transform: scale(1.05); }
 }
 
 button {
