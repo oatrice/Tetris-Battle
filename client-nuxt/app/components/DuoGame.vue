@@ -40,24 +40,16 @@
       <div v-if="duoGame.winner" class="winner-overlay">
         <span class="winner-text">🏆 P{{ duoGame.winner }} WINS!</span>
 
-        <!-- High Score Forms -->
-        <div class="high-score-section">
-            <div v-if="p1IsHighScore" class="hs-form p1-form">
-                <span class="hs-title">P1 Record!</span>
-                <div v-if="p1Saved" class="saved-msg">✅ {{ p1Name }}</div>
-                <div v-else class="input-group">
-                    <input v-model="p1Name" placeholder="P1 Name" class="hs-input" @keyup.enter="saveP1" />
-                    <button @click="saveP1">💾</button>
+        <!-- Match Result Save Form -->
+        <div class="match-save-section">
+            <div v-if="matchSaved" class="saved-msg">✅ Match Saved</div>
+            <div v-else class="save-form">
+                <div class="player-inputs">
+                    <input v-model="p1Name" placeholder="P1 Name" class="hs-input p1-in" />
+                    <span class="vs-label">vs</span>
+                    <input v-model="p2Name" placeholder="P2 Name" class="hs-input p2-in" />
                 </div>
-            </div>
-
-            <div v-if="p2IsHighScore" class="hs-form p2-form">
-                <span class="hs-title">P2 Record!</span>
-                <div v-if="p2Saved" class="saved-msg">✅ {{ p2Name }}</div>
-                <div v-else class="input-group">
-                    <input v-model="p2Name" placeholder="P2 Name" class="hs-input" @keyup.enter="saveP2" />
-                    <button @click="saveP2">💾</button>
-                </div>
+                <button @click="saveMatch" class="save-match-btn">💾 Save Result</button>
             </div>
         </div>
 
@@ -85,7 +77,7 @@
       <div class="player-stats">
         <span class="score">{{ duoGame.player2.score }}</span>
         <span>L{{ duoGame.player2.level }} • {{ duoGame.player2.linesCleared }}</span>
-        <div v-if="p2IsHighScore" class="record-badge">🏆 NEW RECORD!</div>
+        <div v-if="p2IsHighScore" class="record-badge">NEW HIGH SCORE!</div>
       </div>
     </div>
   </div>
@@ -107,13 +99,12 @@ const emit = defineEmits(['restart', 'back'])
 // Stats
 const stats = ref({ p1Wins: 0, p2Wins: 0 })
 
-// High Score State
-const p1IsHighScore = ref(false)
-const p2IsHighScore = ref(false)
+// Match Save State
 const p1Name = ref('')
 const p2Name = ref('')
-const p1Saved = ref(false)
-const p2Saved = ref(false)
+const matchSaved = ref(false)
+const p1IsHighScore = ref(false) // Just visual feedback
+const p2IsHighScore = ref(false) // Just visual feedback
 
 const P1_NAME_KEY = 'tetris-p1-name'
 const P2_NAME_KEY = 'tetris-p2-name'
@@ -121,8 +112,8 @@ const P2_NAME_KEY = 'tetris-p2-name'
 onMounted(() => {
     stats.value = DuoStatsService.getStats()
     if (typeof localStorage !== 'undefined') {
-        p1Name.value = localStorage.getItem(P1_NAME_KEY) || ''
-        p2Name.value = localStorage.getItem(P2_NAME_KEY) || ''
+        p1Name.value = localStorage.getItem(P1_NAME_KEY) || 'Player 1'
+        p2Name.value = localStorage.getItem(P2_NAME_KEY) || 'Player 2'
     }
 })
 
@@ -131,62 +122,33 @@ watch(() => props.duoGame.winner, (winner) => {
     if (winner) {
         // Increment Win Count
         stats.value = DuoStatsService.incrementWin(winner as 1 | 2)
-
-        // Check High Scores
-        checkHighScores()
+        matchSaved.value = false
+        
+        // Visual feedback
+        p1IsHighScore.value = LeaderboardService.isHighScore(props.duoGame.player1.score, 'solo') 
+        p2IsHighScore.value = LeaderboardService.isHighScore(props.duoGame.player2.score, 'solo')
     } else {
-        // Reset states on restart
+        matchSaved.value = false
         p1IsHighScore.value = false
         p2IsHighScore.value = false
-        p1Saved.value = false
-        p2Saved.value = false
     }
 })
 
-const checkHighScores = () => {
-    // Check P1
-    if (LeaderboardService.isHighScore(props.duoGame.player1.score, 'duo')) {
-        p1IsHighScore.value = true
-        // Auto-save if name exists
-        if (p1Name.value) saveP1()
-    }
+const saveMatch = () => {
+    if (!p1Name.value.trim() || !p2Name.value.trim()) return
 
-    // Check P2
-    if (LeaderboardService.isHighScore(props.duoGame.player2.score, 'duo')) {
-        p2IsHighScore.value = true
-        // Auto-save if name exists
-        if (p2Name.value) saveP2()
-    }
-}
-
-const saveP1 = () => {
-    if (!p1Name.value.trim()) return
+    // Save names for future
     localStorage.setItem(P1_NAME_KEY, p1Name.value.trim())
-    
-    LeaderboardService.addScore({
-        playerName: p1Name.value.trim(),
-        score: props.duoGame.player1.score,
-        level: props.duoGame.player1.level,
-        lines: props.duoGame.player1.linesCleared,
-        date: new Date().toISOString()
-    }, 'duo')
-    
-    p1Saved.value = true
-}
-
-const saveP2 = () => {
-    if (!p2Name.value.trim()) return
     localStorage.setItem(P2_NAME_KEY, p2Name.value.trim())
     
-    LeaderboardService.addScore({
-        playerName: p2Name.value.trim(),
-        score: props.duoGame.player2.score,
-        level: props.duoGame.player2.level,
-        lines: props.duoGame.player2.linesCleared,
-        date: new Date().toISOString()
-    }, 'duo')
+    LeaderboardService.addDuoMatch({
+        date: new Date().toISOString(),
+        winner: props.duoGame.winner === 1 ? 'p1' : 'p2',
+        p1: { name: p1Name.value.trim(), score: props.duoGame.player1.score },
+        p2: { name: p2Name.value.trim(), score: props.duoGame.player2.score }
+    })
     
-    p2Saved.value = true
+    matchSaved.value = true
 }
 </script>
 
@@ -302,67 +264,59 @@ const saveP2 = () => {
     color: #444;
 }
 
-/* High Score Form */
-.high-score-section {
+/* Match Save Form */
+.match-save-section {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.save-form {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    align-items: center;
+}
+
+.player-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     width: 100%;
 }
 
-.hs-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.8rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
-}
+.p1-in { border-bottom: 2px solid #00d4ff; }
+.p2-in { border-bottom: 2px solid #ff6b6b; }
 
-.p1-form { border-left: 4px solid #00d4ff; }
-.p2-form { border-left: 4px solid #ff6b6b; }
-
-.hs-title {
-    font-size: 1rem;
+.vs-label {
     font-weight: bold;
-    color: #ffd700;
-}
-
-.input-group {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.hs-input {
-    flex: 1;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid #666;
-    color: white;
-    padding: 0.4rem;
-    border-radius: 4px;
-    outline: none;
+    color: #888;
     font-size: 0.9rem;
 }
 
-.hs-input:focus {
-    border-color: #ffd700;
+.save-match-btn {
+    background: #00ff88;
+    color: #1a1a1a;
+    border: none;
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    width: 100%;
+}
+
+.save-match-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
 }
 
 .saved-msg {
     color: #00ff88;
     font-weight: bold;
-    font-size: 0.9rem;
-}
-
-.record-badge {
-    background: rgba(255, 215, 0, 0.2);
-    color: #ffd700;
-    font-size: 0.8rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 215, 0, 0.4);
-    animation: pulse 2s infinite;
-    margin-top: 0.5rem;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    animation: bounce 0.5s;
 }
 
 .winner-overlay {

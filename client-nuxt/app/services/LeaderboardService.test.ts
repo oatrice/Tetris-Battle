@@ -291,5 +291,53 @@ describe('LeaderboardService', () => {
             expect(LeaderboardService.getLeaderboard('solo')).toEqual([])
             expect(LeaderboardService.getLeaderboard('special')).toHaveLength(1)
         })
+
+        it('should return empty list for duo mode in standard getLeaderboard', () => {
+            const leaderboard = LeaderboardService.getLeaderboard('duo')
+            expect(leaderboard).toEqual([])
+        })
+    })
+
+    describe('addDuoMatch', () => {
+        beforeEach(() => {
+            LeaderboardService.clear('duo')
+        })
+
+        it('should add a duo match result', () => {
+            const result = LeaderboardService.addDuoMatch({
+                date: '2024-01-01',
+                winner: 'p1',
+                p1: { name: 'Player 1', score: 1000 },
+                p2: { name: 'Player 2', score: 500 }
+            })
+
+            expect(result.id).toBeTruthy()
+            expect(result.winner).toBe('p1')
+
+            const history = LeaderboardService.getDuoLeaderboard()
+            expect(history).toHaveLength(1)
+            expect(history[0].p1.name).toBe('Player 1')
+        })
+
+        it('should keep history sorted by newest first (unshift)', () => {
+            LeaderboardService.addDuoMatch({
+                date: '2024-01-01',
+                winner: 'p1',
+                p1: { name: 'Old', score: 1000 },
+                p2: { name: 'Player 2', score: 500 }
+            })
+
+            LeaderboardService.addDuoMatch({
+                date: '2024-01-02',
+                winner: 'p2',
+                p1: { name: 'New', score: 2000 },
+                p2: { name: 'Player 2', score: 1500 }
+            })
+
+            const history = LeaderboardService.getDuoLeaderboard()
+            expect(history).toHaveLength(2)
+            expect(history[0].p1.name).toBe('New') // Newest first
+            expect(history[1].p1.name).toBe('Old')
+        })
     })
 })

@@ -26,9 +26,38 @@
         </button>
       </div>
       
-      <div v-if="entries.length === 0" class="empty-state">
+      <div v-if="entries.length === 0 && activeTab !== 'duo'" class="empty-state">
         <p>ยังไม่มีสถิติ</p>
         <p class="hint">เล่น {{ activeTab === 'solo' ? 'Solo' : 'Special' }} mode เพื่อบันทึกคะแนน!</p>
+      </div>
+
+      <div v-else-if="activeTab === 'duo'" class="duo-container">
+        <div v-if="duoSessions.length === 0" class="empty-state">
+            <p>ยังไม่มีการแข่งขัน Duo</p>
+            <p class="hint">เล่นกับเพื่อนแล้วบันทึกผลการแข่งขัน!</p>
+        </div>
+        <div v-else class="session-list">
+            <div v-for="(session, index) in duoSessions" :key="session.id" class="session-card">
+                <div class="session-header">
+                    <span class="match-id">Match #{{ duoSessions.length - index }}</span>
+                    <span class="match-date">{{ new Date(session.date).toLocaleString() }}</span>
+                </div>
+                <div class="session-players">
+                    <!-- P1 -->
+                    <div :class="['p-row', { winner: session.winner === 'p1' }]">
+                        <span class="p-icon">{{ session.winner === 'p1' ? '👑' : '👤' }}</span>
+                        <span class="p-name p1-text">P1 {{ session.p1.name }}</span>
+                        <span class="p-score">{{ session.p1.score.toLocaleString() }}</span>
+                    </div>
+                    <!-- P2 -->
+                    <div :class="['p-row', { winner: session.winner === 'p2' }]">
+                        <span class="p-icon">{{ session.winner === 'p2' ? '👑' : '👤' }}</span>
+                        <span class="p-name p2-text">P2 {{ session.p2.name }}</span>
+                        <span class="p-score">{{ session.p2.score.toLocaleString() }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
       </div>
 
       <table v-else class="leaderboard-table">
@@ -70,7 +99,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { LeaderboardService, type LeaderboardEntry, type GameMode } from '~/services/LeaderboardService'
+import { LeaderboardService, type LeaderboardEntry, type GameMode, type DuoMatchResult } from '~/services/LeaderboardService'
 
 const props = defineProps<{
   highlightRank?: number
@@ -81,7 +110,16 @@ const props = defineProps<{
 defineEmits(['close'])
 
 const activeTab = ref<GameMode>(props.initialTab ?? 'solo')
-const entries = computed<LeaderboardEntry[]>(() => LeaderboardService.getLeaderboard(activeTab.value))
+
+const entries = computed<LeaderboardEntry[]>(() => {
+    if (activeTab.value === 'duo') return []
+    return LeaderboardService.getLeaderboard(activeTab.value)
+})
+
+const duoSessions = computed<DuoMatchResult[]>(() => {
+    if (activeTab.value !== 'duo') return []
+    return LeaderboardService.getDuoLeaderboard()
+})
 </script>
 
 <style scoped>
@@ -145,6 +183,63 @@ h2 {
   cursor: pointer;
   transition: all 0.2s;
 }
+
+/* Duo Session View */
+.duo-container {
+    overflow-y: auto;
+    max-height: 400px;
+    padding-right: 0.5rem;
+}
+
+.session-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 0.8rem;
+    margin-bottom: 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.3rem;
+}
+
+.match-id { font-weight: bold; color: #aaa; }
+.match-date { font-style: italic; }
+
+.session-players {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.p-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+}
+
+.p-row.winner {
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.p-icon { font-size: 1.2rem; min-width: 1.5rem; text-align: center; }
+
+.p-name { flex: 1; font-weight: bold; }
+.p1-text { color: #00d4ff; }
+.p2-text { color: #ff6b6b; }
+
+.p-score { font-family: monospace; font-size: 1.1rem; color: #eee; }
+
+.winner .p-score { color: #ffd700; font-weight: bold; }
 
 .tab:hover {
   background: rgba(255, 255, 255, 0.1);

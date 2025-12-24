@@ -18,11 +18,21 @@ export interface LeaderboardEntry {
     date: string  // ISO date string
 }
 
+export interface DuoMatchResult {
+    id: string
+    date: string
+    winner: 'p1' | 'p2'
+    p1: { name: string; score: number }
+    p2: { name: string; score: number }
+}
+
 export class LeaderboardService {
     private static STORAGE_KEY_PREFIX = 'tetris-leaderboard-'
+    private static STORAGE_KEY_DUO_SESSIONS = 'tetris-leaderboard-duo-sessions'
     private static MAX_ENTRIES = 10
 
     private static getStorageKey(mode: GameMode): string {
+        if (mode === 'duo') return this.STORAGE_KEY_DUO_SESSIONS
         return `${this.STORAGE_KEY_PREFIX}${mode}`
     }
 
@@ -30,6 +40,8 @@ export class LeaderboardService {
      * Get all leaderboard entries for a mode, sorted by score descending
      */
     static getLeaderboard(mode: GameMode = 'solo'): LeaderboardEntry[] {
+        if (mode === 'duo') return [] // Duo uses getDuoLeaderboard instead
+
         const data = localStorage.getItem(this.getStorageKey(mode))
         if (!data) return []
 
@@ -129,5 +141,40 @@ export class LeaderboardService {
             localStorage.removeItem(this.getStorageKey('special'))
         }
     }
+
+    // ==========================================
+    // Duo Session Methods
+    // ==========================================
+
+    static getDuoLeaderboard(): DuoMatchResult[] {
+        if (typeof localStorage === 'undefined') return []
+
+        const data = localStorage.getItem(this.STORAGE_KEY_DUO_SESSIONS)
+        if (!data) return []
+
+        try {
+            return JSON.parse(data)
+        } catch {
+            return []
+        }
+    }
+
+    static addDuoMatch(result: Omit<DuoMatchResult, 'id'>): DuoMatchResult {
+        const history = this.getDuoLeaderboard()
+        const id = crypto.randomUUID()
+        const newMatch: DuoMatchResult = { ...result, id }
+
+        history.unshift(newMatch) // Add to top (newest first)
+
+        // Keep last 50 matches
+        if (history.length > 50) {
+            history.pop()
+        }
+
+        localStorage.setItem(this.STORAGE_KEY_DUO_SESSIONS, JSON.stringify(history))
+        return newMatch
+    }
 }
+
+
 
