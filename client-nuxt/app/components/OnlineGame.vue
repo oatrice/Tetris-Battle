@@ -27,14 +27,18 @@
             playerColor="#00d4ff"
           />
           
-          <!-- Waiting / Countdown Overlay -->
-          <div v-if="isWaiting || (onlineGame.countdown !== null)" class="board-overlay">
+          <!-- Waiting / Countdown / Pause Overlay -->
+          <div v-if="isWaiting || (onlineGame.countdown !== null) || onlineGame.isPaused" class="board-overlay">
              <div v-if="isWaiting" class="overlay-content">
                  <div class="spinner"></div>
                  <p>Waiting...</p>
              </div>
              <div v-if="onlineGame.countdown !== null" class="overlay-content">
                  <span class="countdown-number">{{ onlineGame.countdown === 0 ? 'GO!' : onlineGame.countdown }}</span>
+             </div>
+             <div v-if="onlineGame.isPaused" class="overlay-content">
+                 <span class="paused-text">PAUSED</span>
+                 <span class="sub-text">Press 'P' to Resume</span>
              </div>
           </div>
       </div>
@@ -62,6 +66,10 @@
           <button @click="emit('back')" class="back-btn">Exit</button>
       </div>
 
+     <button v-if="!onlineGame.isGameOver && !showNameInput" @click="onlineGame.togglePause()" class="back-btn small">
+        {{ onlineGame.isPaused ? 'Resume' : 'Pause' }}
+     </button>
+     
      <button v-if="!onlineGame.isGameOver && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
     </div>
 
@@ -409,6 +417,18 @@ onUnmounted(() => {
     color: #ffd700;
     text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
     animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.paused-text {
+    font-size: 3rem;
+    color: #00d4ff;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.sub-text {
+    font-size: 1rem;
+    color: #aaa;
 }
 
 @keyframes pop {

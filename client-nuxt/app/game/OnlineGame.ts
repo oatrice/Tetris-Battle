@@ -65,10 +65,31 @@ export class OnlineGame extends Game {
         socketService.on('waiting_for_opponent', () => {
             console.log('Waiting for opponent...')
         })
+
+        socketService.on('pause', () => {
+            if (!this.isPaused) {
+                console.log('Opponent paused the game')
+                this.isPaused = true
+            }
+        })
+
+        socketService.on('resume', () => {
+            if (this.isPaused) {
+                console.log('Opponent resumed the game')
+                this.isPaused = false
+            }
+        })
     }
 
     joinGame(name: string) {
         socketService.send('join_game', { name })
+    }
+
+    override togglePause() {
+        super.togglePause()
+        const event = this.isPaused ? 'pause' : 'resume'
+        console.log(`Sending ${event} signal`)
+        socketService.send(event)
     }
 
     private startCountdown() {
