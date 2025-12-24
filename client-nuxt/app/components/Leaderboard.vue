@@ -4,6 +4,7 @@
       <h2>🏆 Leaderboard</h2>
       
       <!-- Mode Tabs -->
+      <!-- Mode Tabs -->
       <div class="mode-tabs">
         <button 
           :class="['tab', { active: activeTab === 'solo' }]" 
@@ -16,6 +17,12 @@
           @click="activeTab = 'special'"
         >
           ✨ Special
+        </button>
+        <button 
+          :class="['tab', { active: activeTab === 'duo' }]" 
+          @click="activeTab = 'duo'"
+        >
+          👥 Duo
         </button>
       </div>
       

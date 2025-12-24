@@ -28,52 +28,11 @@
 
     <!-- Duo Mode -->
     <div v-else-if="gameMode === 'duo'" class="duo-area">
-      <!-- Player 1 Board -->
-      <div class="player-section">
-        <div class="player-header p1">
-          <span class="player-label">P1</span>
-          <span class="controls-hint">WASD + Q/E</span>
-        </div>
-        <PlayerBoard 
-          :game="duoGame!.player1" 
-          :showHold="true" 
-          :showNext="true"
-          playerColor="#00d4ff"
-        />
-        <div class="player-stats">
-          <span class="score">{{ duoGame!.player1.score }}</span>
-          <span>L{{ duoGame!.player1.level }} • {{ duoGame!.player1.linesCleared }}</span>
-        </div>
-      </div>
-
-      <!-- VS -->
-      <div class="vs-section">
-        <span class="vs-text">VS</span>
-        <div v-if="duoGame!.winner" class="winner-overlay">
-          <span class="winner-text">🏆 P{{ duoGame!.winner }} WINS!</span>
-          <button @click="restartDuo">🔄 Rematch</button>
-        </div>
-        <div v-if="duoGame!.isPaused && !duoGame!.winner" class="pause-text">⏸️</div>
-        <button @click="backToMenu" class="back-btn">← Menu</button>
-      </div>
-
-      <!-- Player 2 Board -->
-      <div class="player-section">
-        <div class="player-header p2">
-          <span class="player-label">P2</span>
-          <span class="controls-hint">←→↓↑ + ,/.</span>
-        </div>
-        <PlayerBoard 
-          :game="duoGame!.player2" 
-          :showHold="true" 
-          :showNext="true"
-          playerColor="#ff6b6b"
-        />
-        <div class="player-stats">
-          <span class="score">{{ duoGame!.player2.score }}</span>
-          <span>L{{ duoGame!.player2.level }} • {{ duoGame!.player2.linesCleared }}</span>
-        </div>
-      </div>
+      <DuoGameComponent 
+        :duoGame="duoGame!" 
+        @restart="restartDuo" 
+        @back="backToMenu" 
+      />
     </div>
   </div>
 </template>
@@ -86,6 +45,7 @@ import { DuoGame } from '~/game/DuoGame'
 
 // Async components
 const SoloGame = defineAsyncComponent(() => import('~/components/SoloGame.vue'))
+const DuoGameComponent = defineAsyncComponent(() => import('~/components/DuoGame.vue'))
 const PlayerBoard = defineAsyncComponent(() => import('~/components/PlayerBoard.vue'))
 const VersionInfo = defineAsyncComponent(() => import('~/components/VersionInfo.vue'))
 const Leaderboard = defineAsyncComponent(() => import('~/components/Leaderboard.vue'))

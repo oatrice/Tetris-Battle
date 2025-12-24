@@ -7,7 +7,7 @@
  * - Sort by score descending
  */
 
-export type GameMode = 'solo' | 'special'
+export type GameMode = 'solo' | 'special' | 'duo'
 
 export interface LeaderboardEntry {
     id: string    // Unique ID for update capability
