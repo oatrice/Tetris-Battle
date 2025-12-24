@@ -12,6 +12,9 @@
 
       <!-- Board -->
       <div class="board-section">
+        <div class="mode-label" :class="{ special: isSpecialMode }">
+          {{ isSpecialMode ? '✨ SPECIAL' : '🎯 SOLO' }}
+        </div>
         <canvas 
           ref="canvas" 
           :width="canvasWidth" 
@@ -240,6 +243,28 @@ onMounted(() => {
 
 .board-section {
   position: relative;
+}
+
+.mode-label {
+  text-align: center;
+  padding: 0.4rem 0.8rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.mode-label.special {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 5px rgba(240, 147, 251, 0.5); }
+  to { box-shadow: 0 0 15px rgba(245, 87, 108, 0.8); }
 }
 
 .game-canvas {
