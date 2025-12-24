@@ -163,8 +163,10 @@ const renderGame = () => {
 
   // Line clear effects (Special mode only)
   if (props.isSpecialMode && 'effects' in props.game) {
-    const effects = (props.game as SpecialGame).effects
-    effects.forEach(effect => {
+    const specialGame = props.game as SpecialGame
+    
+    // Flash effect
+    specialGame.effects.forEach(effect => {
       if (effect.type === 'LINE_CLEAR') {
         const alpha = effect.timeLeft / 300 // Fade out
         ctx.fillStyle = effect.color
@@ -173,6 +175,18 @@ const renderGame = () => {
         ctx.globalAlpha = 1.0
       }
     })
+
+    // Explosion particles
+    if ('particles' in specialGame) {
+      specialGame.particles.forEach(p => {
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fillStyle = p.color
+        ctx.globalAlpha = p.life
+        ctx.fill()
+        ctx.globalAlpha = 1.0
+      })
+    }
   }
 }
 

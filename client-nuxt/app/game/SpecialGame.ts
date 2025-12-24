@@ -5,7 +5,7 @@
  * - After line clears, floating blocks drop individually with animation
  * - Chain reactions: if dropping creates new lines, they clear too
  * - Chain bonus: longer chains = more points
- * - Visual effects for line clears
+ * - Explosion particle effects for line clears
  */
 import { Game } from './Game'
 import { applyGravity, clearLinesOnly } from './CascadeGravity'
@@ -21,6 +21,18 @@ const EFFECT_COLORS: Record<number, string> = {
     4: '#FFF176', // Yellow (Tetris!)
 }
 
+// Particle interface for explosion effect
+export interface Particle {
+    x: number
+    y: number
+    vx: number // velocity x
+    vy: number // velocity y
+    size: number
+    color: string
+    life: number // 0-1, decreases over time
+    gravity: number
+}
+
 export interface LineClearEffect {
     type: 'LINE_CLEAR'
     y: number
@@ -28,17 +40,63 @@ export interface LineClearEffect {
     color: string
 }
 
+export type GameEffect = LineClearEffect | { type: 'PARTICLES' }
+
 export class SpecialGame extends Game {
     chainCount: number = 0
     isCascading: boolean = false
     effects: LineClearEffect[] = []
+    particles: Particle[] = []
     private cascadeTimer: number = 0
     private readonly CASCADE_DELAY: number = 150 // ms per gravity step
     private readonly EFFECT_DURATION: number = 300 // ms
+    private readonly PARTICLE_LIFETIME: number = 800 // ms
 
     constructor() {
         super()
         this.chainCount = 0
+    }
+
+    /**
+     * Create explosion particles for each cell in cleared lines
+     */
+    private createExplosionParticles(indices: number[], linesCount: number): void {
+        const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
+        const particlesPerCell = linesCount >= 4 ? 8 : (linesCount >= 2 ? 5 : 3)
+
+        indices.forEach(y => {
+            // Create particles for each cell in the row
+            for (let x = 0; x < 10; x++) {
+                for (let i = 0; i < particlesPerCell; i++) {
+                    // Random direction explosion
+                    const angle = Math.random() * Math.PI * 2
+                    const speed = 2 + Math.random() * 4
+
+                    this.particles.push({
+                        x: x * 24 + 12, // Center of cell (CELL_SIZE = 24)
+                        y: y * 24 + 12,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 2, // Bias upward
+                        size: 3 + Math.random() * 4,
+                        color: this.randomizeColor(color),
+                        life: 1.0,
+                        gravity: 0.15
+                    })
+                }
+            }
+        })
+    }
+
+    /**
+     * Slightly randomize color for variety
+     */
+    private randomizeColor(baseColor: string): string {
+        // Add some random brightness variation
+        const variation = Math.random() * 0.3 - 0.15
+        if (Math.random() > 0.7) {
+            return '#ffffff' // Some white sparkles
+        }
+        return baseColor
     }
 
     /**
@@ -55,16 +113,30 @@ export class SpecialGame extends Game {
                 color
             })
         })
+
+        // Create explosion particles
+        this.createExplosionParticles(indices, linesCount)
     }
 
     /**
      * Update cascade gravity animation (call from game loop with deltaTime)
      */
     update(deltaTime: number): void {
-        // Update effects
+        // Update line clear effects
         this.effects = this.effects.filter(e => {
             e.timeLeft -= deltaTime
             return e.timeLeft > 0
+        })
+
+        // Update particles
+        const dt = deltaTime / 16 // Normalize to ~60fps
+        this.particles = this.particles.filter(p => {
+            p.x += p.vx * dt
+            p.y += p.vy * dt
+            p.vy += p.gravity * dt // Apply gravity
+            p.life -= deltaTime / this.PARTICLE_LIFETIME
+            p.size *= 0.98 // Shrink over time
+            return p.life > 0 && p.size > 0.5
         })
 
         if (!this.isCascading) return
