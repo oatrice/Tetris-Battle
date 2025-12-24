@@ -135,11 +135,28 @@ const backToMenu = () => {
 }
 
 // ============ Game Loop ============
+let lastFrameTime = 0
+
 const startGameLoop = () => {
+  lastFrameTime = 0
+  
   const gameLoop = (timestamp: number) => {
+    // Calculate deltaTime for animations
+    const deltaTime = lastFrameTime > 0 ? timestamp - lastFrameTime : 0
+    lastFrameTime = timestamp
+    
+    // Update Special mode cascade animation
+    if (gameMode.value === 'special' && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
+      (soloGame.value as SpecialGame).update(deltaTime)
+    }
+    
+    // Auto drop (every DROP_INTERVAL)
     if (timestamp - lastUpdate > DROP_INTERVAL) {
       if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
-        soloGame.value.moveDown()
+        // Skip auto-drop if cascading
+        if (gameMode.value !== 'special' || !(soloGame.value as SpecialGame).isCascading) {
+          soloGame.value.moveDown()
+        }
       } else if (gameMode.value === 'duo' && duoGame.value) {
         duoGame.value.tick()
       }

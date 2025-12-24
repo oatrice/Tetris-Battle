@@ -127,7 +127,7 @@ function isLineComplete(board: Board, y: number): boolean {
  * This leaves "floating" blocks that gravity will handle
  * @returns number of lines cleared
  */
-function clearLinesOnly(board: Board): number {
+export function clearLinesOnly(board: Board): number {
     let linesCleared = 0
 
     for (let y = board.height - 1; y >= 0; y--) {
