@@ -13,24 +13,29 @@ export interface VersionInfo {
     isDirty: boolean
 }
 
+/**
+ * Format ISO date to readable format
+ * Exported for testing
+ */
+export function formatDate(isoDate: string): string {
+    if (!isoDate) return isoDate
+    try {
+        const date = new Date(isoDate)
+        if (isNaN(date.getTime())) return isoDate
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    } catch {
+        return isoDate
+    }
+}
+
 export function useVersionInfo(): VersionInfo {
     const config = useRuntimeConfig()
-
-    // Format date for display
-    const formatDate = (isoDate: string): string => {
-        try {
-            const date = new Date(isoDate)
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            })
-        } catch {
-            return isoDate
-        }
-    }
 
     return {
         version: config.public.appVersion as string || '0.0.0',
@@ -40,4 +45,3 @@ export function useVersionInfo(): VersionInfo {
         isDirty: IS_DIRTY
     }
 }
-
