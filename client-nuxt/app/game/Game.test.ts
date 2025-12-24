@@ -294,4 +294,28 @@ describe('Game', () => {
             expect(game.heldPiece!.type).toBe(newCurrentType)
         })
     })
+
+    describe('Bug Fix: Pause should prevent Game Over / Locking', () => {
+        it('should NOT move piece down when paused', () => {
+            game.isPaused = true
+            const initialY = game.currentPiece.y
+            const result = game.moveDown()
+
+            expect(result).toBe(false)
+            expect(game.currentPiece.y).toBe(initialY)
+        })
+
+        it('should NOT lock piece when paused even if called multiple times', () => {
+            game.isPaused = true
+            const initialPiece = game.currentPiece
+
+            // Try to force a lock by calling moveDown repeatedly
+            for (let i = 0; i < 5; i++) {
+                game.moveDown()
+            }
+
+            // Piece should still be the same instance (meaning it wasn't locked and replaced)
+            expect(game.currentPiece).toBe(initialPiece)
+        })
+    })
 })
