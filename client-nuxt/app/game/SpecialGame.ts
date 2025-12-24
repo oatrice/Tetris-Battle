@@ -32,7 +32,9 @@ export class SpecialGame extends Game {
         })
 
         // Use cascade gravity instead of standard line clearing
+        console.log('[SpecialGame] lockPiece called - using cascadeClear')
         const result = cascadeClear(this.board, this.level)
+        console.log('[SpecialGame] cascadeClear result:', result)
 
         if (result.linesCleared > 0) {
             this.linesCleared += result.linesCleared

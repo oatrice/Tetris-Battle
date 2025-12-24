@@ -8,7 +8,7 @@
  * 4. Repeat until stable
  */
 import type { Board } from './Board'
-import { checkAndClearLines, calculateScore } from './LineClearing'
+import { calculateScore } from './LineClearing'
 
 export interface Block {
     x: number
@@ -89,31 +89,21 @@ export function findFloatingBlocks(board: Board): Block[] {
 }
 
 /**
- * Apply gravity - drop all floating blocks by 1 cell
+ * Apply gravity - drop all floating blocks by 1 cell (simple column-based)
+ * Loops from bottom-up in each column, swaps if cell below is empty
  * @returns true if any blocks moved
  */
 export function applyGravity(board: Board): boolean {
-    const floating = findFloatingBlocks(board)
-
-    if (floating.length === 0) {
-        return false
-    }
-
-    // Sort by y descending (process bottom blocks first to avoid collisions)
-    floating.sort((a, b) => b.y - a.y)
-
     let moved = false
 
-    for (const block of floating) {
-        const newY = block.y + 1
-
-        // Check if can drop (not at bottom and cell below is empty)
-        if (newY < board.height && board.isCellEmpty(block.x, newY)) {
-            // Clear old position
-            board.setCell(block.x, block.y, 0)
-            // Set new position
-            board.setCell(block.x, newY, block.value)
-            moved = true
+    for (let x = 0; x < board.width; x++) {
+        for (let y = board.height - 2; y >= 0; y--) {
+            if (!board.isCellEmpty(x, y) && board.isCellEmpty(x, y + 1)) {
+                const value = board.getCell(x, y)
+                board.setCell(x, y + 1, value)
+                board.setCell(x, y, 0)
+                moved = true
+            }
         }
     }
 
@@ -121,9 +111,42 @@ export function applyGravity(board: Board): boolean {
 }
 
 /**
+ * Check if a line is complete (all cells filled)
+ */
+function isLineComplete(board: Board, y: number): boolean {
+    for (let x = 0; x < board.width; x++) {
+        if (board.isCellEmpty(x, y)) {
+            return false
+        }
+    }
+    return true
+}
+
+/**
+ * Find and clear complete lines WITHOUT shifting rows down
+ * This leaves "floating" blocks that gravity will handle
+ * @returns number of lines cleared
+ */
+function clearLinesOnly(board: Board): number {
+    let linesCleared = 0
+
+    for (let y = board.height - 1; y >= 0; y--) {
+        if (isLineComplete(board, y)) {
+            // Clear this line (set all cells to 0)
+            for (let x = 0; x < board.width; x++) {
+                board.setCell(x, y, 0)
+            }
+            linesCleared++
+        }
+    }
+
+    return linesCleared
+}
+
+/**
  * Perform full cascade cycle:
- * 1. Clear complete lines
- * 2. Apply gravity until stable
+ * 1. Clear complete lines (without shifting - leaves floating blocks)
+ * 2. Apply gravity until stable (blocks fall individually)
  * 3. Repeat if new lines formed (chain reaction)
  */
 export function cascadeClear(board: Board, level: number = 1): CascadeResult {
@@ -131,27 +154,30 @@ export function cascadeClear(board: Board, level: number = 1): CascadeResult {
     let chainCount = 0
     let totalScore = 0
 
-    // First line clear
-    let lines = checkAndClearLines(board)
+    // First line clear (no shifting - just remove the line)
+    let lines = clearLinesOnly(board)
+    console.log('[cascadeClear] Initial lines cleared:', lines)
 
     while (lines > 0) {
         chainCount++
         totalLinesCleared += lines
 
         // Calculate score with chain bonus
-        // Each chain multiplies the base score
         const chainMultiplier = chainCount
         totalScore += calculateScore(lines, level) * chainMultiplier
 
-        // Apply gravity until stable
+        // Apply gravity until stable (blocks fall one by one)
+        let gravitySteps = 0
         while (applyGravity(board)) {
-            // Keep dropping until no more movement
+            gravitySteps++
         }
+        console.log('[cascadeClear] Chain', chainCount, '- gravity steps:', gravitySteps)
 
         // Check for new lines (chain reaction)
-        lines = checkAndClearLines(board)
+        lines = clearLinesOnly(board)
     }
 
+    console.log('[cascadeClear] Final result - lines:', totalLinesCleared, 'chains:', chainCount)
     return {
         linesCleared: totalLinesCleared,
         chainCount,
