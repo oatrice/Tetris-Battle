@@ -7,10 +7,18 @@
       <div class="mode-buttons">
         <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
         <button @click="startSpecial" class="mode-btn special">✨ Special</button>
-        <button @click="startDuo" class="mode-btn duo">👥 Duo (Local)</button>
+        <button @click="startDuo" class="mode-btn duo">👥 Duo</button>
+        <button @click="showLeaderboard = true" class="mode-btn leaderboard">🏆 Leaderboard</button>
       </div>
     </div>
     
+    <!-- Leaderboard Modal -->
+    <Leaderboard 
+      v-if="showLeaderboard" 
+      @close="showLeaderboard = false" 
+      :initialTab="gameMode || 'solo'"
+    />
+
     <!-- Version Info at Bottom -->
     <VersionInfo v-if="!gameMode" :showDetails="true" class="home-version" />
 
@@ -21,52 +29,12 @@
 
     <!-- Duo Mode -->
     <div v-else-if="gameMode === 'duo'" class="duo-area">
-      <!-- Player 1 Board -->
-      <div class="player-section">
-        <div class="player-header p1">
-          <span class="player-label">P1</span>
-          <span class="controls-hint">WASD + Q/E</span>
-        </div>
-        <PlayerBoard 
-          :game="duoGame!.player1" 
-          :showHold="true" 
-          :showNext="true"
-          playerColor="#00d4ff"
-        />
-        <div class="player-stats">
-          <span class="score">{{ duoGame!.player1.score }}</span>
-          <span>L{{ duoGame!.player1.level }} • {{ duoGame!.player1.linesCleared }}</span>
-        </div>
-      </div>
-
-      <!-- VS -->
-      <div class="vs-section">
-        <span class="vs-text">VS</span>
-        <div v-if="duoGame!.winner" class="winner-overlay">
-          <span class="winner-text">🏆 P{{ duoGame!.winner }} WINS!</span>
-          <button @click="restartDuo">🔄 Rematch</button>
-        </div>
-        <div v-if="duoGame!.isPaused && !duoGame!.winner" class="pause-text">⏸️</div>
-        <button @click="backToMenu" class="back-btn">← Menu</button>
-      </div>
-
-      <!-- Player 2 Board -->
-      <div class="player-section">
-        <div class="player-header p2">
-          <span class="player-label">P2</span>
-          <span class="controls-hint">←→↓↑ + ,/.</span>
-        </div>
-        <PlayerBoard 
-          :game="duoGame!.player2" 
-          :showHold="true" 
-          :showNext="true"
-          playerColor="#ff6b6b"
-        />
-        <div class="player-stats">
-          <span class="score">{{ duoGame!.player2.score }}</span>
-          <span>L{{ duoGame!.player2.level }} • {{ duoGame!.player2.linesCleared }}</span>
-        </div>
-      </div>
+      <DuoGameComponent 
+        :duoGame="duoGame!" 
+        @restart="restartDuo" 
+        @show-leaderboard="showLeaderboard = true"
+        @back="backToMenu" 
+      />
     </div>
   </div>
 </template>
@@ -79,8 +47,10 @@ import { DuoGame } from '~/game/DuoGame'
 
 // Async components
 const SoloGame = defineAsyncComponent(() => import('~/components/SoloGame.vue'))
+const DuoGameComponent = defineAsyncComponent(() => import('~/components/DuoGame.vue'))
 const PlayerBoard = defineAsyncComponent(() => import('~/components/PlayerBoard.vue'))
 const VersionInfo = defineAsyncComponent(() => import('~/components/VersionInfo.vue'))
+const Leaderboard = defineAsyncComponent(() => import('~/components/Leaderboard.vue'))
 
 type GameMode = 'solo' | 'special' | 'duo' | null
 
@@ -88,6 +58,7 @@ const gameContainer = ref<HTMLDivElement | null>(null)
 const gameMode = ref<GameMode>(null)
 const soloGame = ref<Game | null>(null)
 const duoGame = ref<DuoGame | null>(null)
+const showLeaderboard = ref(false)
 
 let animationId: number | null = null
 let lastUpdate = 0
@@ -289,6 +260,11 @@ h1 {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
+.mode-btn.leaderboard {
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #1a1a2e;
+}
+
 /* Duo Area */
 .duo-area {
   display: flex;
@@ -433,9 +409,9 @@ button:hover {
 }
 
 .mode-buttons {
-  display: flex;
-  gap: 2rem;
-  justify-content: center;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  max-width: 400px;
 }
 </style>
