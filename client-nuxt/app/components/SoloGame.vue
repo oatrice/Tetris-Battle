@@ -53,6 +53,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, defineAsyncComponent } from 'vue'
 import { Game } from '~/game/Game'
+import { SpecialGame, type LineClearEffect } from '~/game/SpecialGame'
 import { COLORS } from '~/game/shapes'
 import { InputHandler, GameAction } from '~/game/InputHandler'
 
@@ -159,6 +160,20 @@ const renderGame = () => {
 
   // Current piece
   props.game.currentPiece.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
+
+  // Line clear effects (Special mode only)
+  if (props.isSpecialMode && 'effects' in props.game) {
+    const effects = (props.game as SpecialGame).effects
+    effects.forEach(effect => {
+      if (effect.type === 'LINE_CLEAR') {
+        const alpha = effect.timeLeft / 300 // Fade out
+        ctx.fillStyle = effect.color
+        ctx.globalAlpha = alpha * 0.6
+        ctx.fillRect(0, effect.y * CELL_SIZE, canvasWidth, CELL_SIZE)
+        ctx.globalAlpha = 1.0
+      }
+    })
+  }
 }
 
 const drawBlock = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string) => {

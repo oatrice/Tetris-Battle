@@ -5,19 +5,36 @@
  * - After line clears, floating blocks drop individually with animation
  * - Chain reactions: if dropping creates new lines, they clear too
  * - Chain bonus: longer chains = more points
+ * - Visual effects for line clears
  */
 import { Game } from './Game'
-import { Tetromino } from './Tetromino'
 import { applyGravity, clearLinesOnly } from './CascadeGravity'
 import { calculateScore } from './LineClearing'
 
 const PIECE_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
 
+// Effect colors based on lines cleared
+const EFFECT_COLORS: Record<number, string> = {
+    1: '#4DD0E1', // Cyan
+    2: '#81C784', // Green
+    3: '#FFB74D', // Orange
+    4: '#FFF176', // Yellow (Tetris!)
+}
+
+export interface LineClearEffect {
+    type: 'LINE_CLEAR'
+    y: number
+    timeLeft: number
+    color: string
+}
+
 export class SpecialGame extends Game {
     chainCount: number = 0
     isCascading: boolean = false
+    effects: LineClearEffect[] = []
     private cascadeTimer: number = 0
-    private readonly CASCADE_DELAY: number = 500 // ms per gravity step
+    private readonly CASCADE_DELAY: number = 150 // ms per gravity step
+    private readonly EFFECT_DURATION: number = 300 // ms
 
     constructor() {
         super()
@@ -25,9 +42,31 @@ export class SpecialGame extends Game {
     }
 
     /**
+     * Add line clear effects for visual feedback
+     */
+    private addLineClearEffects(indices: number[], linesCount: number): void {
+        const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
+
+        indices.forEach(y => {
+            this.effects.push({
+                type: 'LINE_CLEAR',
+                y,
+                timeLeft: this.EFFECT_DURATION,
+                color
+            })
+        })
+    }
+
+    /**
      * Update cascade gravity animation (call from game loop with deltaTime)
      */
     update(deltaTime: number): void {
+        // Update effects
+        this.effects = this.effects.filter(e => {
+            e.timeLeft -= deltaTime
+            return e.timeLeft > 0
+        })
+
         if (!this.isCascading) return
 
         this.cascadeTimer += deltaTime
@@ -37,13 +76,17 @@ export class SpecialGame extends Game {
 
             if (!moved) {
                 // Gravity settled - check for chain reaction
-                const lines = clearLinesOnly(this.board)
-                if (lines > 0) {
+                const result = clearLinesOnly(this.board)
+                if (result.count > 0) {
                     this.chainCount++
-                    this.linesCleared += lines
-                    this.score += calculateScore(lines, this.level) * this.chainCount
+                    this.linesCleared += result.count
+                    this.score += calculateScore(result.count, this.level) * this.chainCount
                     this.level = Math.floor(this.linesCleared / 10) + 1
-                    console.log('[SpecialGame] Chain', this.chainCount, '- lines:', lines)
+
+                    // Add visual effects for chain
+                    this.addLineClearEffects(result.indices, result.count)
+
+                    console.log('[SpecialGame] Chain', this.chainCount, '- lines:', result.count)
                     // Continue cascading
                 } else {
                     // Done cascading
@@ -80,14 +123,17 @@ export class SpecialGame extends Game {
         })
 
         // Clear lines (without gravity - that's handled by update())
-        const lines = clearLinesOnly(this.board)
-        console.log('[SpecialGame] lockPiece - initial lines:', lines)
+        const result = clearLinesOnly(this.board)
+        console.log('[SpecialGame] lockPiece - initial lines:', result.count)
 
-        if (lines > 0) {
+        if (result.count > 0) {
             this.chainCount = 1
-            this.linesCleared += lines
-            this.score += calculateScore(lines, this.level)
+            this.linesCleared += result.count
+            this.score += calculateScore(result.count, this.level)
             this.level = Math.floor(this.linesCleared / 10) + 1
+
+            // Add visual effects
+            this.addLineClearEffects(result.indices, result.count)
 
             // Start cascade animation
             this.isCascading = true
