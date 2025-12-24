@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.4.0] - 2025-12-25
+
+### Added
+- **Online Pause and Resume**: Implemented the ability to pause and resume online game sessions. This allows players to temporarily halt gameplay without losing their progress or disconnecting from the server.
+
 ## [3.3.0] - 2025-12-24
 
 ### Added
