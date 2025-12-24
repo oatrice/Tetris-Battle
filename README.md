@@ -1,5 +1,12 @@
 # Tetris Battle
 
+![Version](https://img.shields.io/badge/version-3.2.1-blue)
+![Nuxt](https://img.shields.io/badge/Nuxt-4.x-00DC82?logo=nuxt.js)
+![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)
+![License](https://img.shields.io/badge/license-MIT-green)
+![PWA](https://img.shields.io/badge/PWA-ready-5A0FC8?logo=pwa)
+
 **🚧 Status: Migrating to TypeScript/Web Client 🚧**
 
 This project is currently being migrated from a C++/Raylib desktop application to a modern **Nuxt.js Web Application (PWA)** for better accessibility and cross-platform support.
@@ -10,13 +17,45 @@ Please proceed to the `client-nuxt` directory for the latest version.
 
 - **Directory:** [`/client-nuxt`](./client-nuxt)
 - **Tech Stack:** Nuxt.js, TypeScript, HTML5 Canvas
-- **Features:** PWA (Offline Support), Mobile Controls, Modern UI
 - **Setup:**
   ```bash
   cd client-nuxt
   npm install
   npm run dev
   ```
+
+### Features
+
+| Mode | Description |
+|------|-------------|
+| 🎯 **Solo** | Classic Tetris gameplay |
+| ✨ **Special** | Cascade gravity with chain reactions + visual effects |
+| 🎮 **Duo** | Local 2-player mode |
+
+### Special Mode Features
+- **Cascade Gravity** - Blocks fall individually (Puyo-style)
+- **Chain Reactions** - Combos give bonus points
+- **5 Visual Effects** - Explosion, Sparkle, Wave, Shatter, Classic
+- **Hold Piece** - Press `C` to swap (Special mode only)
+
+### Controls
+| Key | Action |
+|-----|--------|
+| ← → | Move |
+| ↑ | Rotate |
+| ↓ | Soft Drop |
+| Space | Hard Drop |
+| C | Hold (Special) |
+| P | Pause |
+| 👻 Button | Toggle Ghost |
+| 🏠 Button | Back to Menu |
+
+### Mobile Controls
+- **Swipe Left/Right** - Move
+- **Swipe Down** - Hard Drop
+- **Swipe Up** - Hold
+- **Tap** - Rotate
+- **Long Press** - Soft Drop
 
 ---
 

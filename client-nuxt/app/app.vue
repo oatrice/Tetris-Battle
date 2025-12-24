@@ -16,7 +16,7 @@
 
     <!-- Solo Mode -->
     <div v-else-if="gameMode === 'solo' || gameMode === 'special'" class="game-area">
-      <SoloGame :game="soloGame!" @restart="restartGame" :isSpecialMode="gameMode === 'special'" />
+      <SoloGame :game="soloGame!" @restart="restartGame" @back="backToMenu" :isSpecialMode="gameMode === 'special'" />
     </div>
 
     <!-- Duo Mode -->

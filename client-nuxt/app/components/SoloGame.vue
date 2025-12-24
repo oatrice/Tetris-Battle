@@ -1,14 +1,16 @@
 <template>
   <div class="solo-game">
     <div class="game-layout">
-      <!-- Hold -->
-      <div class="side-panel">
+      <!-- Hold (Special mode only) -->
+      <div v-if="isSpecialMode" class="side-panel">
         <h4>HOLD</h4>
         <div class="piece-preview" :style="{ opacity: game.heldPiece ? 1 : 0.3 }">
           <MiniPiece v-if="game.heldPiece" :piece="game.heldPiece" />
           <span v-else class="empty-hint">C</span>
         </div>
       </div>
+      <!-- Spacer when no hold panel -->
+      <div v-else class="side-panel-spacer"></div>
 
       <!-- Board -->
       <div class="board-section">
@@ -54,6 +56,18 @@
             </option>
           </select>
         </div>
+        <!-- Control Buttons -->
+        <div class="control-buttons">
+          <button class="ctrl-btn" @click="game.togglePause()" :title="game.isPaused ? 'Resume' : 'Pause'">
+            {{ game.isPaused ? '▶️' : '⏸️' }}
+          </button>
+          <button class="ctrl-btn" @click="showGhost = !showGhost" :title="showGhost ? 'Hide Ghost' : 'Show Ghost'">
+            {{ showGhost ? '👻' : '👤' }}
+          </button>
+          <button class="ctrl-btn" @click="$emit('back')" title="Back to Menu">
+            🏠
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -73,7 +87,7 @@ const props = defineProps<{
   isSpecialMode?: boolean
 }>()
 
-defineEmits(['restart'])
+defineEmits(['restart', 'back'])
 
 const CELL_SIZE = 24
 const BOARD_WIDTH = 10
@@ -84,6 +98,7 @@ const canvasHeight = BOARD_HEIGHT * CELL_SIZE
 const canvas = ref<HTMLCanvasElement | null>(null)
 const inputHandler = new InputHandler()
 const selectedEffect = ref<EffectType>(EffectType.EXPLOSION)
+const showGhost = ref(true)
 const effectLabels = EFFECT_LABELS
 
 const onEffectChange = () => {
@@ -127,7 +142,10 @@ const executeAction = (action: GameAction) => {
       props.game.hardDrop()
       break
     case GameAction.HOLD:
-      props.game.hold()
+      // Hold only works in Special mode and not while cascading
+      if (props.isSpecialMode && !('isCascading' in props.game && (props.game as any).isCascading)) {
+        props.game.hold()
+      }
       break
     case GameAction.PAUSE:
       props.game.togglePause()
@@ -169,11 +187,13 @@ const renderGame = () => {
     }
   }
 
-  // Ghost
-  const ghost = props.game.getGhostPiece()
-  ctx.globalAlpha = 0.3
-  ghost.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
-  ctx.globalAlpha = 1.0
+  // Ghost (if enabled)
+  if (showGhost.value) {
+    const ghost = props.game.getGhostPiece()
+    ctx.globalAlpha = 0.3
+    ghost.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
+    ctx.globalAlpha = 1.0
+  }
 
   // Current piece
   props.game.currentPiece.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
@@ -274,6 +294,10 @@ onMounted(() => {
   color: #9d4edd;
   font-size: 0.75rem;
   letter-spacing: 2px;
+}
+
+.side-panel-spacer {
+  width: 80px;
 }
 
 .piece-preview {
@@ -409,5 +433,32 @@ button {
 .effect-selector select:focus {
   outline: none;
   border-color: #9d4edd;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #333;
+}
+
+.ctrl-btn {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 1rem;
+  background: #1a1a3a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ctrl-btn:hover {
+  background: #2a2a4a;
+}
+
+.ctrl-btn:active {
+  background: #3a3a5a;
 }
 </style>
