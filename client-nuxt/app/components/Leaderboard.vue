@@ -46,13 +46,13 @@
                     <!-- P1 -->
                     <div :class="['p-row', { winner: session.winner === 'p1' }]">
                         <span class="p-icon">{{ session.winner === 'p1' ? '👑' : '👤' }}</span>
-                        <span class="p-name p1-text">P1 {{ session.p1.name }}</span>
+                        <span class="p-name p1-text">{{ session.p1.name }}</span>
                         <span class="p-score">{{ session.p1.score.toLocaleString() }}</span>
                     </div>
                     <!-- P2 -->
                     <div :class="['p-row', { winner: session.winner === 'p2' }]">
                         <span class="p-icon">{{ session.winner === 'p2' ? '👑' : '👤' }}</span>
-                        <span class="p-name p2-text">P2 {{ session.p2.name }}</span>
+                        <span class="p-name p2-text">{{ session.p2.name }}</span>
                         <span class="p-score">{{ session.p2.score.toLocaleString() }}</span>
                     </div>
                 </div>
