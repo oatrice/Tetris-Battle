@@ -18,12 +18,27 @@
         <span class="player-label">{{ playerName || 'YOU' }}</span>
         <span class="controls-hint">WASD + Q/E or Arrows</span>
       </div>
-      <PlayerBoard 
-        :game="onlineGame" 
-        :showHold="true" 
-        :showNext="true"
-        playerColor="#00d4ff"
-      />
+      
+      <div class="board-wrapper" style="position: relative;">
+          <PlayerBoard 
+            :game="onlineGame" 
+            :showHold="true" 
+            :showNext="true"
+            playerColor="#00d4ff"
+          />
+          
+          <!-- Waiting / Countdown Overlay -->
+          <div v-if="isWaiting || (onlineGame.countdown !== null)" class="board-overlay">
+             <div v-if="isWaiting" class="overlay-content">
+                 <div class="spinner"></div>
+                 <p>Waiting...</p>
+             </div>
+             <div v-if="onlineGame.countdown !== null" class="overlay-content">
+                 <span class="countdown-number">{{ onlineGame.countdown === 0 ? 'GO!' : onlineGame.countdown }}</span>
+             </div>
+          </div>
+      </div>
+
       <div class="player-stats">
         <span class="score">{{ onlineGame.score }}</span>
         <span>L{{ onlineGame.level }} • {{ onlineGame.linesCleared }}</span>
@@ -251,8 +266,6 @@ onUnmounted(() => {
     cursor: pointer;
 }
 
-/* Existing styles... */
-
 .player-section {
   display: flex;
   flex-direction: column;
@@ -366,5 +379,40 @@ onUnmounted(() => {
     flex-direction: column;
     gap: 1rem;
     align-items: center;
+}
+
+.board-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    border-radius: 4px; /* match board radius if any */
+}
+
+.overlay-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: white;
+    font-weight: bold;
+}
+
+.countdown-number {
+    font-size: 5rem;
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
 }
 </style>

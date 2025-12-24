@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { ref, onMounted, onUnmounted, defineAsyncComponent, reactive } from 'vue'
 import { Game } from '~/game/Game'
 import { SpecialGame } from '~/game/SpecialGame'
 import { DuoGame } from '~/game/DuoGame'
@@ -78,38 +78,40 @@ const DROP_INTERVAL = 1000
 // ============ Mode Selection ============
 const startSolo = () => {
   gameMode.value = 'solo'
-  soloGame.value = new Game()
+  soloGame.value = reactive(new Game()) as Game
   startGameLoop()
 }
 
 const startSpecial = () => {
   gameMode.value = 'special'
-  soloGame.value = new SpecialGame()
+  soloGame.value = reactive(new SpecialGame()) as SpecialGame
   startGameLoop()
 }
 
 const startDuo = () => {
   gameMode.value = 'duo'
-  duoGame.value = new DuoGame()
+  duoGame.value = reactive(new DuoGame()) as DuoGame
   startGameLoop()
 }
 
 const startOnline = () => {
   gameMode.value = 'online'
-  onlineGame.value = new OnlineGame()
+  const game = reactive(new OnlineGame()) as OnlineGame
+  game.init() // Call init on the reactive proxy
+  onlineGame.value = game
   startGameLoop()
 }
 
 const restartGame = () => {
   if (gameMode.value === 'special') {
-    soloGame.value = new SpecialGame()
+    soloGame.value = reactive(new SpecialGame()) as SpecialGame
   } else {
-    soloGame.value = new Game()
+    soloGame.value = reactive(new Game()) as Game
   }
 }
 
 const restartDuo = () => {
-  duoGame.value = new DuoGame()
+  duoGame.value = reactive(new DuoGame()) as DuoGame
 }
 
 const backToMenu = () => {
@@ -154,7 +156,9 @@ const startGameLoop = () => {
       } else if (gameMode.value === 'duo' && duoGame.value) {
         duoGame.value.tick()
       } else if (gameMode.value === 'online' && onlineGame.value && !onlineGame.value.isGameOver && onlineGame.value.isOpponentConnected) {
-         onlineGame.value.moveDown()
+         if (onlineGame.value.countdown === null) {
+             onlineGame.value.moveDown()
+         }
       }
       lastUpdate = timestamp
     }
@@ -190,6 +194,7 @@ const handleSoloControls = (e: KeyboardEvent) => {
 
 const handleOnlineControls = (e: KeyboardEvent) => {
   if (!onlineGame.value || onlineGame.value.isGameOver || !onlineGame.value.isOpponentConnected) return
+  if (onlineGame.value.countdown !== null) return
   
   switch (e.key) {
     case 'ArrowLeft': 

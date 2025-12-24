@@ -10,27 +10,36 @@ export class OnlineGame extends Game {
     opponentScore = 0
     opponentLines = 0
     opponentId: string | null = null
+    opponentName: string | null = null
+
+    // Countdown Logic
+    countdown: number | null = null
+    timer: any = null
 
     constructor() {
         super()
-        this.initSocket()
         this.opponentBoard = Array(20).fill(null).map(() => Array(10).fill(0))
+    }
+
+    // Public init method to be called AFTER reactive() wrapping
+    public init() {
+        this.initSocket()
     }
 
     private initSocket() {
         socketService.connect().then(() => {
             console.log('OnlineGame connected to socket')
-            socketService.send('join_game')
         }).catch(err => {
             console.error('OnlineGame connection failed', err)
         })
 
         socketService.on('game_start', (payload: any) => {
-            console.log('Game Started vs', payload.opponentId)
+            console.log('Game Started vs', payload.opponentName)
             this.opponentId = payload.opponentId
+            this.opponentName = payload.opponentName
             this.isOpponentConnected = true
             this.reset()
-            this.start()
+            this.startCountdown()
         })
 
         socketService.on('game_state', (payload: any) => {
@@ -50,6 +59,7 @@ export class OnlineGame extends Game {
             alert('Opponent disconnected!')
             this.isOpponentConnected = false
             this.isGameOver = true
+            if (this.timer) clearInterval(this.timer)
         })
 
         socketService.on('waiting_for_opponent', () => {
@@ -57,15 +67,35 @@ export class OnlineGame extends Game {
         })
     }
 
-    // Override lockPiece to capture when a piece is placed and broadcast state
+    joinGame(name: string) {
+        socketService.send('join_game', { name })
+    }
+
+    private startCountdown() {
+        this.countdown = 3
+        this.timer = setInterval(() => {
+            if (this.countdown !== null) {
+                this.countdown--
+                if (this.countdown <= 0) {
+                    clearInterval(this.timer)
+                    this.countdown = null
+                    this.start()
+                }
+            }
+        }, 1000)
+    }
+
+    override moveDown() {
+        if (this.countdown !== null) return false
+        return super.moveDown()
+    }
+
     protected override lockPiece() {
         const linesBefore = this.linesCleared
         super.lockPiece()
 
-        // Broadcast State
         this.broadcastState()
 
-        // Check for Attack
         const linesDiff = this.linesCleared - linesBefore
         if (linesDiff >= 2) {
             const garbage = this.calculateGarbage(linesDiff)
@@ -75,7 +105,6 @@ export class OnlineGame extends Game {
         }
     }
 
-    // Send State
     broadcastState() {
         if (!this.isOpponentConnected) return
 
@@ -110,17 +139,15 @@ export class OnlineGame extends Game {
         const width = this.board.width
         const height = this.board.height
 
-        // Shift up
         for (let y = 0; y < height - 1; y++) {
             for (let x = 0; x < width; x++) {
                 this.board.grid[y][x] = this.board.grid[y + 1][x]
             }
         }
 
-        // Add bottom garbage
         const hole = Math.floor(Math.random() * width)
         for (let x = 0; x < width; x++) {
-            this.board.grid[height - 1][x] = (x === hole) ? 0 : 8 // 8 = garbage
+            this.board.grid[height - 1][x] = (x === hole) ? 0 : 8
         }
     }
 
@@ -134,9 +161,9 @@ export class OnlineGame extends Game {
 
     cleanup() {
         socketService.disconnect()
+        if (this.timer) clearInterval(this.timer)
     }
 
-    // Helper to start game manually if needed or reset
     reset() {
         this.board.clear()
         this.score = 0
