@@ -13,7 +13,10 @@ export default defineNuxtConfig({
   },
 
   vite: {
-    plugins: [gitVersionPlugin()]
+    plugins: [gitVersionPlugin()],
+    server: {
+      allowedHosts: true  // Allow ngrok and other tunnels
+    }
   },
 
   css: ['~/assets/css/global.css']
