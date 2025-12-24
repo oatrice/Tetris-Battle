@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.1.0] - 2025-12-24
+
+### Added
+- **Special Mode Cascade**: Implemented a new "special mode cascade" feature, allowing for sequential activation of special game modes. This enhances gameplay variety and strategic depth.
+
 ## [3.0.1] - 2025-12-23
 
 ### Added
