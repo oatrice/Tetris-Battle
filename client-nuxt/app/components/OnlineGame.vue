@@ -1,5 +1,8 @@
 <template>
-  <div class="online-area">
+  <div class="online-area" 
+       @touchstart="handleTouchStart" 
+       @touchmove="handleTouchMove" 
+       @touchend="handleTouchEnd">
     <!-- Name Input Overlay -->
     <div v-if="showNameInput" class="name-overlay">
         <div class="name-box">
@@ -96,6 +99,7 @@
 import { ref, onMounted, onUnmounted, defineAsyncComponent, computed } from 'vue'
 import { OnlineGame } from '~/game/OnlineGame'
 import { COLORS } from '~/game/shapes'
+import { InputHandler, GameAction } from '~/game/InputHandler'
 
 const PlayerBoard = defineAsyncComponent(() => import('./PlayerBoard.vue'))
 
@@ -115,6 +119,59 @@ const joinGame = () => {
     if (!playerName.value.trim()) return
     props.onlineGame.joinGame(playerName.value.trim())
     showNameInput.value = false
+}
+
+// ============ Mobile Touch Controls ============
+const inputHandler = new InputHandler()
+
+const executeAction = (action: GameAction | null) => {
+    if (!action) return
+    // Don't process if game not ready
+    if (props.onlineGame.isPaused || props.onlineGame.isGameOver || !props.onlineGame.isOpponentConnected) return
+    if (props.onlineGame.countdown !== null) return
+    
+    switch (action) {
+        case GameAction.MOVE_LEFT:
+            props.onlineGame.moveLeft()
+            break
+        case GameAction.MOVE_RIGHT:
+            props.onlineGame.moveRight()
+            break
+        case GameAction.ROTATE_CW:
+            props.onlineGame.rotate()
+            break
+        case GameAction.SOFT_DROP:
+            props.onlineGame.moveDown()
+            break
+        case GameAction.HARD_DROP:
+            props.onlineGame.hardDrop()
+            break
+        case GameAction.HOLD:
+            props.onlineGame.hold()
+            break
+        case GameAction.PAUSE:
+            props.onlineGame.togglePause()
+            break
+    }
+}
+
+const handleTouchStart = (e: TouchEvent) => {
+    // Don't hijack input field touches
+    if ((e.target as HTMLElement).tagName === 'INPUT') return
+    inputHandler.handleTouchStart(e)
+}
+
+const handleTouchMove = (e: TouchEvent) => {
+    if ((e.target as HTMLElement).tagName === 'INPUT') return
+    e.preventDefault() // Prevent scrolling
+    const action = inputHandler.handleTouchMove(e)
+    executeAction(action)
+}
+
+const handleTouchEnd = (e: TouchEvent) => {
+    if ((e.target as HTMLElement).tagName === 'INPUT') return
+    const action = inputHandler.handleTouchEnd(e)
+    executeAction(action)
 }
 
 const CELL_SIZE = 24
