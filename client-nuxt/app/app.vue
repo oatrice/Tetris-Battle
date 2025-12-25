@@ -118,7 +118,16 @@ const startDuo = () => {
 const startOnline = () => {
   gameMode.value = 'online'
   const game = reactive(new OnlineGame()) as OnlineGame
-  game.init(config.public.wsUrl) // Pass wsUrl from runtime config
+  
+  let wsUrl = config.public.wsUrl
+  // Auto-detect if running on same port (Serving from Go)
+  if (import.meta.client && window.location.port === '8080') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      wsUrl = `${protocol}//${window.location.host}/ws`
+      console.log('Auto-detected WS URL:', wsUrl)
+  }
+
+  game.init(wsUrl)
   onlineGame.value = game
   startGameLoop()
 }

@@ -260,7 +260,12 @@ func main() {
 		go client.readPump()
 	})
 
+	// Serve static files (Frontend)
+	fs := http.FileServer(http.Dir("./public"))
+	http.Handle("/", fs)
+
 	log.Println("Server started on :8080")
+	// Allow external access (bind to 0.0.0.0 is default for :8080)
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
