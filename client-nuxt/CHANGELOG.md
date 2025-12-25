@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.5.0] - 2025-12-25
+
+### Added
+- **P1 Touch Controls**: Introduced a new set of touch controls specifically for Player 1, enhancing mobile and touch-screen gameplay accessibility.
+
 ## [3.4.0] - 2025-12-25
 
 ### Added
