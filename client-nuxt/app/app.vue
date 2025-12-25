@@ -43,6 +43,7 @@
     <div v-else-if="gameMode === 'online'" class="online-area">
       <OnlineGameComponent 
         :onlineGame="onlineGame!" 
+        mode="online"
         @back="backToMenu" 
       />
     </div>
@@ -58,6 +59,7 @@
       <OnlineGameComponent 
         v-else
         :onlineGame="onlineGame!" 
+        mode="lan"
         @back="backToMenu" 
       />
     </div>

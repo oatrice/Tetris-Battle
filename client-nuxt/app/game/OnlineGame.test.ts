@@ -42,6 +42,18 @@ describe('OnlineGame game_over handling', () => {
         vi.clearAllMocks()
     })
 
+    describe('receiving game_start event', () => {
+        it('should extraction matchId from payload', () => {
+            triggerEvent('game_start', {
+                opponentId: 'op1',
+                opponentName: 'Opponent',
+                matchId: 'room-12345'
+            })
+            expect(game.matchId).toBe('room-12345')
+            expect(game.opponentId).toBe('op1')
+        })
+    })
+
     describe('receiving game_over event', () => {
         it('should set isWinner=true when opponent loses (and self not game over)', () => {
             // Precondition: self is still playing
@@ -98,6 +110,17 @@ describe('OnlineGame game_over handling', () => {
             triggerEvent('game_over')
 
             expect(game.winScore).toBe(5000)
+        })
+    })
+
+    describe('Attack Mode Logic', () => {
+        it('should default to garbage mode', () => {
+            expect(game.attackMode).toBe('garbage')
+        })
+
+        it('should allow changing attack mode', () => {
+            game.attackMode = 'lines'
+            expect(game.attackMode).toBe('lines')
         })
     })
 })

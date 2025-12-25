@@ -29,12 +29,15 @@ export interface DuoMatchResult {
 export interface OnlineMatchResult {
     id: string
     date: string
+    gameMode: 'online' | 'lan'  // Distinguish between Online and LAN
     isWinner: boolean
     playerName: string
     opponentName: string
     winScore: number | null     // Score at time of winning (null if lost)
     maxScore: number            // Max score (after continue playing)
     opponentScore: number       // Opponent's final score
+    duration: number            // Game duration in seconds
+    matchId?: string            // Server-assigned match ID (optional for backward compatibility)
 }
 
 export class LeaderboardService {

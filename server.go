@@ -120,12 +120,13 @@ func toJson(v interface{}) []byte {
 	return b
 }
 
-func (c *Client) sendGameStart(opponentId string, opponentName string) {
+func (c *Client) sendGameStart(opponentId string, opponentName string, matchId string) {
 	c.send <- toJson(Message{
 		Type: "game_start",
 		Payload: map[string]string{
 			"opponentId":   opponentId,
 			"opponentName": opponentName,
+			"matchId":      matchId,
 		},
 	})
 }
@@ -214,10 +215,10 @@ func (c *Client) handleMessage(msg Message) {
 			c.hub.mu.Unlock()
 
 			// Notify Start
-			c.sendGameStart(opponent.id, opponent.name)
-			opponent.sendGameStart(c.id, c.name)
+			c.sendGameStart(opponent.id, opponent.name, roomID)
+			opponent.sendGameStart(c.id, c.name, roomID)
 
-			log.Printf("Match started: %s (%s) vs %s (%s)", c.id, c.name, opponent.id, opponent.name)
+			log.Printf("Match started: %s (%s) vs %s (%s) in Room %s", c.id, c.name, opponent.id, opponent.name, roomID)
 
 		} else {
 			// Wait
@@ -251,7 +252,7 @@ func main() {
 			hub:  hub,
 			conn: conn,
 			send: make(chan []byte, 256),
-			id:   fmt.Sprintf("user-%d", time.Now().UnixNano()),
+			id:   fmt.Sprintf("%d", time.Now().UnixNano()),
 		}
 		client.hub.register <- client
 
@@ -260,8 +261,7 @@ func main() {
 	})
 
 	log.Println("Server started on :8080")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
+	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }

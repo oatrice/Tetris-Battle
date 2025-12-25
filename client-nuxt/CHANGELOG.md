@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.8.0] - 2025-12-25
+
+### Added
+- **Online Game Duration Tracking**: Implemented the ability to track the duration of online game sessions. This feature provides data on how long each online match lasts.
+
 ## [3.7.0] - 2025-12-25
 
 ### Added

@@ -349,12 +349,14 @@ describe('LeaderboardService', () => {
         it('should add and retrieve online match (winner)', () => {
             const result = LeaderboardService.addOnlineMatch({
                 date: '2024-01-01',
+                gameMode: 'online',
                 isWinner: true,
                 playerName: 'Oatrice',
                 opponentName: 'Eve',
                 winScore: 1500,
                 maxScore: 2300,
-                opponentScore: 800
+                opponentScore: 800,
+                duration: 300
             })
 
             expect(result.id).toBeTruthy()
@@ -370,12 +372,14 @@ describe('LeaderboardService', () => {
         it('should add online match (loser)', () => {
             const result = LeaderboardService.addOnlineMatch({
                 date: '2024-01-01',
+                gameMode: 'lan',
                 isWinner: false,
                 playerName: 'Eve',
                 opponentName: 'Oatrice',
                 winScore: null,
                 maxScore: 800,
-                opponentScore: 1500
+                opponentScore: 1500,
+                duration: 250
             })
 
             expect(result.isWinner).toBe(false)
@@ -388,22 +392,26 @@ describe('LeaderboardService', () => {
         it('should keep history sorted by newest first (unshift)', () => {
             LeaderboardService.addOnlineMatch({
                 date: '2024-01-01',
+                gameMode: 'online',
                 isWinner: true,
                 playerName: 'OldMatch',
                 opponentName: 'Opponent',
                 winScore: 1000,
                 maxScore: 1000,
-                opponentScore: 500
+                opponentScore: 500,
+                duration: 100
             })
 
             LeaderboardService.addOnlineMatch({
                 date: '2024-01-02',
+                gameMode: 'lan',
                 isWinner: false,
                 playerName: 'NewMatch',
                 opponentName: 'Opponent',
                 winScore: null,
                 maxScore: 2000,
-                opponentScore: 2500
+                opponentScore: 2500,
+                duration: 200
             })
 
             const history = LeaderboardService.getOnlineLeaderboard()
@@ -417,12 +425,14 @@ describe('LeaderboardService', () => {
             for (let i = 0; i < 51; i++) {
                 LeaderboardService.addOnlineMatch({
                     date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+                    gameMode: i % 2 === 0 ? 'online' : 'lan',
                     isWinner: i % 2 === 0,
                     playerName: `Player${i}`,
                     opponentName: 'Opponent',
                     winScore: i % 2 === 0 ? i * 100 : null,
                     maxScore: i * 100,
-                    opponentScore: 500
+                    opponentScore: 500,
+                    duration: 100 + i
                 })
             }
 
@@ -434,12 +444,14 @@ describe('LeaderboardService', () => {
         it('should clear online matches', () => {
             LeaderboardService.addOnlineMatch({
                 date: '2024-01-01',
+                gameMode: 'online',
                 isWinner: true,
                 playerName: 'Oatrice',
                 opponentName: 'Eve',
                 winScore: 1500,
                 maxScore: 1500,
-                opponentScore: 800
+                opponentScore: 800,
+                duration: 300
             })
 
             LeaderboardService.clearOnlineMatches()
