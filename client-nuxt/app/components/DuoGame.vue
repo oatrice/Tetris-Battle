@@ -1,5 +1,8 @@
 <template>
-  <div class="duo-area">
+  <div class="duo-area"
+       @touchstart="handleTouchStart" 
+       @touchmove="handleTouchMove" 
+       @touchend="handleTouchEnd">
     <!-- Player 1 Board -->
     <div class="player-section">
       <div class="player-header p1">
@@ -94,12 +97,49 @@ import { DuoGame } from '~/game/DuoGame'
 import PlayerBoard from '~/components/PlayerBoard.vue'
 import { DuoStatsService } from '~/services/DuoStatsService'
 import { LeaderboardService } from '~/services/LeaderboardService'
+import { useTouchControls } from '~/composables/useTouchControls'
+import { GameAction } from '~/game/InputHandler'
 
 const props = defineProps<{
   duoGame: DuoGame
 }>()
 
 const emit = defineEmits(['restart', 'back', 'show-leaderboard'])
+
+// ============ Mobile Touch Controls for P1 ============
+const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchControls(
+    () => props.duoGame.player1,
+    {
+        checkPause: false, // We check duoGame.isPaused, not player1.isPaused
+        customAction: (action: GameAction) => {
+            if (props.duoGame.isPaused || props.duoGame.winner) return
+            
+            switch (action) {
+                case GameAction.MOVE_LEFT:
+                    props.duoGame.p1MoveLeft()
+                    break
+                case GameAction.MOVE_RIGHT:
+                    props.duoGame.p1MoveRight()
+                    break
+                case GameAction.ROTATE_CW:
+                    props.duoGame.p1Rotate()
+                    break
+                case GameAction.SOFT_DROP:
+                    props.duoGame.p1MoveDown()
+                    break
+                case GameAction.HARD_DROP:
+                    props.duoGame.p1HardDrop()
+                    break
+                case GameAction.HOLD:
+                    props.duoGame.p1Hold()
+                    break
+                case GameAction.PAUSE:
+                    props.duoGame.togglePause()
+                    break
+            }
+        }
+    }
+)
 
 // Stats
 const stats = ref({ p1Wins: 0, p2Wins: 0 })

@@ -132,7 +132,7 @@ import { ref, onMounted, watch, defineAsyncComponent, computed } from 'vue'
 import { Game } from '~/game/Game'
 import { SpecialGame, EffectType, EFFECT_LABELS, type LineClearEffect, type WaveEffect, type Particle } from '~/game/SpecialGame'
 import { COLORS } from '~/game/shapes'
-import { InputHandler, GameAction } from '~/game/InputHandler'
+import { useTouchControls } from '~/composables/useTouchControls'
 import { LeaderboardService, type GameMode } from '~/services/LeaderboardService'
 
 const MiniPiece = defineAsyncComponent(() => import('./MiniPiece.vue'))
@@ -152,7 +152,20 @@ const canvasWidth = BOARD_WIDTH * CELL_SIZE
 const canvasHeight = BOARD_HEIGHT * CELL_SIZE
 
 const canvas = ref<HTMLCanvasElement | null>(null)
-const inputHandler = new InputHandler()
+// ============ Mobile Touch Controls (using composable) ============
+const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchControls(
+    () => props.game,
+    {
+        checkPause: true,
+        onHold: () => {
+            // Special mode: Hold only works if not cascading
+            if (props.isSpecialMode && 'isCascading' in props.game && (props.game as any).isCascading) {
+                return // Don't hold during cascade
+            }
+            props.game.hold()
+        }
+    }
+)
 const selectedEffect = ref<EffectType>(EffectType.EXPLOSION)
 const showGhost = ref(false)
 const effectLabels = EFFECT_LABELS
@@ -260,51 +273,7 @@ const onEffectChange = () => {
   }
 }
 
-// ============ Touch Handlers ============
-const handleTouchStart = (event: TouchEvent) => {
-  inputHandler.handleTouchStart(event)
-}
-
-const handleTouchMove = (event: TouchEvent) => {
-  const action = inputHandler.handleTouchMove(event)
-  if (action) executeAction(action)
-}
-
-const handleTouchEnd = (event: TouchEvent) => {
-  const action = inputHandler.handleTouchEnd(event)
-  if (action) executeAction(action)
-}
-
-const executeAction = (action: GameAction) => {
-  if (props.game.isGameOver) return
-  
-  switch (action) {
-    case GameAction.MOVE_LEFT:
-      props.game.moveLeft()
-      break
-    case GameAction.MOVE_RIGHT:
-      props.game.moveRight()
-      break
-    case GameAction.ROTATE_CW:
-      props.game.rotate()
-      break
-    case GameAction.SOFT_DROP:
-      props.game.moveDown()
-      break
-    case GameAction.HARD_DROP:
-      props.game.hardDrop()
-      break
-    case GameAction.HOLD:
-      // Hold only works in Special mode and not while cascading
-      if (props.isSpecialMode && !('isCascading' in props.game && (props.game as any).isCascading)) {
-        props.game.hold()
-      }
-      break
-    case GameAction.PAUSE:
-      props.game.togglePause()
-      break
-  }
-}
+// Touch handlers are now provided by useTouchControls composable (see line ~155)
 
 const renderGame = () => {
   const ctx = canvas.value?.getContext('2d')

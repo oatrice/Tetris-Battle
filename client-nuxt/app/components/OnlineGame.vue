@@ -1,5 +1,8 @@
 <template>
-  <div class="online-area">
+  <div class="online-area" 
+       @touchstart="handleTouchStart" 
+       @touchmove="handleTouchMove" 
+       @touchend="handleTouchEnd">
     <!-- Name Input Overlay -->
     <div v-if="showNameInput" class="name-overlay">
         <div class="name-box">
@@ -96,6 +99,7 @@
 import { ref, onMounted, onUnmounted, defineAsyncComponent, computed } from 'vue'
 import { OnlineGame } from '~/game/OnlineGame'
 import { COLORS } from '~/game/shapes'
+import { useTouchControls } from '~/composables/useTouchControls'
 
 const PlayerBoard = defineAsyncComponent(() => import('./PlayerBoard.vue'))
 
@@ -116,6 +120,16 @@ const joinGame = () => {
     props.onlineGame.joinGame(playerName.value.trim())
     showNameInput.value = false
 }
+
+// ============ Mobile Touch Controls (using composable) ============
+const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchControls(
+    () => props.onlineGame,
+    {
+        checkPause: true,
+        checkCountdown: () => props.onlineGame.countdown !== null,
+        checkOpponentConnected: () => props.onlineGame.isOpponentConnected
+    }
+)
 
 const CELL_SIZE = 24
 const BOARD_WIDTH = 10

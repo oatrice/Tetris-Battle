@@ -71,6 +71,9 @@ const duoGame = ref<DuoGame | null>(null)
 const onlineGame = ref<OnlineGame | null>(null)
 const showLeaderboard = ref(false)
 
+// Get runtime config for WebSocket URL
+const config = useRuntimeConfig()
+
 let animationId: number | null = null
 let lastUpdate = 0
 const DROP_INTERVAL = 1000
@@ -97,7 +100,7 @@ const startDuo = () => {
 const startOnline = () => {
   gameMode.value = 'online'
   const game = reactive(new OnlineGame()) as OnlineGame
-  game.init() // Call init on the reactive proxy
+  game.init(config.public.wsUrl) // Pass wsUrl from runtime config
   onlineGame.value = game
   startGameLoop()
 }

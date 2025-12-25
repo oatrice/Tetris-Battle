@@ -39,7 +39,7 @@ export class InputHandler {
     private touchStartTime: number = 0
     private touchMoved: boolean = false
 
-    private readonly SWIPE_THRESHOLD = 30
+    private readonly SWIPE_THRESHOLD = 10  // Lower = faster DAS movement
     private readonly TAP_THRESHOLD = 10
     private readonly LONG_PRESS_THRESHOLD = 200 // ms
 
