@@ -9,6 +9,7 @@
         <button @click="startSpecial" class="mode-btn special">✨ Special</button>
         <button @click="startDuo" class="mode-btn duo">👥 Duo</button>
         <button @click="startOnline" class="mode-btn online">🌐 Online</button>
+        <button @click="startLAN" class="mode-btn lan">📡 LAN</button>
         <button @click="showLeaderboard = true" class="mode-btn leaderboard">🏆 Leaderboard</button>
       </div>
     </div>
@@ -45,6 +46,11 @@
         @back="backToMenu" 
       />
     </div>
+
+    <!-- LAN Mode -->
+    <div v-else-if="gameMode === 'lan'" class="lan-area">
+      <LANGameComponent @back="backToMenu" />
+    </div>
   </div>
 </template>
 
@@ -55,14 +61,14 @@ import { SpecialGame } from '~/game/SpecialGame'
 import { DuoGame } from '~/game/DuoGame'
 import { OnlineGame } from '~/game/OnlineGame'
 
-// Async components
 const SoloGame = defineAsyncComponent(() => import('~/components/SoloGame.vue'))
 const DuoGameComponent = defineAsyncComponent(() => import('~/components/DuoGame.vue'))
 const OnlineGameComponent = defineAsyncComponent(() => import('~/components/OnlineGame.vue'))
+const LANGameComponent = defineAsyncComponent(() => import('~/components/LANGame.vue'))
 const VersionInfo = defineAsyncComponent(() => import('~/components/VersionInfo.vue'))
 const Leaderboard = defineAsyncComponent(() => import('~/components/Leaderboard.vue'))
 
-type GameMode = 'solo' | 'special' | 'duo' | 'online' | null
+type GameMode = 'solo' | 'special' | 'duo' | 'online' | 'lan' | null
 
 const gameContainer = ref<HTMLDivElement | null>(null)
 const gameMode = ref<GameMode>(null)
@@ -103,6 +109,11 @@ const startOnline = () => {
   game.init(config.public.wsUrl) // Pass wsUrl from runtime config
   onlineGame.value = game
   startGameLoop()
+}
+
+const startLAN = () => {
+  gameMode.value = 'lan'
+  // LANGame component handles its own OnlineGame instance
 }
 
 const restartGame = () => {
@@ -336,6 +347,11 @@ h1 {
   color: white;
 }
 
+.mode-btn.lan {
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  color: #1a1a2e;
+}
+
 .mode-btn:hover {
   transform: scale(1.05);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -348,7 +364,7 @@ h1 {
 }
 
 /* Duos */
-.duo-area, .online-area {
+.duo-area, .online-area, .lan-area {
   display: flex;
   justify-content: center;
   align-items: flex-start;
