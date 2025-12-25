@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineAsyncComponent, reactive } from 'vue'
+import { ref, defineAsyncComponent, reactive, onMounted, onUnmounted } from 'vue'
 import { OnlineGame } from '~/game/OnlineGame'
 
 const OnlineGameComponent = defineAsyncComponent(() => import('./OnlineGame.vue'))
@@ -100,6 +100,42 @@ const localIP = ref('localhost')  // Default to localhost for PC testing
 const connecting = ref(false)
 const error = ref('')
 const lanGame = ref<OnlineGame | null>(null)
+
+// Game Loop
+const DROP_INTERVAL = 1000
+let animationId: number | null = null
+let lastUpdate = 0
+
+const startGameLoop = () => {
+  const gameLoop = (timestamp: number) => {
+    if (!lanGame.value) {
+      animationId = null
+      return
+    }
+    
+    // Auto drop every DROP_INTERVAL ms
+    if (timestamp - lastUpdate > DROP_INTERVAL) {
+      if (lanGame.value && 
+          !lanGame.value.isGameOver && 
+          lanGame.value.isOpponentConnected &&
+          lanGame.value.countdown === null && 
+          !lanGame.value.isPaused) {
+        lanGame.value.moveDown()
+      }
+      lastUpdate = timestamp
+    }
+    
+    animationId = requestAnimationFrame(gameLoop)
+  }
+  animationId = requestAnimationFrame(gameLoop)
+}
+
+const stopGameLoop = () => {
+  if (animationId) {
+    cancelAnimationFrame(animationId)
+    animationId = null
+  }
+}
 
 // Detect if we're likely on mobile or desktop
 const detectLocalIP = () => {
@@ -144,6 +180,9 @@ const connectToServer = async (ip: string) => {
     
     lanGame.value = game
     step.value = 'playing'
+    
+    // Start the game loop
+    startGameLoop()
   } catch (e: any) {
     error.value = `Connection failed: ${e.message || 'Unknown error'}`
   } finally {
@@ -152,6 +191,7 @@ const connectToServer = async (ip: string) => {
 }
 
 const leaveGame = () => {
+  stopGameLoop()
   if (lanGame.value) {
     lanGame.value.cleanup()
     lanGame.value = null
@@ -159,6 +199,13 @@ const leaveGame = () => {
   step.value = 'choose'
   emit('back')
 }
+
+onUnmounted(() => {
+  stopGameLoop()
+  if (lanGame.value) {
+    lanGame.value.cleanup()
+  }
+})
 </script>
 
 <style scoped>
