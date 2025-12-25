@@ -16,6 +16,8 @@ export interface TouchControlOptions {
     checkOpponentConnected?: () => boolean
     /** Custom hold behavior (e.g., Special mode restrictions) */
     onHold?: () => void
+    /** Custom action handler - overrides default game method calls (for DuoGame P1) */
+    customAction?: (action: GameAction) => void
 }
 
 export function useTouchControls(
@@ -41,6 +43,12 @@ export function useTouchControls(
 
         // Check opponent connected (Online mode)
         if (options.checkOpponentConnected && !options.checkOpponentConnected()) return
+
+        // Use custom action handler if provided (for DuoGame P1)
+        if (options.customAction) {
+            options.customAction(action)
+            return
+        }
 
         switch (action) {
             case GameAction.MOVE_LEFT:

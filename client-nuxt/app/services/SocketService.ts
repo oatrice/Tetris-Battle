@@ -8,7 +8,7 @@ export class SocketService {
 
     constructor() { }
 
-    connect(url: string = 'wss://reaches-comfort-dns-slots.trycloudflare.com/ws'): Promise<void> {
+    connect(url: string = 'https://accommodations-shot-bye-miles.trycloudflare.com/ws'): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
                 resolve()
