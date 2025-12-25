@@ -49,7 +49,17 @@
 
     <!-- LAN Mode -->
     <div v-else-if="gameMode === 'lan'" class="lan-area">
-      <LANGameComponent @back="backToMenu" />
+      <LANGameComponent 
+        v-if="!onlineGame"
+        :connected="!!onlineGame"
+        @back="backToMenu" 
+        @connect="connectLAN"
+      />
+      <OnlineGameComponent 
+        v-else
+        :onlineGame="onlineGame!" 
+        @back="backToMenu" 
+      />
     </div>
   </div>
 </template>
@@ -113,7 +123,14 @@ const startOnline = () => {
 
 const startLAN = () => {
   gameMode.value = 'lan'
-  // LANGame component handles its own OnlineGame instance
+  onlineGame.value = null // Reset until user connects
+}
+
+const connectLAN = (wsUrl: string) => {
+  const game = reactive(new OnlineGame()) as OnlineGame
+  game.init(wsUrl)
+  onlineGame.value = game
+  startGameLoop()
 }
 
 const restartGame = () => {
@@ -169,7 +186,7 @@ const startGameLoop = () => {
         }
       } else if (gameMode.value === 'duo' && duoGame.value) {
         duoGame.value.tick()
-      } else if (gameMode.value === 'online' && onlineGame.value && !onlineGame.value.isGameOver && onlineGame.value.isOpponentConnected) {
+      } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value && !onlineGame.value.isGameOver && onlineGame.value.isOpponentConnected) {
          if (onlineGame.value.countdown === null && !onlineGame.value.isPaused) {
              onlineGame.value.moveDown()
          }
@@ -187,11 +204,8 @@ const handleKeydown = (e: KeyboardEvent) => {
     handleSoloControls(e)
   } else if (gameMode.value === 'duo' && duoGame.value) {
     handleDuoControls(e)
-  } else if (gameMode.value === 'online' && onlineGame.value) {
+  } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value) {
     handleOnlineControls(e)
-  } else if (gameMode.value === 'lan') {
-    // LAN mode uses keyboard handlers inside LANGame component
-    // No action needed here - OnlineGame component handles it internally
   }
 }
 
