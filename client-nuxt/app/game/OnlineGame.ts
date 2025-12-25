@@ -11,6 +11,8 @@ export class OnlineGame extends Game {
     opponentLines = 0
     opponentId: string | null = null
     opponentName: string | null = null
+    opponentGameOver = false  // True when opponent lost
+    isWinner = false          // True when we won (opponent game over)
 
     // Countdown Logic
     countdown: number | null = null
@@ -78,6 +80,12 @@ export class OnlineGame extends Game {
                 console.log('Opponent resumed the game')
                 this.isPaused = false
             }
+        })
+
+        socketService.on('game_over', () => {
+            console.log('Opponent lost! You win!')
+            this.opponentGameOver = true
+            this.isWinner = true
         })
     }
 

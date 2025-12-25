@@ -64,8 +64,9 @@
           <span>🟢 Connected</span>
       </div>
       
-      <div v-if="onlineGame.isGameOver" class="game-over-box">
-          <span>GAME OVER</span>
+      <div v-if="onlineGame.isGameOver || onlineGame.isWinner" class="game-over-box">
+          <span v-if="onlineGame.isWinner" class="result-text win">🏆 YOU WIN!</span>
+          <span v-else class="result-text lose">GAME OVER</span>
           <button @click="emit('back')" class="back-btn">Exit</button>
       </div>
 
@@ -395,13 +396,32 @@ onUnmounted(() => {
 }
 
 .game-over-box {
-    color: #ff6b6b;
     font-weight: bold;
     font-size: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
     align-items: center;
+}
+
+.result-text {
+    font-size: 2rem;
+    font-weight: bold;
+    text-shadow: 0 0 20px currentColor;
+}
+
+.result-text.win {
+    color: #ffd700;
+    animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+.result-text.lose {
+    color: #ff6b6b;
+}
+
+@keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
 }
 
 .board-overlay {
