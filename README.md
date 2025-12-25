@@ -24,6 +24,19 @@ Please proceed to the `client-nuxt` directory for the latest version.
   npm run dev
   ```
 
+## 📱 Android Server App
+
+A native Android application that hosts the game server for local multiplayer matches.
+
+- **Directory:** [`/android-server`](./android-server)
+- **Tech Stack:** Kotlin, Android SDK, Java-WebSocket
+- **Features:** 
+  - Portable Game Server
+  - Real-time IP Display
+  - Connection Logging
+  - One-tap Start/Stop
+- **Setup:** Open `android-server` in Android Studio and run.
+
 ### Features
 
 | Mode | Description |
