@@ -44,3 +44,5 @@ client-ts/node_modules/.vite/vitest/results.json
 client-ts/node_modules/.vite/deps/_metadata.json
 client-ts/luma_pr_context.log
 tetris-server
+android-server/.gradle
+android-server/app/build
