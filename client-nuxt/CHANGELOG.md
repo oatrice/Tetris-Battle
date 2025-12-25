@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.6.0] - 2025-12-25
+
+### Added
+- **LAN Keyboard Controls**: Introduced keyboard controls for Local Area Network (LAN) gameplay, allowing players to control their characters directly via keyboard input in multiplayer sessions.
+
 ## [3.5.0] - 2025-12-25
 
 ### Added
