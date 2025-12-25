@@ -200,7 +200,44 @@ const leaveGame = () => {
   emit('back')
 }
 
+// ============ Keyboard Controls ============
+const handleKeydown = (e: KeyboardEvent) => {
+  if (!lanGame.value || lanGame.value.isGameOver || !lanGame.value.isOpponentConnected) return
+  if (lanGame.value.countdown !== null) return
+  
+  switch (e.key) {
+    case 'ArrowLeft': 
+    case 'a': lanGame.value.moveLeft(); break
+    
+    case 'ArrowRight': 
+    case 'd': lanGame.value.moveRight(); break
+    
+    case 'ArrowDown': 
+    case 's': lanGame.value.moveDown(); break
+    
+    case 'ArrowUp': 
+    case 'w': lanGame.value.rotate(); break
+    
+    case ' ': 
+    case 'Enter': e.preventDefault(); lanGame.value.hardDrop(); break
+    
+    case 'c': 
+    case 'C': 
+    case 'q':
+    case 'Q': lanGame.value.hold(); break
+
+    case 'p':
+    case 'P':
+    case 'Escape': lanGame.value.togglePause(); break
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
 onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
   stopGameLoop()
   if (lanGame.value) {
     lanGame.value.cleanup()

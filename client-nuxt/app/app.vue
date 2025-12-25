@@ -189,6 +189,9 @@ const handleKeydown = (e: KeyboardEvent) => {
     handleDuoControls(e)
   } else if (gameMode.value === 'online' && onlineGame.value) {
     handleOnlineControls(e)
+  } else if (gameMode.value === 'lan') {
+    // LAN mode uses keyboard handlers inside LANGame component
+    // No action needed here - OnlineGame component handles it internally
   }
 }
 
