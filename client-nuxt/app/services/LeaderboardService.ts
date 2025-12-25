@@ -7,7 +7,7 @@
  * - Sort by score descending
  */
 
-export type GameMode = 'solo' | 'special' | 'duo'
+export type GameMode = 'solo' | 'special' | 'duo' | 'online'
 
 export interface LeaderboardEntry {
     id: string    // Unique ID for update capability
@@ -24,6 +24,17 @@ export interface DuoMatchResult {
     winner: 'p1' | 'p2'
     p1: { name: string; score: number }
     p2: { name: string; score: number }
+}
+
+export interface OnlineMatchResult {
+    id: string
+    date: string
+    isWinner: boolean
+    playerName: string
+    opponentName: string
+    winScore: number | null     // Score at time of winning (null if lost)
+    maxScore: number            // Max score (after continue playing)
+    opponentScore: number       // Opponent's final score
 }
 
 export class LeaderboardService {
@@ -173,6 +184,45 @@ export class LeaderboardService {
 
         localStorage.setItem(this.STORAGE_KEY_DUO_SESSIONS, JSON.stringify(history))
         return newMatch
+    }
+
+    // ==========================================
+    // Online Match Methods
+    // ==========================================
+
+    private static STORAGE_KEY_ONLINE_MATCHES = 'tetris-leaderboard-online-matches'
+
+    static getOnlineLeaderboard(): OnlineMatchResult[] {
+        if (typeof localStorage === 'undefined') return []
+
+        const data = localStorage.getItem(this.STORAGE_KEY_ONLINE_MATCHES)
+        if (!data) return []
+
+        try {
+            return JSON.parse(data)
+        } catch {
+            return []
+        }
+    }
+
+    static addOnlineMatch(result: Omit<OnlineMatchResult, 'id'>): OnlineMatchResult {
+        const history = this.getOnlineLeaderboard()
+        const id = crypto.randomUUID()
+        const newMatch: OnlineMatchResult = { ...result, id }
+
+        history.unshift(newMatch) // Add to top (newest first)
+
+        // Keep last 50 matches
+        if (history.length > 50) {
+            history.pop()
+        }
+
+        localStorage.setItem(this.STORAGE_KEY_ONLINE_MATCHES, JSON.stringify(history))
+        return newMatch
+    }
+
+    static clearOnlineMatches(): void {
+        localStorage.removeItem(this.STORAGE_KEY_ONLINE_MATCHES)
     }
 }
 

@@ -11,6 +11,10 @@ export class OnlineGame extends Game {
     opponentLines = 0
     opponentId: string | null = null
     opponentName: string | null = null
+    opponentGameOver = false  // True when opponent lost
+    isWinner = false          // True when we won (opponent game over)
+    isDraw = false            // True when both players game over at same time
+    winScore: number | null = null  // Score at time of winning (for leaderboard)
 
     // Countdown Logic
     countdown: number | null = null
@@ -79,6 +83,24 @@ export class OnlineGame extends Game {
                 this.isPaused = false
             }
         })
+
+        socketService.on('game_over', () => {
+            // Guard: only process once
+            if (this.isWinner || this.opponentGameOver || this.isDraw) return
+
+            this.opponentGameOver = true
+
+            // Check if both game over at same time = Draw
+            if (this.isGameOver) {
+                console.log('Both players game over! Draw!')
+                this.isDraw = true
+            } else {
+                console.log('Opponent lost! You win!')
+                this.isWinner = true
+                this.isPaused = true  // Pause to show win message
+                this.winScore = this.score  // Record score at win time
+            }
+        })
     }
 
     joinGame(name: string) {
@@ -90,6 +112,14 @@ export class OnlineGame extends Game {
         const event = this.isPaused ? 'pause' : 'resume'
         console.log(`Sending ${event} signal`)
         socketService.send(event)
+    }
+
+    // Continue playing solo after winning (for high score)
+    continueAfterWin() {
+        if (this.isWinner) {
+            this.isPaused = false
+            console.log('Continuing solo play after winning')
+        }
     }
 
     private startCountdown() {

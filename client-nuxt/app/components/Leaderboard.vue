@@ -4,7 +4,6 @@
       <h2>🏆 Leaderboard</h2>
       
       <!-- Mode Tabs -->
-      <!-- Mode Tabs -->
       <div class="mode-tabs">
         <button 
           :class="['tab', { active: activeTab === 'solo' }]" 
@@ -24,13 +23,21 @@
         >
           👥 Duo
         </button>
+        <button 
+          :class="['tab', { active: activeTab === 'online' }]" 
+          @click="activeTab = 'online'"
+        >
+          🌐 Online
+        </button>
       </div>
       
-      <div v-if="entries.length === 0 && activeTab !== 'duo'" class="empty-state">
+      <!-- Empty State for Solo/Special -->
+      <div v-if="entries.length === 0 && (activeTab === 'solo' || activeTab === 'special')" class="empty-state">
         <p>ยังไม่มีสถิติ</p>
         <p class="hint">เล่น {{ activeTab === 'solo' ? 'Solo' : 'Special' }} mode เพื่อบันทึกคะแนน!</p>
       </div>
 
+      <!-- Duo Sessions -->
       <div v-else-if="activeTab === 'duo'" class="duo-container">
         <div v-if="duoSessions.length === 0" class="empty-state">
             <p>ยังไม่มีการแข่งขัน Duo</p>
@@ -54,6 +61,59 @@
                         <span class="p-icon">{{ session.winner === 'p2' ? '👑' : '👤' }}</span>
                         <span class="p-name p2-text">{{ session.p2.name }}</span>
                         <span class="p-score">{{ session.p2.score.toLocaleString() }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      <!-- Online Match History -->
+      <div v-else-if="activeTab === 'online'" class="online-container">
+        <div v-if="onlineMatches.length === 0" class="empty-state">
+            <p>ยังไม่มีการแข่งขัน Online</p>
+            <p class="hint">เล่น Online/LAN mode แล้วบันทึกผลการแข่งขัน!</p>
+        </div>
+        <div v-else class="session-list">
+            <div v-for="(match, index) in onlineMatches" :key="match.id" class="session-card">
+                <div class="session-header">
+                    <span class="match-id">Match #{{ onlineMatches.length - index }}</span>
+                    <span class="match-date">{{ new Date(match.date).toLocaleString() }}</span>
+                </div>
+                <div class="online-result">
+                    <!-- Result Badge -->
+                    <div class="result-badge" :class="match.isWinner ? 'win' : 'lose'">
+                        {{ match.isWinner ? '🏆 WIN' : '❌ LOSE' }}
+                    </div>
+                    
+                    <!-- Player -->
+                    <div class="online-player">
+                        <span class="player-label">You:</span>
+                        <span class="player-name">{{ match.playerName }}</span>
+                    </div>
+                    
+                    <!-- Scores -->
+                    <div v-if="match.isWinner" class="score-info">
+                        <div class="score-row">
+                            <span class="score-label">Win Score:</span>
+                            <span class="score-value gold">{{ match.winScore?.toLocaleString() ?? '-' }}</span>
+                        </div>
+                        <div v-if="match.maxScore > (match.winScore ?? 0)" class="score-row">
+                            <span class="score-label">Max Score:</span>
+                            <span class="score-value green">{{ match.maxScore.toLocaleString() }}</span>
+                        </div>
+                    </div>
+                    <div v-else class="score-info">
+                        <div class="score-row">
+                            <span class="score-label">Your Score:</span>
+                            <span class="score-value">{{ match.maxScore.toLocaleString() }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Opponent -->
+                    <div class="opponent-info">
+                        <span class="vs-text">vs</span>
+                        <span class="opponent-name">{{ match.opponentName }}</span>
+                        <span class="opponent-score">({{ match.opponentScore.toLocaleString() }})</span>
                     </div>
                 </div>
             </div>
@@ -99,7 +159,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { LeaderboardService, type LeaderboardEntry, type GameMode, type DuoMatchResult } from '~/services/LeaderboardService'
+import { LeaderboardService, type LeaderboardEntry, type GameMode, type DuoMatchResult, type OnlineMatchResult } from '~/services/LeaderboardService'
 
 const props = defineProps<{
   highlightRank?: number
@@ -112,13 +172,18 @@ defineEmits(['close'])
 const activeTab = ref<GameMode>(props.initialTab ?? 'solo')
 
 const entries = computed<LeaderboardEntry[]>(() => {
-    if (activeTab.value === 'duo') return []
+    if (activeTab.value === 'duo' || activeTab.value === 'online') return []
     return LeaderboardService.getLeaderboard(activeTab.value)
 })
 
 const duoSessions = computed<DuoMatchResult[]>(() => {
     if (activeTab.value !== 'duo') return []
     return LeaderboardService.getDuoLeaderboard()
+})
+
+const onlineMatches = computed<OnlineMatchResult[]>(() => {
+    if (activeTab.value !== 'online') return []
+    return LeaderboardService.getOnlineLeaderboard()
 })
 </script>
 
@@ -240,6 +305,109 @@ h2 {
 .p-score { font-family: monospace; font-size: 1.1rem; color: #eee; }
 
 .winner .p-score { color: #ffd700; font-weight: bold; }
+
+/* Online Match Styles */
+.online-container {
+    overflow-y: auto;
+    max-height: 400px;
+    padding-right: 0.5rem;
+}
+
+.online-result {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.result-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.result-badge.win {
+    background: rgba(255, 215, 0, 0.2);
+    color: #ffd700;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+}
+
+.result-badge.lose {
+    background: rgba(255, 107, 107, 0.2);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 107, 107, 0.4);
+}
+
+.online-player {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.player-label {
+    color: #888;
+    font-size: 0.85rem;
+}
+
+.player-name {
+    color: #00d4ff;
+    font-weight: bold;
+}
+
+.score-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding-left: 1rem;
+}
+
+.score-row {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.score-label {
+    color: #888;
+}
+
+.score-value {
+    font-family: monospace;
+    color: #eee;
+}
+
+.score-value.gold {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.score-value.green {
+    color: #00ff88;
+}
+
+.opponent-info {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.3rem;
+    padding-top: 0.3rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vs-text {
+    color: #666;
+    font-style: italic;
+}
+
+.opponent-name {
+    color: #ff6b6b;
+}
+
+.opponent-score {
+    color: #888;
+    font-family: monospace;
+}
 
 .tab:hover {
   background: rgba(255, 255, 255, 0.1);

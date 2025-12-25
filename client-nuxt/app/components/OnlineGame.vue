@@ -64,16 +64,34 @@
           <span>🟢 Connected</span>
       </div>
       
-      <div v-if="onlineGame.isGameOver" class="game-over-box">
-          <span>GAME OVER</span>
-          <button @click="emit('back')" class="back-btn">Exit</button>
+      <div v-if="onlineGame.isGameOver || onlineGame.isWinner || onlineGame.isDraw" class="game-over-box">
+          <span v-if="onlineGame.isDraw" class="result-text draw">🤝 DRAW!</span>
+          <span v-else-if="onlineGame.isWinner" class="result-text win">🏆 YOU WIN!</span>
+          <span v-else class="result-text lose">GAME OVER</span>
+          
+          <div v-if="onlineGame.isWinner && onlineGame.winScore !== null" class="win-score">
+              Win Score: {{ onlineGame.winScore }}
+          </div>
+          <div v-if="onlineGame.isWinner && !onlineGame.isPaused" class="max-score">
+              Max Score: {{ onlineGame.score }}
+          </div>
+          
+          <div v-if="matchSaved" class="save-status">✅ Match Saved!</div>
+          
+          <div class="button-row">
+              <button v-if="onlineGame.isWinner && onlineGame.isPaused" @click="onlineGame.continueAfterWin()" class="continue-btn">
+                  ▶️ Continue Playing
+              </button>
+              <button v-if="!matchSaved" @click="saveAndExit" class="save-btn">💾 Save & Exit</button>
+              <button v-else @click="emit('back')" class="back-btn">Exit</button>
+          </div>
       </div>
 
-     <button v-if="!onlineGame.isGameOver && !showNameInput" @click="onlineGame.togglePause()" class="back-btn small">
+     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput" @click="onlineGame.togglePause()" class="back-btn small">
         {{ onlineGame.isPaused ? 'Resume' : 'Pause' }}
      </button>
      
-     <button v-if="!onlineGame.isGameOver && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
+     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
     </div>
 
     <!-- Remote Player (Opponent) -->
@@ -100,6 +118,7 @@ import { ref, onMounted, onUnmounted, defineAsyncComponent, computed } from 'vue
 import { OnlineGame } from '~/game/OnlineGame'
 import { COLORS } from '~/game/shapes'
 import { useTouchControls } from '~/composables/useTouchControls'
+import { LeaderboardService } from '~/services/LeaderboardService'
 
 const PlayerBoard = defineAsyncComponent(() => import('./PlayerBoard.vue'))
 
@@ -112,8 +131,23 @@ const emit = defineEmits(['back'])
 // Name Input State
 const showNameInput = ref(true)
 const playerName = ref('')
+const matchSaved = ref(false)
+
 // Computed state for waiting for opponent
 const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected)
+
+const saveAndExit = () => {
+    LeaderboardService.addOnlineMatch({
+        date: new Date().toISOString(),
+        isWinner: props.onlineGame.isWinner,
+        playerName: playerName.value || 'Player',
+        opponentName: props.onlineGame.opponentName || 'Opponent',
+        winScore: props.onlineGame.winScore,
+        maxScore: props.onlineGame.score,
+        opponentScore: props.onlineGame.opponentScore
+    })
+    matchSaved.value = true
+}
 
 const joinGame = () => {
     if (!playerName.value.trim()) return
@@ -395,13 +429,92 @@ onUnmounted(() => {
 }
 
 .game-over-box {
-    color: #ff6b6b;
     font-weight: bold;
     font-size: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
     align-items: center;
+}
+
+.result-text {
+    font-size: 2rem;
+    font-weight: bold;
+    text-shadow: 0 0 20px currentColor;
+}
+
+.result-text.win {
+    color: #ffd700;
+    animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+.result-text.lose {
+    color: #ff6b6b;
+}
+
+.result-text.draw {
+    color: #00d4ff;
+    animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
+}
+
+.win-score {
+    font-size: 1.2rem;
+    color: #ffd700;
+    margin: 0.3rem 0;
+}
+
+.max-score {
+    font-size: 1rem;
+    color: #00ff88;
+    margin: 0.3rem 0;
+}
+
+.save-status {
+    font-size: 0.9rem;
+    color: #00ff88;
+    margin: 0.5rem 0;
+}
+
+.save-btn {
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    color: #4a3000;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.save-btn:hover {
+    transform: scale(1.02);
+}
+
+.button-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.continue-btn {
+    background: linear-gradient(135deg, #00ff88, #00cc6a);
+    color: #004400;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.continue-btn:hover {
+    transform: scale(1.02);
 }
 
 .board-overlay {
