@@ -22,13 +22,13 @@ export class OnlineGame extends Game {
     }
 
     // Public init method to be called AFTER reactive() wrapping
-    public init() {
-        this.initSocket()
+    public init(wsUrl: string) {
+        this.initSocket(wsUrl)
     }
 
-    private initSocket() {
-        socketService.connect().then(() => {
-            console.log('OnlineGame connected to socket')
+    private initSocket(wsUrl: string) {
+        socketService.connect(wsUrl).then(() => {
+            console.log('OnlineGame connected to socket:', wsUrl)
         }).catch(err => {
             console.error('OnlineGame connection failed', err)
         })
