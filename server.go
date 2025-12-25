@@ -1,8 +1,10 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"sync"
@@ -42,6 +44,9 @@ type Hub struct {
 	unregister    chan *Client
 	mu            sync.Mutex
 }
+
+//go:embed public
+var content embed.FS
 
 // ================= Logic =================
 
@@ -260,9 +265,13 @@ func main() {
 		go client.readPump()
 	})
 
-	// Serve static files (Frontend)
-	fs := http.FileServer(http.Dir("./public"))
-	http.Handle("/", fs)
+	// Serve static files (Embedded Frontend)
+	// We use a sub-filesystem because the files are inside "public" folder in the embed
+	publicFS, err := fs.Sub(content, "public")
+	if err != nil {
+		log.Fatal("Failed to create sub filesystem: ", err)
+	}
+	http.Handle("/", http.FileServer(http.FS(publicFS)))
 
 	log.Println("Server started on :8080")
 	// Allow external access (bind to 0.0.0.0 is default for :8080)
