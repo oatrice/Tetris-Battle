@@ -27,15 +27,23 @@
         <p>1. รัน Go Server บนเครื่องนี้:</p>
         <code class="code-block">./tetris-server</code>
         
-        <p>2. แจ้ง IP ให้เพื่อน:</p>
-        <div class="ip-display">
-          <span class="ip-label">Your IP:</span>
-          <span class="ip-value">{{ localIP }}:8080</span>
-          <button @click="copyIP" class="copy-btn">📋</button>
+        <p>2. ตั้งค่า Server IP:</p>
+        <div class="ip-input-group">
+          <input 
+            v-model="localIP" 
+            type="text" 
+            placeholder="localhost"
+          />
+          <span class="port-label">:8080</span>
+          <button @click="copyIP" class="copy-btn" title="Copy">📋</button>
+        </div>
+        <div class="ip-presets">
+          <button @click="localIP = 'localhost'" :class="{ active: localIP === 'localhost' }" class="preset-btn">💻 PC</button>
+          <button @click="localIP = '192.168.43.1'" :class="{ active: localIP === '192.168.43.1' }" class="preset-btn">📱 Hotspot</button>
         </div>
         
         <p>3. กด Join เมื่อ Server พร้อม:</p>
-        <button @click="joinAsHost" class="start-btn" :disabled="connecting">
+        <button @click="joinAsHost" class="start-btn" :disabled="connecting || !localIP">
           {{ connecting ? 'Connecting...' : '▶️ Start & Join' }}
         </button>
       </div>
@@ -88,16 +96,16 @@ type Step = 'choose' | 'host' | 'join' | 'playing'
 
 const step = ref<Step>('choose')
 const hostIP = ref('')
-const localIP = ref('192.168.x.x')
+const localIP = ref('localhost')  // Default to localhost for PC testing
 const connecting = ref(false)
 const error = ref('')
 const lanGame = ref<OnlineGame | null>(null)
 
-// Try to detect local IP (best effort)
+// Detect if we're likely on mobile or desktop
 const detectLocalIP = () => {
-  // This is a hint - actual IP detection in browser is limited
-  // On most hotspots, host is 192.168.43.1
-  localIP.value = '192.168.43.1'
+  // Check if likely mobile (rough heuristic)
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
+  localIP.value = isMobile ? '192.168.43.1' : 'localhost'
 }
 
 const showHostInstructions = () => {
@@ -275,6 +283,35 @@ const leaveGame = () => {
   padding: 0.3rem 0.5rem;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.ip-presets {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.preset-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.05);
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.preset-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.preset-btn.active {
+  background: rgba(0,200,100,0.2);
+  border-color: #00cc66;
+  color: #00ff88;
 }
 
 .join-form {
