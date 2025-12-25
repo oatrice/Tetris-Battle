@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.7.0] - 2025-12-25
+
+### Added
+- **Online Match History**: Users can now view their past online matches, providing a record of their gameplay history.
+
 ## [3.6.0] - 2025-12-25
 
 ### Added
