@@ -39,16 +39,24 @@ describe('Bug Reproduction & Fix Verification', () => {
     })
 
     describe('Bug: Score calculation (Soft Drop)', () => {
-        it('should award 1 point for soft drop (moveDown)', () => {
+        it('should NOT award point for gravity drop (moveDown defaults)', () => {
             const game = new Game()
-            // Ensure piece can move down
-            // Default spawn is high up, so it can move
-
             const startScore = game.score
-            const moved = game.moveDown()
+
+            const moved = game.moveDown() // Gravity
 
             expect(moved).toBe(true)
-            // Score should increase by 1
+            expect(game.score).toBe(startScore) // No change
+        })
+
+        it('should award 1 point for explicit soft drop', () => {
+            const game = new Game()
+            const startScore = game.score
+
+            // @ts-ignore - Argument not yet implemented
+            const moved = game.moveDown(true) // User action
+
+            expect(moved).toBe(true)
             expect(game.score).toBe(startScore + 1)
         })
     })

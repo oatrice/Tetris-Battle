@@ -125,16 +125,19 @@ export class Game {
 
     /**
      * Move piece down (soft drop)
+     * @param isSoftDrop If true, adds score for soft drop (user action)
      */
-    moveDown(): boolean {
+    moveDown(isSoftDrop: boolean = false): boolean {
         // [FIXED] Critical: Check pause/gameover first to avoid unintended locking loop
         if (this.isGameOver || this.isPaused) return false
 
         const moved = this.tryMove(0, 1)
 
         if (moved) {
-            // Soft drop score
-            this.score += SCORE_SOFT_DROP
+            // Soft drop score only for manual drop
+            if (isSoftDrop) {
+                this.score += SCORE_SOFT_DROP
+            }
         } else {
             // Piece can't move down, lock it
             this.lockPiece()

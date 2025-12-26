@@ -242,7 +242,7 @@ const handleSoloControls = (e: KeyboardEvent) => {
   switch (e.key) {
     case 'ArrowLeft': soloGame.value.moveLeft(); break
     case 'ArrowRight': soloGame.value.moveRight(); break
-    case 'ArrowDown': soloGame.value.moveDown(); break
+    case 'ArrowDown': soloGame.value.moveDown(true); break
     case 'ArrowUp': soloGame.value.rotate(); break
     case ' ': e.preventDefault(); soloGame.value.hardDrop(); break
     case 'c': case 'C': soloGame.value.hold(); break
