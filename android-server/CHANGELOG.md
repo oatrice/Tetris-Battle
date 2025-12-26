@@ -2,6 +2,18 @@
 
 All notable changes to the Android Server App project will be documented in this file.
 
+## [1.1.3] - 2025-12-26
+
+### Fixed
+*   **Mac Simulation:** Fixed compilation error in `cmd/mac-sim` helper.
+*   **Asset Bundling:** Resolved missing `_nuxt` assets by performing a clean build before binding.
+
+## [1.1.2] - 2025-12-26
+
+### Added
+*   **Client Logging Bridge:** The Web Client now sends logs (like "User started Solo Mode") to the Android Server logs for easier debugging.
+*   **Debug Endpoint:** Added `POST /debug/log` to receive client logs.
+
 ## [1.1.1] - 2025-12-26
 
 ### Fixed
