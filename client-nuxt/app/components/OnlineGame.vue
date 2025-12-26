@@ -63,7 +63,6 @@
                       <button v-if="onlineGame.isWinner && onlineGame.isPaused" @click="onlineGame.continueAfterWin()" class="continue-btn">
                           ▶️ Continue Playing
                       </button>
-                      <button class="home-btn" @click="emit('back')">Exit</button>
                   </div>
              </div>
           </div>
@@ -75,7 +74,12 @@
         
         <div v-if="onlineGame.isWinner || onlineGame.isGameOver" class="winner-controls">
             <div v-if="matchSaved" class="save-status">✅ Match Saved!</div>
-            <button v-if="!matchSaved" @click="saveAndExit" class="save-btn persistent-save-btn">💾 Save & Exit</button>
+            <button v-if="!matchSaved" @click="saveAndExit" class="save-btn persistent-save-btn">💾 Save score</button>
+            <button @click="emit('back')" class="home-btn small mt-2">Exit</button>
+        </div>
+
+        <div v-else-if="!showNameInput && !onlineGame.isPaused" class="active-controls">
+             <button @click="emit('back')" class="home-btn small">Exit Game</button>
         </div>
       </div>
     </div>
@@ -129,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineAsyncComponent, computed } from 'vue'
+import { ref, onMounted, onUnmounted, defineAsyncComponent, computed, watch } from 'vue'
 import { OnlineGame } from '~/game/OnlineGame'
 import { COLORS } from '~/game/shapes'
 import { useTouchControls } from '~/composables/useTouchControls'
@@ -147,7 +151,9 @@ const emit = defineEmits(['back'])
 // Name Input State
 const showNameInput = ref(true)
 const playerName = ref('')
+
 const matchSaved = ref(false)
+const savedMatchId = ref<string | null>(null) // To track the ID of saved match
 
 // Computed state for waiting for opponent
 const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected && !props.onlineGame.isWinner && !props.onlineGame.isGameOver)
@@ -160,27 +166,73 @@ const formattedTime = computed(() => {
     return `${m}:${s.toString().padStart(2, '0')}`
 })
 
-const saveAndExit = () => {
-    LeaderboardService.addOnlineMatch({
+const saveGame = () => {
+    // If we already saved, update the existing record (e.g. higher score after continuing)
+    if (matchSaved.value && savedMatchId.value) {
+        LeaderboardService.updateOnlineMatch(savedMatchId.value, {
+            maxScore: props.onlineGame.score,
+            duration: props.onlineGame.gameDuration
+        })
+        return
+    }
+
+    const result = LeaderboardService.addOnlineMatch({
         date: new Date().toISOString(),
         gameMode: props.mode || 'online',
         isWinner: props.onlineGame.isWinner,
         playerName: playerName.value || 'Player',
         opponentName: props.onlineGame.opponentName || 'Opponent',
         winScore: props.onlineGame.winScore,
-        maxScore: props.onlineGame.score,
+        maxScore: props.onlineGame.score, // This will be the current score (win score or updated)
         opponentScore: props.onlineGame.opponentScore,
         duration: props.onlineGame.gameDuration,
         matchId: props.onlineGame.matchId || undefined
     })
+    
     matchSaved.value = true
+    savedMatchId.value = result.id
 }
+
+const saveAndExit = () => {
+    if (!matchSaved.value) {
+        saveGame()
+    } else {
+        // Force update before exit if already saved (e.g. manual click after continuing)
+        saveGame()
+    }
+    emit('back')
+}
+
+// Auto-save Watchers
+watch(() => props.onlineGame.isWinner, (newVal) => {
+    if (newVal) {
+        console.log('Auto-saving Winner result...')
+        saveGame()
+    }
+})
+
+watch(() => props.onlineGame.isGameOver, (newVal) => {
+    if (newVal) {
+         // Save irrespective of whether we won or lost prior.
+         // If we lost immediately -> saves new match.
+         // If we won -> continues -> died -> updates existing match (because matchSaved is true).
+         console.log('Auto-saving Game Over result...')
+         saveGame()
+    }
+})
 
 const joinGame = () => {
     if (!playerName.value.trim()) return
     props.onlineGame.joinGame(playerName.value.trim())
     showNameInput.value = false
 }
+
+watch(() => props.onlineGame.matchId, (newId, oldId) => {
+    if (newId !== oldId) {
+        matchSaved.value = false
+        savedMatchId.value = null
+    }
+})
 
 // ============ Mobile Touch Controls (using composable) ============
 const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchControls(
@@ -690,5 +742,21 @@ onUnmounted(() => {
   0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
   70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+}
+
+.active-controls {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.home-btn.small {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
 }
 </style>

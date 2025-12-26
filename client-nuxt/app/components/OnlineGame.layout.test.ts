@@ -9,7 +9,6 @@ const PlayerBoard = { template: '<div></div>' }
 
 describe('OnlineGame Layout', () => {
     it('shows Resume button INSIDE the local board overlay when PAUSED', async () => {
-        // Create mock online game
         const game = new OnlineGame()
         game.isPaused = true
         game.isGameOver = false
@@ -17,41 +16,77 @@ describe('OnlineGame Layout', () => {
 
         const wrapper = mount(OnlineGameVue, {
             props: { onlineGame: game },
-            global: {
-                stubs: { PlayerBoard }
-            }
+            global: { stubs: { PlayerBoard } }
         })
+
+        // Simulate joined state
+        // @ts-ignore
+        wrapper.vm.showNameInput = false
+        await wrapper.vm.$nextTick()
 
         const overlay = wrapper.find('.board-wrapper .board-overlay')
         expect(overlay.exists()).toBe(true)
         expect(overlay.text()).toContain('PAUSED')
 
-        // Resume button should be inside
-        const resumeBtn = overlay.find('button.resume-btn')
-        expect(resumeBtn.exists()).toBe(true)
+        // Resume & Exit inside overlay
+        expect(overlay.find('button.resume-btn').exists()).toBe(true)
+        expect(overlay.find('button.home-btn').exists()).toBe(true) // Exit in overlay
+
+        // Persistent Exit button should be HIDDEN when paused to avoid duplication
+        const persistentExit = wrapper.find('.active-controls .home-btn')
+        expect(persistentExit.exists()).toBe(false)
     })
 
-    it('shows Game Over UI INSIDE the local board overlay when GAME OVER', async () => {
+    it('shows Game Over UI and Persistent Controls when GAME OVER', async () => {
         const game = new OnlineGame()
         game.isPaused = false
         game.isGameOver = true
 
         const wrapper = mount(OnlineGameVue, {
             props: { onlineGame: game },
-            global: {
-                stubs: { PlayerBoard }
-            }
+            global: { stubs: { PlayerBoard } }
         })
 
-        // Board overlay should be visible and contain the game over content
+        // active-controls (simple exit) should be hidden in favor of winner-controls
+        expect(wrapper.find('.active-controls').exists()).toBe(false)
+
+        // Board overlay should be visible
         const overlay = wrapper.find('.board-wrapper .board-overlay')
         expect(overlay.exists()).toBe(true)
-
-        // Should contain result text
         expect(overlay.text()).toContain('GAME OVER')
 
-        // Should contain Save/Exit buttons (now outside overlay)
-        const saveBtn = wrapper.find('.save-btn')
-        expect(saveBtn.exists()).toBe(true)
+        // Overlay should NOT contain Exit button (moved to persistent)
+        expect(overlay.find('button.home-btn').exists()).toBe(false)
+
+        // Persistent controls should be visible
+        const winnerControls = wrapper.find('.winner-controls')
+        expect(winnerControls.exists()).toBe(true)
+        expect(winnerControls.find('.save-btn').text()).toContain('Save score')
+        expect(winnerControls.find('.home-btn').text()).toContain('Exit')
+    })
+
+    it('shows Persistent Exit button when PLAYING (Active)', async () => {
+        const game = new OnlineGame()
+        game.isPaused = false
+        game.isGameOver = false
+        game.isOpponentConnected = true
+
+        const wrapper = mount(OnlineGameVue, {
+            props: { onlineGame: game },
+            global: { stubs: { PlayerBoard } }
+        })
+
+        // Simulate joined
+        // @ts-ignore
+        wrapper.vm.showNameInput = false
+        await wrapper.vm.$nextTick()
+
+        // Overlay should be hidden
+        expect(wrapper.find('.board-overlay').exists()).toBe(false)
+
+        // Persistent Exit button should be VISIBLE
+        const persistentExit = wrapper.find('.active-controls .home-btn')
+        expect(persistentExit.exists()).toBe(true)
+        expect(persistentExit.text()).toContain('Exit Game')
     })
 })
