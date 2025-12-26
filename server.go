@@ -1,10 +1,14 @@
-package main
+package tetrisserver
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -42,6 +46,9 @@ type Hub struct {
 	unregister    chan *Client
 	mu            sync.Mutex
 }
+
+//go:embed all:public
+var content embed.FS
 
 // ================= Logic =================
 
@@ -237,16 +244,96 @@ func (c *Client) handleMessage(msg Message) {
 
 // ================= Main =================
 
-func main() {
+// Logger allows Android to receive logs from Go
+type Logger interface {
+	Log(msg string)
+}
+
+var globalLogger Logger
+
+// SetLogger sets the logger instance from Android
+func SetLogger(l Logger) {
+	globalLogger = l
+	// Redirect standard log output to this logger as well
+	log.SetOutput(&androidWriter{l: l})
+}
+
+// GetVersion returns the current version of the Go library
+func GetVersion() string {
+	return "lib-v1.1.4"
+}
+
+// androidWriter adapts Logger to io.Writer for standard log package
+type androidWriter struct {
+	l Logger
+}
+
+func (w *androidWriter) Write(p []byte) (n int, err error) {
+	msg := string(p)
+	if globalLogger != nil {
+		globalLogger.Log(msg)
+	}
+	return len(p), nil
+}
+
+// logMiddleware intercepts HTTP requests and logs them
+func logMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		// Capture status code/logging logic (omitted for brevity)
+		if globalLogger != nil {
+			// e.g., "[HTTP] GET /app.js from 192.168.1.5"
+			globalLogger.Log(fmt.Sprintf("[HTTP] %s %s from %s", r.Method, path, r.RemoteAddr))
+		}
+
+		// Explicit Mime Handling (Important for Android/Embedded)
+		// Use strings.HasSuffix to handle cases correctly
+		if strings.HasSuffix(path, ".js") {
+			w.Header().Set("Content-Type", "application/javascript")
+		} else if strings.HasSuffix(path, ".css") {
+			w.Header().Set("Content-Type", "text/css")
+		} else if strings.HasSuffix(path, ".html") {
+			w.Header().Set("Content-Type", "text/html")
+		} else if strings.HasSuffix(path, ".json") {
+			w.Header().Set("Content-Type", "application/json")
+		} else if strings.HasSuffix(path, ".wasm") {
+			w.Header().Set("Content-Type", "application/wasm")
+		} else if strings.HasSuffix(path, ".png") {
+			w.Header().Set("Content-Type", "image/png")
+		} else if strings.HasSuffix(path, ".ico") {
+			w.Header().Set("Content-Type", "image/x-icon")
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Stop triggers the server to shutdown (placeholder for now)
+func Stop() {
+	// In a real implementation, we would use a context or channel to stop the server
+	// For now, Android can just kill the process/activity
+}
+
+// Start launches the HTTP and WebSocket server on the specified port (e.g., ":8080")
+// usage: tetrisserver.Start(":8080")
+// NewServerHandler creates and configures the main HTTP handler
+func NewServerHandler() http.Handler {
 	hub := NewHub()
 	go hub.run()
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	// Use a new ServeMux to avoid global state conflicts if restarted
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)
 			return
 		}
+
+		// Log WebSocket connection
+		log.Printf("New WebSocket connection from %s", r.RemoteAddr)
 
 		client := &Client{
 			hub:  hub,
@@ -260,8 +347,50 @@ func main() {
 		go client.readPump()
 	})
 
-	log.Println("Server started on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	// Serve static files (Embedded Frontend)
+	// We use a sub-filesystem because the files are inside "public" folder in the embed
+	publicFS, err := fs.Sub(content, "public")
+	if err != nil {
+		log.Println("Failed to create sub filesystem: ", err)
+	} else {
+		// Apply middleware to file server
+		fileHandler := http.FileServer(http.FS(publicFS))
+		mux.Handle("/", logMiddleware(fileHandler))
+	}
+
+	// Client Logging Bridge
+	mux.HandleFunc("/debug/log", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			return
+		}
+		buf := new(strings.Builder)
+		_, _ = io.Copy(buf, r.Body)
+		msg := strings.TrimSpace(buf.String())
+		if globalLogger != nil && msg != "" {
+			globalLogger.Log("[CLIENT] " + msg)
+		}
+	})
+
+	// Version Endpoint
+	mux.HandleFunc("/debug/version", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Access-Control-Allow-Origin", "*") // Helpful for dev
+		w.Write([]byte(GetVersion()))
+	})
+
+	return mux
+}
+
+// Start launches the HTTP and WebSocket server on the specified port (e.g., ":8080")
+// usage: tetrisserver.Start(":8080")
+func Start(port string) {
+	handler := NewServerHandler()
+
+	log.Println("Server starting on " + port)
+	log.Println("Version: " + GetVersion())
+
+	// Allow external access
+	if err := http.ListenAndServe(port, handler); err != nil {
+		log.Println("ListenAndServe: ", err)
 	}
 }

@@ -18,7 +18,7 @@
     <Leaderboard 
       v-if="showLeaderboard" 
       @close="showLeaderboard = false" 
-      :initialTab="gameMode || 'solo'"
+      :initialTab="(gameMode || 'solo') as any"
     />
 
     <!-- Version Info at Bottom -->
@@ -67,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineAsyncComponent, reactive } from 'vue'
+import { ref, onMounted, onUnmounted, defineAsyncComponent, reactive, shallowRef, triggerRef } from 'vue'
 import { Game } from '~/game/Game'
 import { SpecialGame } from '~/game/SpecialGame'
 import { DuoGame } from '~/game/DuoGame'
@@ -84,9 +84,9 @@ type GameMode = 'solo' | 'special' | 'duo' | 'online' | 'lan' | null
 
 const gameContainer = ref<HTMLDivElement | null>(null)
 const gameMode = ref<GameMode>(null)
-const soloGame = ref<Game | null>(null)
-const duoGame = ref<DuoGame | null>(null)
-const onlineGame = ref<OnlineGame | null>(null)
+const soloGame = shallowRef<Game | null>(null)
+const duoGame = shallowRef<DuoGame | null>(null)
+const onlineGame = shallowRef<OnlineGame | null>(null)
 const showLeaderboard = ref(false)
 
 // Get runtime config for WebSocket URL
@@ -97,28 +97,47 @@ let lastUpdate = 0
 const DROP_INTERVAL = 1000
 
 // ============ Mode Selection ============
+const remoteLog = (msg: string) => {
+  if (import.meta.client && window.location.port === '8080') {
+    fetch('/debug/log', { method: 'POST', body: msg }).catch(() => {})
+  }
+}
+
 const startSolo = () => {
+  remoteLog('User started Solo Mode')
   gameMode.value = 'solo'
-  soloGame.value = reactive(new Game()) as Game
+  soloGame.value = new Game()
   startGameLoop()
 }
 
 const startSpecial = () => {
+  remoteLog('User started Special Mode')
   gameMode.value = 'special'
-  soloGame.value = reactive(new SpecialGame()) as SpecialGame
+  soloGame.value = new SpecialGame()
   startGameLoop()
 }
 
 const startDuo = () => {
+  remoteLog('User started Duo Mode')
   gameMode.value = 'duo'
-  duoGame.value = reactive(new DuoGame()) as DuoGame
+  duoGame.value = new DuoGame()
   startGameLoop()
 }
 
 const startOnline = () => {
+  remoteLog('User clicked Online Mode')
   gameMode.value = 'online'
-  const game = reactive(new OnlineGame()) as OnlineGame
-  game.init(config.public.wsUrl) // Pass wsUrl from runtime config
+  const game = new OnlineGame()
+  
+  let wsUrl = config.public.wsUrl
+  // Auto-detect if running on same port (Serving from Go)
+  if (import.meta.client && window.location.port === '8080') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      wsUrl = `${protocol}//${window.location.host}/ws`
+      console.log('Auto-detected WS URL:', wsUrl)
+  }
+
+  game.init(wsUrl)
   onlineGame.value = game
   startGameLoop()
 }
@@ -129,7 +148,7 @@ const startLAN = () => {
 }
 
 const connectLAN = (wsUrl: string) => {
-  const game = reactive(new OnlineGame()) as OnlineGame
+  const game = new OnlineGame()
   game.init(wsUrl)
   onlineGame.value = game
   startGameLoop()
@@ -137,14 +156,14 @@ const connectLAN = (wsUrl: string) => {
 
 const restartGame = () => {
   if (gameMode.value === 'special') {
-    soloGame.value = reactive(new SpecialGame()) as SpecialGame
+    soloGame.value = new SpecialGame()
   } else {
-    soloGame.value = reactive(new Game()) as Game
+    soloGame.value = new Game()
   }
 }
 
 const restartDuo = () => {
-  duoGame.value = reactive(new DuoGame()) as DuoGame
+  duoGame.value = new DuoGame()
 }
 
 const backToMenu = () => {
@@ -195,6 +214,12 @@ const startGameLoop = () => {
       }
       lastUpdate = timestamp
     }
+
+    // [FIX] Trigger ref update manually since we switched to shallowRef
+    if (gameMode.value === 'solo' || gameMode.value === 'special') triggerRef(soloGame)
+    else if (gameMode.value === 'duo') triggerRef(duoGame)
+    else if (gameMode.value === 'online' || gameMode.value === 'lan') triggerRef(onlineGame)
+
     animationId = requestAnimationFrame(gameLoop)
   }
   animationId = requestAnimationFrame(gameLoop)

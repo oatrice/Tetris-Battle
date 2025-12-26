@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.8.1] - 2025-12-26
+
+### Fixed
+- **Android WebView Polyfill**: Addressed an issue where the Android WebView polyfill was not correctly applied, potentially causing rendering or functionality problems in certain Android environments.
+
+## [3.9.0] - 2025-12-25
+
+### Added
+- **Offline Plane Mode (Android Server)**:
+    - Added support for running the game server locally on Android without internet.
+    - Embedded the Nuxt frontend (`public/`) directly into the Go server binary using `go:embed`.
+    - Implemented auto-detection of WebSocket URL: the frontend now automatically connects to `ws://host:port/ws` when served from the same origin.
+    - This allows full multiplayer (LAN Party) support on an airplane by using one Android phone as both Hotspot and Game Server.
+
 ## [3.8.0] - 2025-12-25
 
 ### Added

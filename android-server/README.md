@@ -1,6 +1,30 @@
 # Android Game Server (Kotlin)
 
 This is a native Android application that serves as the WebSocket server for Tetris Battle. It allows you to host local multiplayer games directly from your Android phone without needing a dedicated PC server.
+This is a native Android application that serves as the WebSocket server for Tetris Battle. It allows you to host local multiplayer games directly from your Android phone without needing a dedicated PC server.
+
+## 🛠️ Building the Go Library
+Before opening the Android project, you must build the Go shared library.
+
+1.  **Install Gomobile:**
+    ```bash
+    go install golang.org/x/mobile/cmd/gomobile@latest
+    gomobile init
+    ```
+2.  **Generate Frontend Assets:**
+    ```bash
+    cd client-nuxt
+    npm run generate
+    cd ..
+    cp -R client-nuxt/.output/public/. public/
+    ```
+3.  **Build `.aar`:**
+    ```bash
+    # Ensure ANDROID_NDK_HOME is set
+    gomobile bind -androidapi 24 -o android-server/app/libs/tetrisserver-lib-v1.1.4.aar -target=android .
+    ```
+
+    > **Tip:** You can use `make dev` to quickly test changes on your Mac, or `make build-android` to build the AAR explicitly.
 
 ## 🚀 Getting Started
 
@@ -27,6 +51,7 @@ This is a native Android application that serves as the WebSocket server for Tet
     *   Client connections/disconnections
     *   Match creation
     *   Game events (Pause, Game Over, etc.)
+    *   **File Access Logging:** Shows every file requested by connected browsers (e.g., `[HTTP] GET /app.js`), useful for debugging.
 *   **Background Service:** *(Ideally)* Runs in the foreground to prevent Android from killing the server process during a game.
 
 ## 🔧 Connectivity Guide
@@ -41,7 +66,7 @@ This is a native Android application that serves as the WebSocket server for Tet
 
 ## 📦 Tech Stack
 
-*   **Language:** Kotlin
-*   **Server Library:** `Java-WebSocket`
-*   **JSON Parsing:** `Gson`
-*   **Concurrency:** `Coroutines`
+*   **Language:** Kotlin (UI) + Go (Logic)
+*   **Server Core:** Go Standard Library (`net/http`) + `Gorilla WebSocket`
+*   **Integration:** `Gomobile` (Compiled to `.aar`)
+*   **Frontend:** Nuxt.js (Embedded in Go binary)
