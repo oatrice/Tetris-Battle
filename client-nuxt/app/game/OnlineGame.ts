@@ -156,7 +156,10 @@ export class OnlineGame extends Game {
     }
 
     private startCountdown() {
+        console.log('Starting Countdown...')
         this.countdown = 3
+        if (this.timer) clearInterval(this.timer)
+
         this.timer = setInterval(() => {
             if (this.countdown !== null) {
                 this.countdown--

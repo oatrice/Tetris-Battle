@@ -127,7 +127,7 @@ const startDuo = () => {
 const startOnline = () => {
   remoteLog('User clicked Online Mode')
   gameMode.value = 'online'
-  const game = new OnlineGame()
+  const game = reactive(new OnlineGame()) as any
   
   let wsUrl = config.public.wsUrl
   // Auto-detect if running on same port (Serving from Go)
@@ -148,7 +148,7 @@ const startLAN = () => {
 }
 
 const connectLAN = (wsUrl: string) => {
-  const game = new OnlineGame()
+  const game = reactive(new OnlineGame()) as any
   game.init(wsUrl)
   onlineGame.value = game
   startGameLoop()
