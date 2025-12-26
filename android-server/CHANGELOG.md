@@ -12,7 +12,11 @@ All notable changes to the Android Server App project will be documented in this
 ### Added
 *   **File Access Logging:** The live log now shows real-time HTTP requests from connected browsers (e.g., `[HTTP] GET /app.js`).
 *   **Version Display:** Added version number indication on startup.
+*   **Version Display:** Added version number indication on startup.
 
+### Fixed
+*   **Asset Loading:** Fixed `404` errors for embedded Nuxt.js assets by correctly embedding hidden directories (`_nuxt`).
+*   **MIME Types:** Fixed MIME type rejection on Android by explicitly setting headers for `.css` and `.js` files.
 
 ### Added
 - **Initial Release:** First stable version of the Android Game Server.
