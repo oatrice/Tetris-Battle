@@ -252,35 +252,31 @@ const handleSoloControls = (e: KeyboardEvent) => {
 
 const handleOnlineControls = (e: KeyboardEvent) => {
   if (!onlineGame.value || onlineGame.value.isGameOver || !onlineGame.value.isOpponentConnected) return
-  // NOTE: We do NOT return if countdown !== null because pause should work? 
-  // Wait, original design said no controls during countdown. 
-  // Let's keep it safe: if countdown, no controls interact (pause isn't useful in countdown).
   if (onlineGame.value.countdown !== null) return
   
-  switch (e.key) {
+  switch (e.code) {
     case 'ArrowLeft': 
-    case 'a': onlineGame.value.moveLeft(); break
+    case 'KeyA': onlineGame.value.moveLeft(); break
     
     case 'ArrowRight': 
-    case 'd': onlineGame.value.moveRight(); break
+    case 'KeyD': onlineGame.value.moveRight(); break
     
     case 'ArrowDown': 
-    case 's': onlineGame.value.moveDown(); break
+    case 'KeyS': onlineGame.value.moveDown(); break
     
     case 'ArrowUp': 
-    case 'w': onlineGame.value.rotate(); break
+    case 'KeyW': onlineGame.value.rotate(); break
     
-    case ' ': 
+    case 'Space': 
     case 'Enter': e.preventDefault(); onlineGame.value.hardDrop(); break
     
-    case 'c': 
-    case 'C': 
-    case 'q':
-    case 'Q': onlineGame.value.hold(); break
+    case 'KeyC': 
+    case 'KeyQ':
+    case 'ShiftLeft':
+    case 'ShiftRight': onlineGame.value.hold(); break
 
     // Pause
-    case 'p':
-    case 'P':
+    case 'KeyP':
     case 'Escape': onlineGame.value.togglePause(); break
   }
 }

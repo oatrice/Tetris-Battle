@@ -123,4 +123,13 @@ describe('Bug Reproduction & Fix Verification', () => {
         // Verify value decremented
         expect(game.countdown).toBe(2)
     })
+    it('Online Game Hold', () => {
+        // [FIX] Verify that Hold is enabled for Online/LAN games by default
+        const game = new OnlineGame()
+        expect(game.allowHold).toBe(true)
+
+        // Test functionality
+        game.hold()
+        expect(game.heldPiece).toBeDefined()
+    })
 })

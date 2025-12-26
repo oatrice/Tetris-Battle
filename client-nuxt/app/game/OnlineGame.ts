@@ -30,6 +30,7 @@ export class OnlineGame extends Game {
 
     constructor() {
         super()
+        this.allowHold = true // [FIX] Enable hold for Online/LAN games
         this.opponentBoard = Array(20).fill(null).map(() => Array(10).fill(0))
     }
 
