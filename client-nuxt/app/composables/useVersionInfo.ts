@@ -11,6 +11,7 @@ export interface VersionInfo {
     commitDate: string
     isDev: boolean
     isDirty: boolean
+    isClient: boolean
 }
 
 /**
@@ -42,6 +43,7 @@ export function useVersionInfo(): VersionInfo {
         commitHash: COMMIT_HASH,
         commitDate: formatDate(COMMIT_DATE),
         isDev: import.meta.dev,
-        isDirty: IS_DIRTY
+        isDirty: IS_DIRTY,
+        isClient: import.meta.client
     }
 }

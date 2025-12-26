@@ -26,7 +26,7 @@ onMounted(() => {
   currentTime.value = new Date().toLocaleTimeString()
   
   // Fetch Lib Version
-  if (import.meta.client) {
+  if (versionInfo.isClient) {
       // Try local (relative) first, or fallback if needed (though usually relative works)
        fetch('/debug/version')
         .then(async res => {

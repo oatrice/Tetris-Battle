@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
     plugins: [vue()],
+    define: {
+        'import.meta.client': true,
+    },
     test: {
         globals: true,
         environment: 'jsdom',
@@ -16,6 +19,7 @@ export default defineConfig({
         alias: {
             '~': fileURLToPath(new URL('./app', import.meta.url)),
             '@': fileURLToPath(new URL('./app', import.meta.url)),
+            'virtual:git-version': fileURLToPath(new URL('./test/mocks/git-version.ts', import.meta.url)),
         },
     },
 })
