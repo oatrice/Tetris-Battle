@@ -2,6 +2,11 @@
 
 All notable changes to the Android Server App project will be documented in this file.
 
+## [1.1.5] - 2025-12-26
+### Fixed
+*   **Mobile UI:** Fixed the "Exit" button being hidden on mobile devices by adding bottom padding and optimizing the game board layout.
+*   **Touch Controls:** Enabled page scrolling when the game is paused or over, ensuring users can access bottom controls.
+
 ## [1.1.4] - 2025-12-26
 
 ### Fixed

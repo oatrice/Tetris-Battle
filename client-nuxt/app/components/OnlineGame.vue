@@ -759,4 +759,48 @@ onUnmounted(() => {
 .mt-2 {
     margin-top: 0.5rem;
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+  .online-area {
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      padding-bottom: 5rem; /* Ensure bottom controls are accessible */
+  }
+
+  .board-wrapper {
+      transform: scale(0.9);
+      transform-origin: top center;
+      /* Negative margin to reduce gap caused by scaling */
+      margin-bottom: -30px; 
+  }
+
+  .vs-section {
+      padding-top: 1rem; /* Reduce top padding */
+      flex-direction: row; /* Horizontal VS stats */
+      width: 100%;
+      justify-content: space-around;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+  }
+  
+  .vs-text {
+      font-size: 1.5rem;
+      display: none; /* Hide VS text to save space */
+  }
+
+  .game-timer {
+      margin: 0;
+  }
+
+  .status-box {
+      width: auto;
+      padding: 0.5rem;
+  }
+  
+  .active-controls {
+      margin-top: 0.5rem;
+  }
+}
 </style>
