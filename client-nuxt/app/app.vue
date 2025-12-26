@@ -106,14 +106,14 @@ const remoteLog = (msg: string) => {
 const startSolo = () => {
   remoteLog('User started Solo Mode')
   gameMode.value = 'solo'
-  soloGame.value = new Game()
+  soloGame.value = reactive(new Game()) as any
   startGameLoop()
 }
 
 const startSpecial = () => {
   remoteLog('User started Special Mode')
   gameMode.value = 'special'
-  soloGame.value = new SpecialGame()
+  soloGame.value = reactive(new SpecialGame()) as any
   startGameLoop()
 }
 
@@ -156,9 +156,9 @@ const connectLAN = (wsUrl: string) => {
 
 const restartGame = () => {
   if (gameMode.value === 'special') {
-    soloGame.value = new SpecialGame()
+    soloGame.value = reactive(new SpecialGame()) as any
   } else {
-    soloGame.value = new Game()
+    soloGame.value = reactive(new Game()) as any
   }
 }
 
