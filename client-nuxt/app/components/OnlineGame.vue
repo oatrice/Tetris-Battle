@@ -30,7 +30,7 @@
             playerColor="#00d4ff"
           />
           
-          <div v-if="isWaiting || (onlineGame.countdown !== null) || onlineGame.isPaused || onlineGame.isGameOver || onlineGame.isWinner || onlineGame.isDraw" class="board-overlay">
+          <div v-if="isWaiting || (onlineGame.countdown !== null) || onlineGame.isPaused || onlineGame.isGameOver || onlineGame.isDraw" class="board-overlay">
              <div v-if="isWaiting" class="overlay-content">
                  <div class="spinner"></div>
                  <p>Waiting...</p>
@@ -63,7 +63,6 @@
                       <button v-if="onlineGame.isWinner && onlineGame.isPaused" @click="onlineGame.continueAfterWin()" class="continue-btn">
                           ▶️ Continue Playing
                       </button>
-                      <button v-if="!matchSaved" @click="saveAndExit" class="save-btn">💾 Save & Exit</button>
                       <button class="home-btn" @click="emit('back')">Exit</button>
                   </div>
              </div>
@@ -73,6 +72,11 @@
       <div class="player-stats">
         <span class="score">{{ onlineGame.score }}</span>
         <span>L{{ onlineGame.level }} • {{ onlineGame.linesCleared }}</span>
+        
+        <div v-if="onlineGame.isWinner || onlineGame.isGameOver" class="winner-controls">
+            <div v-if="matchSaved" class="save-status">✅ Match Saved!</div>
+            <button v-if="!matchSaved" @click="saveAndExit" class="save-btn persistent-save-btn">💾 Save & Exit</button>
+        </div>
       </div>
     </div>
 
@@ -146,7 +150,7 @@ const playerName = ref('')
 const matchSaved = ref(false)
 
 // Computed state for waiting for opponent
-const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected)
+const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected && !props.onlineGame.isWinner && !props.onlineGame.isGameOver)
 
 // Formatted Timer
 const formattedTime = computed(() => {
@@ -184,7 +188,7 @@ const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchControls(
     {
         checkPause: true,
         checkCountdown: () => props.onlineGame.countdown !== null,
-        checkOpponentConnected: () => props.onlineGame.isOpponentConnected
+        checkOpponentConnected: () => props.onlineGame.isOpponentConnected || props.onlineGame.isWinner
     }
 )
 

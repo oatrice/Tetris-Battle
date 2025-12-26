@@ -50,8 +50,8 @@ describe('OnlineGame Layout', () => {
         // Should contain result text
         expect(overlay.text()).toContain('GAME OVER')
 
-        // Should contain Save/Exit buttons
-        const saveBtn = overlay.find('.save-btn')
+        // Should contain Save/Exit buttons (now outside overlay)
+        const saveBtn = wrapper.find('.save-btn')
         expect(saveBtn.exists()).toBe(true)
     })
 })

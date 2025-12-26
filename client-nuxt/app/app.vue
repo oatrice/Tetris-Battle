@@ -1,5 +1,5 @@
 <template>
-  <div class="container" @keydown="handleKeydown" tabindex="0" ref="gameContainer">
+  <div class="container" tabindex="0" ref="gameContainer">
     <h1>🎮 Tetris Duo</h1>
     
     <!-- Mode Selection -->
@@ -207,7 +207,7 @@ const startGameLoop = () => {
         }
       } else if (gameMode.value === 'duo' && duoGame.value) {
         duoGame.value.tick()
-      } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value && !onlineGame.value.isGameOver && onlineGame.value.isOpponentConnected) {
+      } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value && !onlineGame.value.isGameOver && (onlineGame.value.isOpponentConnected || onlineGame.value.isWinner)) {
          if (onlineGame.value.countdown === null && !onlineGame.value.isPaused) {
              onlineGame.value.moveDown()
          }
@@ -227,6 +227,8 @@ const startGameLoop = () => {
 
 // ============ Keyboard Controls ============
 const handleKeydown = (e: KeyboardEvent) => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+  
   if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value) {
     handleSoloControls(e)
   } else if (gameMode.value === 'duo' && duoGame.value) {
@@ -251,7 +253,7 @@ const handleSoloControls = (e: KeyboardEvent) => {
 }
 
 const handleOnlineControls = (e: KeyboardEvent) => {
-  if (!onlineGame.value || onlineGame.value.isGameOver || !onlineGame.value.isOpponentConnected) return
+  if (!onlineGame.value || onlineGame.value.isGameOver || (!onlineGame.value.isOpponentConnected && !onlineGame.value.isWinner)) return
   if (onlineGame.value.countdown !== null) return
   
   switch (e.code) {
@@ -314,10 +316,11 @@ const handleDuoControls = (e: KeyboardEvent) => {
 }
 
 onMounted(() => {
-  gameContainer.value?.focus()
+  window.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
   if (animationId) {
     cancelAnimationFrame(animationId)
   }

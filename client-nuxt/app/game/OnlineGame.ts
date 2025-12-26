@@ -86,10 +86,18 @@ export class OnlineGame extends Game {
         })
 
         socketService.on('player_left', () => {
-            alert('Opponent disconnected!')
+            console.log('Opponent has left the game.') // Standardize logging
             this.isOpponentConnected = false
-            this.isGameOver = true
-            this.stopDurationTimer()
+
+            // If we already won, don't force Game Over. Let them continue if they want.
+            if (!this.isWinner) {
+                alert('Opponent disconnected!')
+                this.isGameOver = true
+                this.stopDurationTimer()
+            }
+            // Even if we won, we might want to stop the "vs" synchronization logic via a flag, 
+            // but isOpponentConnected=false handles that in broadcastState().
+
             if (this.timer) clearInterval(this.timer)
         })
 
