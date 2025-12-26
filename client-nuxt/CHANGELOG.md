@@ -1,5 +1,44 @@
 # Changelog
 
+## [3.9.0] - 2025-12-27
+
+### Added
+- **Online Game Improvements**:
+    - Enhanced online game functionality with improved stability and performance.
+    - Added new touch controls for a more intuitive mobile gaming experience.
+    - Introduced robust disconnection handling to maintain game integrity.
+- **New Solo Game Component**:
+    - Implemented a new `SoloGame.vue` component for single-player gameplay.
+    - Added comprehensive unit tests for the new `SoloGame` component.
+- **Leaderboard Service Enhancements**:
+    - Updated `LeaderboardService.ts` to support new online game features.
+- **Android Server Offline Mode**:
+    - Embedded the Nuxt frontend (`public/`) directly into the Go server binary using `go:embed` for offline operation.
+    - Implemented auto-detection of WebSocket URL for seamless frontend-to-server connection.
+
+### Changed
+- **Board Game Logic**:
+    - Refactored `Board.ts` for better performance and maintainability.
+- **Control Logic**:
+    - Updated `ControlLogic.test.ts` to reflect changes in control mechanisms.
+- **Disconnection Handling**:
+    - Improved disconnection logic in `Disconnection.test.ts` and `Disconnection2.test.ts`.
+- **Reproduction Logic**:
+    - Updated `Reproduction.test.ts` to align with game mechanics changes.
+- **Build Scripts**:
+    - Updated `scripts/bump_version.sh` and `.agent/workflows/bump_version.sh` for version management.
+    - Modified `scripts/build_android_lib.sh` for Android build process.
+
+### Fixed
+- **OnlineGame Component Tests**:
+    - Addressed issues in `OnlineGame.layout.test.ts`, `OnlineGame.ui.test.ts`, and `OnlineGame.winner.test.ts`.
+- **SoloGame Component Tests**:
+    - Fixed issues in `SoloGame.layout.test.ts`.
+- **Server Parity Tests**:
+    - Ensured `server_parity_test.go` passes with the latest changes.
+- **Server Tests**:
+    - Updated `server_test.go` to reflect new functionalities.
+
 ## [3.8.3] - 2025-12-26
 
 ### Fixed
