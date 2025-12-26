@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,7 +46,7 @@ type Hub struct {
 	mu            sync.Mutex
 }
 
-//go:embed public
+//go:embed all:public
 var content embed.FS
 
 // ================= Logic =================
@@ -277,16 +278,33 @@ func (w *androidWriter) Write(p []byte) (n int, err error) {
 // logMiddleware intercepts HTTP requests and logs them
 func logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Wrap ResponseWriter to capture status code (omitted for brevity, just logging request)
+		path := r.URL.Path
+
+		// Capture status code/logging logic (omitted for brevity)
 		if globalLogger != nil {
 			// e.g., "[HTTP] GET /app.js from 192.168.1.5"
-			globalLogger.Log(fmt.Sprintf("[HTTP] %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr))
+			globalLogger.Log(fmt.Sprintf("[HTTP] %s %s from %s", r.Method, path, r.RemoteAddr))
+		}
+
+		// Explicit Mime Handling (Important for Android/Embedded)
+		// Use strings.HasSuffix to handle cases correctly
+		if strings.HasSuffix(path, ".js") {
+			w.Header().Set("Content-Type", "application/javascript")
+		} else if strings.HasSuffix(path, ".css") {
+			w.Header().Set("Content-Type", "text/css")
+		} else if strings.HasSuffix(path, ".html") {
+			w.Header().Set("Content-Type", "text/html")
+		} else if strings.HasSuffix(path, ".json") {
+			w.Header().Set("Content-Type", "application/json")
+		} else if strings.HasSuffix(path, ".wasm") {
+			w.Header().Set("Content-Type", "application/wasm")
+		} else if strings.HasSuffix(path, ".png") {
+			w.Header().Set("Content-Type", "image/png")
+		} else if strings.HasSuffix(path, ".ico") {
+			w.Header().Set("Content-Type", "image/x-icon")
 		}
 
 		next.ServeHTTP(w, r)
-
-		// Optional: Log duration
-		// duration := time.Since(start)
 	})
 }
 
