@@ -812,12 +812,23 @@ button {
     display: flex;
     gap: 1rem;
     width: 100%;
-    background: #16213e;
+    background: #6385db; /* Lighter background for contrast */
     border-radius: 8px;
     padding: 0.8rem;
     align-items: center;
     justify-content: space-around;
     order: 3;
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+  }
+  
+  .mobile-stats-row .stats-box p {
+    color: #0f0c29; /* Dark text for contrast */
+    font-weight: 500;
+  }
+  
+  .mobile-stats-row .stats-box .score {
+    color: #000; /* Distinct dark score */
+    text-shadow: none;
   }
   
   /* 4. Hold Panel (Left) */
@@ -866,6 +877,14 @@ button {
   .side-panel {
     margin: 0;
     min-width: 0;
+    background: #6385db; /* Lighter background for contrast */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .side-panel h4 {
+    color: #0f0c29; /* Darker text for contrast */
+    font-weight: 900;
+    text-shadow: none;
   }
   
   .side-panel-spacer {
