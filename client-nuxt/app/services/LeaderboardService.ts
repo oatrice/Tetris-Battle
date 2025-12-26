@@ -73,9 +73,24 @@ export class LeaderboardService {
      * Returns the ID of the new entry as well if needed (tuple would be better but let's stick to rank for now, 
      * actually we need ID now. Let's return object)
      */
+    /**
+     * Generate a UUID (v4) with fallback for environments where crypto.randomUUID is undefined
+     */
+    private static generateUUID(): string {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID()
+        }
+        // Fallback for older browsers / insecure contexts
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0
+            const v = c === 'x' ? r : (r & 0x3 | 0x8)
+            return v.toString(16)
+        })
+    }
+
     static addScore(entry: Omit<LeaderboardEntry, 'id'>, mode: GameMode = 'solo'): { rank: number | null, id: string | null } {
         const leaderboard = this.getLeaderboard(mode)
-        const id = crypto.randomUUID()
+        const id = this.generateUUID()
         const newEntry: LeaderboardEntry = { ...entry, id }
 
         leaderboard.push(newEntry)
@@ -175,7 +190,7 @@ export class LeaderboardService {
 
     static addDuoMatch(result: Omit<DuoMatchResult, 'id'>): DuoMatchResult {
         const history = this.getDuoLeaderboard()
-        const id = crypto.randomUUID()
+        const id = this.generateUUID()
         const newMatch: DuoMatchResult = { ...result, id }
 
         history.unshift(newMatch) // Add to top (newest first)
@@ -210,7 +225,7 @@ export class LeaderboardService {
 
     static addOnlineMatch(result: Omit<OnlineMatchResult, 'id'>): OnlineMatchResult {
         const history = this.getOnlineLeaderboard()
-        const id = crypto.randomUUID()
+        const id = this.generateUUID()
         const newMatch: OnlineMatchResult = { ...result, id }
 
         history.unshift(newMatch) // Add to top (newest first)
