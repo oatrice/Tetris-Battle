@@ -30,6 +30,7 @@ export class OnlineGame extends Game {
 
     constructor() {
         super()
+        this.allowHold = true // [FIX] Enable hold for Online/LAN games
         this.opponentBoard = Array(20).fill(null).map(() => Array(10).fill(0))
     }
 
@@ -85,10 +86,18 @@ export class OnlineGame extends Game {
         })
 
         socketService.on('player_left', () => {
-            alert('Opponent disconnected!')
+            console.log('Opponent has left the game.') // Standardize logging
             this.isOpponentConnected = false
-            this.isGameOver = true
-            this.stopDurationTimer()
+
+            // If we already won, don't force Game Over. Let them continue if they want.
+            if (!this.isWinner) {
+                alert('Opponent disconnected!')
+                this.isGameOver = true
+                this.stopDurationTimer()
+            }
+            // Even if we won, we might want to stop the "vs" synchronization logic via a flag, 
+            // but isOpponentConnected=false handles that in broadcastState().
+
             if (this.timer) clearInterval(this.timer)
         })
 
@@ -156,7 +165,10 @@ export class OnlineGame extends Game {
     }
 
     private startCountdown() {
+        console.log('Starting Countdown...')
         this.countdown = 3
+        if (this.timer) clearInterval(this.timer)
+
         this.timer = setInterval(() => {
             if (this.countdown !== null) {
                 this.countdown--

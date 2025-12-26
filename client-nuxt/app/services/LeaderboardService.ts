@@ -118,8 +118,8 @@ export class LeaderboardService {
         const leaderboard = this.getLeaderboard(mode)
         const entryIndex = leaderboard.findIndex(e => e.id === id)
 
-        if (entryIndex !== -1) {
-            leaderboard[entryIndex].playerName = newName
+        if (entryIndex !== -1 && leaderboard[entryIndex]) {
+            leaderboard[entryIndex]!.playerName = newName
             localStorage.setItem(this.getStorageKey(mode), JSON.stringify(leaderboard))
             return true
         }
@@ -237,6 +237,18 @@ export class LeaderboardService {
 
         localStorage.setItem(this.STORAGE_KEY_ONLINE_MATCHES, JSON.stringify(history))
         return newMatch
+    }
+
+    static updateOnlineMatch(id: string, updates: Partial<Omit<OnlineMatchResult, 'id'>>): boolean {
+        const history = this.getOnlineLeaderboard()
+        const index = history.findIndex(m => m.id === id)
+
+        if (index !== -1) {
+            history[index] = { ...history[index], ...updates }
+            localStorage.setItem(this.STORAGE_KEY_ONLINE_MATCHES, JSON.stringify(history))
+            return true
+        }
+        return false
     }
 
     static clearOnlineMatches(): void {

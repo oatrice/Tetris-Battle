@@ -16,7 +16,7 @@ func main() {
 	mock := &ConsoleLogger{}
 	tetrisserver.SetLogger(mock)
 
-	port := ":8081"
+	port := ":8080"
 	fmt.Printf("🍎 Starting Mac Simulation on http://localhost%s\n", port)
 	fmt.Println("   (Simulates Android Server behavior via go run)")
 

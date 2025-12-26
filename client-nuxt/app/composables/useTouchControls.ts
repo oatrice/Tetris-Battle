@@ -87,13 +87,23 @@ export function useTouchControls(
 
     const handleTouchMove = (e: TouchEvent) => {
         if ((e.target as HTMLElement).tagName === 'INPUT') return
-        e.preventDefault() // Prevent scrolling
+
+        const game = gameGetter()
+        // Allow scrolling if game is paused or over
+        if (game && (game.isPaused || game.isGameOver)) return
+
+        if (e.cancelable) e.preventDefault() // Prevent scrolling during gameplay
+
         const action = inputHandler.handleTouchMove(e)
         executeAction(action)
     }
 
     const handleTouchEnd = (e: TouchEvent) => {
         if ((e.target as HTMLElement).tagName === 'INPUT') return
+
+        // Ensure we don't trigger drops if we were just scrolling (optional, but safe)
+        // inputHandler handles state reset on end
+
         const action = inputHandler.handleTouchEnd(e)
         executeAction(action)
     }

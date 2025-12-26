@@ -10,7 +10,7 @@
 export class Board {
     readonly width: number
     readonly height: number
-    private grid: number[][]
+    public grid: number[][]
 
     constructor(width: number = 10, height: number = 20) {
         this.width = width

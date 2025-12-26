@@ -1,5 +1,5 @@
 <template>
-  <div class="container" @keydown="handleKeydown" tabindex="0" ref="gameContainer">
+  <div class="container" tabindex="0" ref="gameContainer">
     <h1>🎮 Tetris Duo</h1>
     
     <!-- Mode Selection -->
@@ -127,7 +127,7 @@ const startDuo = () => {
 const startOnline = () => {
   remoteLog('User clicked Online Mode')
   gameMode.value = 'online'
-  const game = new OnlineGame()
+  const game = reactive(new OnlineGame()) as any
   
   let wsUrl = config.public.wsUrl
   // Auto-detect if running on same port (Serving from Go)
@@ -148,7 +148,7 @@ const startLAN = () => {
 }
 
 const connectLAN = (wsUrl: string) => {
-  const game = new OnlineGame()
+  const game = reactive(new OnlineGame()) as any
   game.init(wsUrl)
   onlineGame.value = game
   startGameLoop()
@@ -207,7 +207,7 @@ const startGameLoop = () => {
         }
       } else if (gameMode.value === 'duo' && duoGame.value) {
         duoGame.value.tick()
-      } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value && !onlineGame.value.isGameOver && onlineGame.value.isOpponentConnected) {
+      } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value && !onlineGame.value.isGameOver && (onlineGame.value.isOpponentConnected || onlineGame.value.isWinner)) {
          if (onlineGame.value.countdown === null && !onlineGame.value.isPaused) {
              onlineGame.value.moveDown()
          }
@@ -227,6 +227,8 @@ const startGameLoop = () => {
 
 // ============ Keyboard Controls ============
 const handleKeydown = (e: KeyboardEvent) => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+  
   if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value) {
     handleSoloControls(e)
   } else if (gameMode.value === 'duo' && duoGame.value) {
@@ -251,36 +253,32 @@ const handleSoloControls = (e: KeyboardEvent) => {
 }
 
 const handleOnlineControls = (e: KeyboardEvent) => {
-  if (!onlineGame.value || onlineGame.value.isGameOver || !onlineGame.value.isOpponentConnected) return
-  // NOTE: We do NOT return if countdown !== null because pause should work? 
-  // Wait, original design said no controls during countdown. 
-  // Let's keep it safe: if countdown, no controls interact (pause isn't useful in countdown).
+  if (!onlineGame.value || onlineGame.value.isGameOver || (!onlineGame.value.isOpponentConnected && !onlineGame.value.isWinner)) return
   if (onlineGame.value.countdown !== null) return
   
-  switch (e.key) {
+  switch (e.code) {
     case 'ArrowLeft': 
-    case 'a': onlineGame.value.moveLeft(); break
+    case 'KeyA': onlineGame.value.moveLeft(); break
     
     case 'ArrowRight': 
-    case 'd': onlineGame.value.moveRight(); break
+    case 'KeyD': onlineGame.value.moveRight(); break
     
     case 'ArrowDown': 
-    case 's': onlineGame.value.moveDown(); break
+    case 'KeyS': onlineGame.value.moveDown(); break
     
     case 'ArrowUp': 
-    case 'w': onlineGame.value.rotate(); break
+    case 'KeyW': onlineGame.value.rotate(); break
     
-    case ' ': 
+    case 'Space': 
     case 'Enter': e.preventDefault(); onlineGame.value.hardDrop(); break
     
-    case 'c': 
-    case 'C': 
-    case 'q':
-    case 'Q': onlineGame.value.hold(); break
+    case 'KeyC': 
+    case 'KeyQ':
+    case 'ShiftLeft':
+    case 'ShiftRight': onlineGame.value.hold(); break
 
     // Pause
-    case 'p':
-    case 'P':
+    case 'KeyP':
     case 'Escape': onlineGame.value.togglePause(); break
   }
 }
@@ -318,10 +316,11 @@ const handleDuoControls = (e: KeyboardEvent) => {
 }
 
 onMounted(() => {
-  gameContainer.value?.focus()
+  window.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
   if (animationId) {
     cancelAnimationFrame(animationId)
   }

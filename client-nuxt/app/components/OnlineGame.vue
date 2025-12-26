@@ -30,18 +30,40 @@
             playerColor="#00d4ff"
           />
           
-          <!-- Waiting / Countdown / Pause Overlay -->
-          <div v-if="isWaiting || (onlineGame.countdown !== null) || onlineGame.isPaused" class="board-overlay">
+          <div v-if="isWaiting || (onlineGame.countdown !== null) || onlineGame.isPaused || onlineGame.isGameOver || onlineGame.isDraw" class="board-overlay">
              <div v-if="isWaiting" class="overlay-content">
                  <div class="spinner"></div>
                  <p>Waiting...</p>
              </div>
-             <div v-if="onlineGame.countdown !== null" class="overlay-content">
+             <div v-else-if="onlineGame.countdown !== null" class="overlay-content">
                  <span class="countdown-number">{{ onlineGame.countdown === 0 ? 'GO!' : onlineGame.countdown }}</span>
              </div>
-             <div v-if="onlineGame.isPaused" class="overlay-content">
+             <div v-else-if="onlineGame.isPaused && !onlineGame.isWinner" class="overlay-content">
                  <span class="paused-text">GAME PAUSED</span>
-                 <span class="sub-text">Press 'P' or Button to Resume</span>
+                 <div class="overlay-buttons">
+                    <button class="resume-btn" @click="onlineGame.togglePause()">▶️ Resume</button>
+                     <button class="home-btn" @click="emit('back')">Exit</button>
+                 </div>
+             </div>
+             <div v-else class="overlay-content game-over-content">
+                  <span v-if="onlineGame.isDraw" class="result-text draw">🤝 DRAW!</span>
+                  <span v-else-if="onlineGame.isWinner" class="result-text win">🏆 YOU WIN!</span>
+                  <span v-else class="result-text lose">GAME OVER</span>
+
+                  <div v-if="onlineGame.isWinner && onlineGame.winScore !== null" class="win-score">
+                      Win Score: {{ onlineGame.winScore }}
+                  </div>
+                   <div v-if="onlineGame.isWinner && !onlineGame.isPaused" class="max-score">
+                      Max Score: {{ onlineGame.score }}
+                  </div>
+                  
+                  <div v-if="matchSaved" class="save-status">✅ Match Saved!</div>
+                  
+                  <div class="overlay-buttons">
+                      <button v-if="onlineGame.isWinner && onlineGame.isPaused" @click="onlineGame.continueAfterWin()" class="continue-btn">
+                          ▶️ Continue Playing
+                      </button>
+                  </div>
              </div>
           </div>
       </div>
@@ -49,6 +71,16 @@
       <div class="player-stats">
         <span class="score">{{ onlineGame.score }}</span>
         <span>L{{ onlineGame.level }} • {{ onlineGame.linesCleared }}</span>
+        
+        <div v-if="onlineGame.isWinner || onlineGame.isGameOver" class="winner-controls">
+            <div v-if="matchSaved" class="save-status">✅ Match Saved!</div>
+            <button v-if="!matchSaved" @click="saveAndExit" class="save-btn persistent-save-btn">💾 Save score</button>
+            <button @click="emit('back')" class="home-btn small mt-2">Exit</button>
+        </div>
+
+        <div v-else-if="!showNameInput && !onlineGame.isPaused" class="active-controls">
+             <button @click="emit('back')" class="home-btn small">Exit Game</button>
+        </div>
       </div>
     </div>
 
@@ -74,31 +106,8 @@
           <span>🟢 Connected</span>
       </div>
       
-      <div v-if="onlineGame.isGameOver || onlineGame.isWinner || onlineGame.isDraw" class="game-over-box">
-          <span v-if="onlineGame.isDraw" class="result-text draw">🤝 DRAW!</span>
-          <span v-else-if="onlineGame.isWinner" class="result-text win">🏆 YOU WIN!</span>
-          <span v-else class="result-text lose">GAME OVER</span>
-          
-          <div v-if="onlineGame.isWinner && onlineGame.winScore !== null" class="win-score">
-              Win Score: {{ onlineGame.winScore }}
-          </div>
-          <div v-if="onlineGame.isWinner && !onlineGame.isPaused" class="max-score">
-              Max Score: {{ onlineGame.score }}
-          </div>
-          
-          <div v-if="matchSaved" class="save-status">✅ Match Saved!</div>
-          
-          <div class="button-row">
-              <button v-if="onlineGame.isWinner && onlineGame.isPaused" @click="onlineGame.continueAfterWin()" class="continue-btn">
-                  ▶️ Continue Playing
-              </button>
-              <button v-if="!matchSaved" @click="saveAndExit" class="save-btn">💾 Save & Exit</button>
-              <button v-else @click="emit('back')" class="back-btn">Exit</button>
-          </div>
-      </div>
-
-     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput" @click="onlineGame.togglePause()" class="back-btn small">
-        {{ onlineGame.isPaused ? 'Resume' : 'Pause' }}
+      <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput && !onlineGame.isPaused" @click="onlineGame.togglePause()" class="back-btn small">
+        Pause
      </button>
      
      <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
@@ -124,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineAsyncComponent, computed } from 'vue'
+import { ref, onMounted, onUnmounted, defineAsyncComponent, computed, watch } from 'vue'
 import { OnlineGame } from '~/game/OnlineGame'
 import { COLORS } from '~/game/shapes'
 import { useTouchControls } from '~/composables/useTouchControls'
@@ -142,10 +151,12 @@ const emit = defineEmits(['back'])
 // Name Input State
 const showNameInput = ref(true)
 const playerName = ref('')
+
 const matchSaved = ref(false)
+const savedMatchId = ref<string | null>(null) // To track the ID of saved match
 
 // Computed state for waiting for opponent
-const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected)
+const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected && !props.onlineGame.isWinner && !props.onlineGame.isGameOver)
 
 // Formatted Timer
 const formattedTime = computed(() => {
@@ -155,21 +166,60 @@ const formattedTime = computed(() => {
     return `${m}:${s.toString().padStart(2, '0')}`
 })
 
-const saveAndExit = () => {
-    LeaderboardService.addOnlineMatch({
+const saveGame = () => {
+    // If we already saved, update the existing record (e.g. higher score after continuing)
+    if (matchSaved.value && savedMatchId.value) {
+        LeaderboardService.updateOnlineMatch(savedMatchId.value, {
+            maxScore: props.onlineGame.score,
+            duration: props.onlineGame.gameDuration
+        })
+        return
+    }
+
+    const result = LeaderboardService.addOnlineMatch({
         date: new Date().toISOString(),
         gameMode: props.mode || 'online',
         isWinner: props.onlineGame.isWinner,
         playerName: playerName.value || 'Player',
         opponentName: props.onlineGame.opponentName || 'Opponent',
         winScore: props.onlineGame.winScore,
-        maxScore: props.onlineGame.score,
+        maxScore: props.onlineGame.score, // This will be the current score (win score or updated)
         opponentScore: props.onlineGame.opponentScore,
         duration: props.onlineGame.gameDuration,
         matchId: props.onlineGame.matchId || undefined
     })
+    
     matchSaved.value = true
+    savedMatchId.value = result.id
 }
+
+const saveAndExit = () => {
+    if (!matchSaved.value) {
+        saveGame()
+    } else {
+        // Force update before exit if already saved (e.g. manual click after continuing)
+        saveGame()
+    }
+    emit('back')
+}
+
+// Auto-save Watchers
+watch(() => props.onlineGame.isWinner, (newVal) => {
+    if (newVal) {
+        console.log('Auto-saving Winner result...')
+        saveGame()
+    }
+})
+
+watch(() => props.onlineGame.isGameOver, (newVal) => {
+    if (newVal) {
+         // Save irrespective of whether we won or lost prior.
+         // If we lost immediately -> saves new match.
+         // If we won -> continues -> died -> updates existing match (because matchSaved is true).
+         console.log('Auto-saving Game Over result...')
+         saveGame()
+    }
+})
 
 const joinGame = () => {
     if (!playerName.value.trim()) return
@@ -177,13 +227,20 @@ const joinGame = () => {
     showNameInput.value = false
 }
 
+watch(() => props.onlineGame.matchId, (newId, oldId) => {
+    if (newId !== oldId) {
+        matchSaved.value = false
+        savedMatchId.value = null
+    }
+})
+
 // ============ Mobile Touch Controls (using composable) ============
 const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchControls(
     () => props.onlineGame,
     {
         checkPause: true,
         checkCountdown: () => props.onlineGame.countdown !== null,
-        checkOpponentConnected: () => props.onlineGame.isOpponentConnected
+        checkOpponentConnected: () => props.onlineGame.isOpponentConnected || props.onlineGame.isWinner
     }
 )
 
@@ -629,5 +686,121 @@ onUnmounted(() => {
 
 .mode-select:focus {
     border-color: #646cff;
+}
+
+/* Overlay Updates */
+.overlay-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  width: 80%;
+  max-width: 250px;
+}
+
+.game-over-content {
+    font-weight: bold;
+    font-size: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    width: 100%;
+}
+
+.resume-btn {
+  background: linear-gradient(135deg, #00ff88, #00cc6a);
+  color: #004400;
+  padding: 0.8rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  width: 100%;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+  animation: pulse-green 2s infinite;
+  cursor: pointer;
+}
+
+.home-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #666;
+  color: #ccc;
+  padding: 0.8rem;
+  width: 100%;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.home-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+}
+
+.active-controls {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.home-btn.small {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+  .online-area {
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      padding-bottom: 5rem; /* Ensure bottom controls are accessible */
+  }
+
+  .board-wrapper {
+      transform: scale(0.9);
+      transform-origin: top center;
+      /* Negative margin to reduce gap caused by scaling */
+      margin-bottom: -30px; 
+  }
+
+  .vs-section {
+      padding-top: 1rem; /* Reduce top padding */
+      flex-direction: row; /* Horizontal VS stats */
+      width: 100%;
+      justify-content: space-around;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+  }
+  
+  .vs-text {
+      font-size: 1.5rem;
+      display: none; /* Hide VS text to save space */
+  }
+
+  .game-timer {
+      margin: 0;
+  }
+
+  .status-box {
+      width: auto;
+      padding: 0.5rem;
+  }
+  
+  .active-controls {
+      margin-top: 0.5rem;
+  }
 }
 </style>

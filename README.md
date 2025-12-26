@@ -42,7 +42,13 @@ If you want to test the full stack (Go Server + Nuxt Client) locally without an 
 ```bash
 make dev
 ```
-This script rebuilds the frontend, copies assets, and starts a local Go server simulating the Android environment on `http://localhost:8081`.
+This script rebuilds the frontend, copies assets, and starts a local Go server simulating the Android environment on `http://localhost:8080`.
+
+**Run Server Only (Manual):**
+If you only want to run the Go server (without rebuilding the frontend):
+```bash
+go run cmd/mac-sim/main.go
+```
 
 ### Features
 
