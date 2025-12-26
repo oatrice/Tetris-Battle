@@ -106,14 +106,14 @@ const remoteLog = (msg: string) => {
 const startSolo = () => {
   remoteLog('User started Solo Mode')
   gameMode.value = 'solo'
-  soloGame.value = new Game()
+  soloGame.value = reactive(new Game()) as any
   startGameLoop()
 }
 
 const startSpecial = () => {
   remoteLog('User started Special Mode')
   gameMode.value = 'special'
-  soloGame.value = new SpecialGame()
+  soloGame.value = reactive(new SpecialGame()) as any
   startGameLoop()
 }
 
@@ -156,9 +156,9 @@ const connectLAN = (wsUrl: string) => {
 
 const restartGame = () => {
   if (gameMode.value === 'special') {
-    soloGame.value = new SpecialGame()
+    soloGame.value = reactive(new SpecialGame()) as any
   } else {
-    soloGame.value = new Game()
+    soloGame.value = reactive(new Game()) as any
   }
 }
 
@@ -239,14 +239,14 @@ const handleKeydown = (e: KeyboardEvent) => {
 const handleSoloControls = (e: KeyboardEvent) => {
   if (!soloGame.value || soloGame.value.isGameOver) return
   
-  switch (e.key) {
+  switch (e.code) {
     case 'ArrowLeft': soloGame.value.moveLeft(); break
     case 'ArrowRight': soloGame.value.moveRight(); break
-    case 'ArrowDown': soloGame.value.moveDown(); break
+    case 'ArrowDown': soloGame.value.moveDown(true); break
     case 'ArrowUp': soloGame.value.rotate(); break
-    case ' ': e.preventDefault(); soloGame.value.hardDrop(); break
-    case 'c': case 'C': soloGame.value.hold(); break
-    case 'p': case 'P': soloGame.value.togglePause(); break
+    case 'Space': e.preventDefault(); soloGame.value.hardDrop(); break
+    case 'KeyC': case 'ShiftLeft': case 'ShiftRight': soloGame.value.hold(); break
+    case 'KeyP': case 'Escape': soloGame.value.togglePause(); break
   }
 }
 
@@ -420,5 +420,30 @@ h1 {
 .game-area {
   display: flex;
   justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .mode-buttons {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0 1rem;
+  }
+
+  .mode-btn.leaderboard {
+    grid-column: span 1;
+  }
+  
+  .mode-select {
+    margin-top: 2rem;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+
+  /* Hide Duo mode on mobile */
+  .mode-btn.duo {
+    display: none;
+  }
 }
 </style>

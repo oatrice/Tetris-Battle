@@ -247,6 +247,10 @@ describe('Game', () => {
     })
 
     describe('holdPiece', () => {
+        beforeEach(() => {
+            game.allowHold = true
+        })
+
         it('should start with no held piece', () => {
             expect(game.heldPiece).toBeNull()
         })

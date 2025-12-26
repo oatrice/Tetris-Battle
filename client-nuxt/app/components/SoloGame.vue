@@ -1,8 +1,12 @@
 <template>
   <div class="solo-game">
     <div class="game-layout">
+      <!-- Mobile 1: Mode Label -->
+      <div class="mode-label mobile-only" :class="{ special: isSpecialMode }">
+          {{ isSpecialMode ? '✨ SPECIAL' : '🎯 SOLO' }}
+      </div>
       <!-- Hold (Special mode only) -->
-      <div v-if="isSpecialMode" class="side-panel">
+      <div v-if="isSpecialMode" class="side-panel hold-panel">
         <h4>HOLD</h4>
         <div class="piece-preview" :style="{ opacity: game.heldPiece ? 1 : 0.3 }">
           <MiniPiece v-if="game.heldPiece" :piece="game.heldPiece" />
@@ -10,11 +14,84 @@
         </div>
       </div>
       <!-- Spacer when no hold panel -->
-      <div v-else class="side-panel-spacer"></div>
+      <div v-else class="side-panel-spacer desktop-only"></div>
+
+      <!-- Next Panel (Desktop: all info. Mobile: only Preview) -->
+      <div class="side-panel next-panel" :class="{ 'full-width': !isSpecialMode }">
+        <h4>NEXT</h4>
+        <div class="piece-preview">
+          <MiniPiece :piece="game.nextPiece" />
+        </div>
+        
+        <!-- Desktop: Stats & Effect & Controls -->
+        <div class="stats desktop-only">
+          <p class="score">{{ game.score }}</p>
+          <p>Level {{ game.level }}</p>
+          <p>Lines {{ game.linesCleared }}</p>
+          <p v-if="isSpecialMode && 'chainCount' in game && (game as any).chainCount > 0" class="chain">
+            🔥 {{ (game as any).chainCount }}-Chain!
+          </p>
+        </div>
+        
+        <div v-if="isSpecialMode" class="effect-selector desktop-only">
+          <label>Effect:</label>
+          <select v-model="selectedEffect" @change="onEffectChange">
+            <option v-for="(label, type) in effectLabels" :key="type" :value="type">
+              {{ label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="control-buttons desktop-only">
+          <button class="ctrl-btn" @click="game.togglePause()" :title="game.isPaused ? 'Resume' : 'Pause'">
+            {{ game.isPaused ? '▶️' : '⏸️' }}
+          </button>
+          <button class="ctrl-btn" @click="showGhost = !showGhost" :title="showGhost ? 'Hide Ghost' : 'Show Ghost'">
+            {{ showGhost ? '👻' : '👤' }}
+          </button>
+          <button class="ctrl-btn" @click="$emit('back')" title="Back to Menu">
+            🏠
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile: Row 2 (Score | Effect) -->
+      <div class="mobile-stats-row mobile-only">
+          <div class="stats-box">
+             <p class="score">{{ game.score }}</p>
+             <p>L{{ game.level }} • Lines {{ game.linesCleared }}</p> 
+             <p v-if="isSpecialMode && 'chainCount' in game && (game as any).chainCount > 0" class="chain">
+                🔥 {{ (game as any).chainCount }}
+             </p>
+          </div>
+          
+          <div v-if="isSpecialMode" class="effect-box">
+              <select v-model="selectedEffect" @change="onEffectChange" class="mobile-select">
+                <option v-for="(label, type) in effectLabels" :key="type" :value="type">
+                  {{ label }}
+                </option>
+              </select>
+          </div>
+          <!-- If not special mode, maybe stretch stats or leave empty? User asked for | Score | Effect |. 
+               I'll let stats take full width if no effect. -->
+      </div>
+
+      <!-- Mobile: Row 3 (Controls) -->
+      <div class="control-buttons mobile-only mobile-controls-row">
+          <button class="ctrl-btn" @click="game.togglePause()" :title="game.isPaused ? 'Resume' : 'Pause'">
+            {{ game.isPaused ? '▶️' : '⏸️' }}
+          </button>
+          <button class="ctrl-btn" @click="showGhost = !showGhost" :title="showGhost ? 'Hide Ghost' : 'Show Ghost'">
+            {{ showGhost ? '👻' : '👤' }}
+          </button>
+          <button class="ctrl-btn" @click="$emit('back')" title="Back to Menu">
+            🏠
+          </button>
+      </div>
 
       <!-- Board -->
       <div class="board-section">
-        <div class="mode-label" :class="{ special: isSpecialMode }">
+        <div class="mode-label desktop-only" :class="{ special: isSpecialMode }">
           {{ isSpecialMode ? '✨ SPECIAL' : '🎯 SOLO' }}
         </div>
         <canvas 
@@ -30,7 +107,6 @@
         <div v-if="game.isGameOver" class="overlay game-over">
           <span>💀 GAME OVER</span>
           
-          <!-- High Score Input -->
           <!-- High Score Input -->
           <div v-if="isNewHighScore" class="high-score-form">
             <span class="high-score-label">
@@ -75,43 +151,6 @@
             <button @click="$emit('restart')">🔄 Restart</button>
             <button @click="showLeaderboard = true" class="leaderboard-btn">🏆 Leaderboard</button>
           </div>
-        </div>
-      </div>
-
-      <!-- Next -->
-      <div class="side-panel">
-        <h4>NEXT</h4>
-        <div class="piece-preview">
-          <MiniPiece :piece="game.nextPiece" />
-        </div>
-        <div class="stats">
-          <p class="score">{{ game.score }}</p>
-          <p>Level {{ game.level }}</p>
-          <p>Lines {{ game.linesCleared }}</p>
-          <p v-if="isSpecialMode && 'chainCount' in game && (game as any).chainCount > 0" class="chain">
-            🔥 {{ (game as any).chainCount }}-Chain!
-          </p>
-        </div>
-        <!-- Effect Selector (Special mode only) -->
-        <div v-if="isSpecialMode" class="effect-selector">
-          <label>Effect:</label>
-          <select v-model="selectedEffect" @change="onEffectChange">
-            <option v-for="(label, type) in effectLabels" :key="type" :value="type">
-              {{ label }}
-            </option>
-          </select>
-        </div>
-        <!-- Control Buttons -->
-        <div class="control-buttons">
-          <button class="ctrl-btn" @click="game.togglePause()" :title="game.isPaused ? 'Resume' : 'Pause'">
-            {{ game.isPaused ? '▶️' : '⏸️' }}
-          </button>
-          <button class="ctrl-btn" @click="showGhost = !showGhost" :title="showGhost ? 'Hide Ghost' : 'Show Ghost'">
-            {{ showGhost ? '👻' : '👤' }}
-          </button>
-          <button class="ctrl-btn" @click="$emit('back')" title="Back to Menu">
-            🏠
-          </button>
         </div>
       </div>
     </div>
@@ -725,7 +764,132 @@ button {
   transition: background 0.2s;
 }
 
-.edit-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+
+.mobile-only {
+  display: none;
 }
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  
+  .mobile-only {
+    display: block;
+  }
+
+  .game-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+    width: 100%;
+    align-items: center;
+  }
+  
+  /* 1. Mode Label (Full width top) */
+  .mode-label.mobile-only {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+    text-align: center;
+    order: 1;
+  }
+  
+  /* 2. Controls (Row 2 - Full Width) */
+  .mobile-controls-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    order: 2;
+  }
+
+  /* 3. Stats & Effect (Row 3 - Full Width) */
+  .mobile-stats-row {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    background: #6385db; /* Lighter background for contrast */
+    border-radius: 8px;
+    padding: 0.8rem;
+    align-items: center;
+    justify-content: space-around;
+    order: 3;
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+  }
+  
+  .mobile-stats-row .stats-box p {
+    color: #0f0c29; /* Dark text for contrast */
+    font-weight: 500;
+  }
+  
+  .mobile-stats-row .stats-box .score {
+    color: #000; /* Distinct dark score */
+    text-shadow: none;
+  }
+  
+  /* 4. Hold Panel (Left) */
+  .hold-panel {
+    grid-column: 1;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    order: 4;
+  }
+
+  /* 4. Next Panel (Right or Full) */
+  .next-panel {
+    grid-column: 2;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    order: 4;
+  }
+  
+  .next-panel.full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* 5. Board (Full width bottom) */
+  .board-section {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+    order: 5;
+  }
+
+  .game-canvas {
+    max-width: 95vw; 
+    height: auto;
+  }
+  
+  /* Reset panel styles for mobile grid items */
+  .side-panel {
+    margin: 0;
+    min-width: 0;
+    background: #6385db; /* Lighter background for contrast */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .side-panel h4 {
+    color: #0f0c29; /* Darker text for contrast */
+    font-weight: 900;
+    text-shadow: none;
+  }
+  
+  .side-panel-spacer {
+    display: none;
+  }
+}
+
 </style>

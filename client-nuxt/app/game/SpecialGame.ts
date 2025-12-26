@@ -30,6 +30,7 @@ export class SpecialGame extends Game {
     constructor() {
         super()
         this.chainCount = 0
+        this.allowHold = true
     }
 
     // Delegate effect properties to effectSystem
