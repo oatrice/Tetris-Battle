@@ -52,6 +52,20 @@ class MainActivity : AppCompatActivity() {
             // Run Go Server in background thread because it blocks
             CoroutineScope(Dispatchers.IO).launch {
                 try {
+                    // Set Logger
+                    // We must implement the Go interface: tetrisserver.Logger
+                    tetrisserver.Tetrisserver.setLogger(object : tetrisserver.Logger {
+                        override fun log(msg: String?) {
+                            msg?.let { 
+                                runOnUiThread { appendLog(it) }
+                            }
+                        }
+                    })
+                    
+                    withContext(Dispatchers.Main) {
+                        appendLog("Extensions loaded: v${tetrisserver.Tetrisserver.getVersion()}")
+                    }
+
                     // Tetrisserver is the package name from the .aar
                     tetrisserver.Tetrisserver.start(":8080")
                 } catch (e: Exception) {

@@ -49,3 +49,4 @@ android-server/app/build
 public/
 tetris-server-android
 android-server/app/libs/*.aar
+android-server/app/libs/*.jar

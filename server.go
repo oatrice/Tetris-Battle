@@ -242,6 +242,54 @@ func (c *Client) handleMessage(msg Message) {
 
 // ================= Main =================
 
+// Logger allows Android to receive logs from Go
+type Logger interface {
+	Log(msg string)
+}
+
+var globalLogger Logger
+
+// SetLogger sets the logger instance from Android
+func SetLogger(l Logger) {
+	globalLogger = l
+	// Redirect standard log output to this logger as well
+	log.SetOutput(&androidWriter{l: l})
+}
+
+// GetVersion returns the current version of the Go library
+func GetVersion() string {
+	return "1.1.0"
+}
+
+// androidWriter adapts Logger to io.Writer for standard log package
+type androidWriter struct {
+	l Logger
+}
+
+func (w *androidWriter) Write(p []byte) (n int, err error) {
+	msg := string(p)
+	if globalLogger != nil {
+		globalLogger.Log(msg)
+	}
+	return len(p), nil
+}
+
+// logMiddleware intercepts HTTP requests and logs them
+func logMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Wrap ResponseWriter to capture status code (omitted for brevity, just logging request)
+		if globalLogger != nil {
+			// e.g., "[HTTP] GET /app.js from 192.168.1.5"
+			globalLogger.Log(fmt.Sprintf("[HTTP] %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr))
+		}
+
+		next.ServeHTTP(w, r)
+
+		// Optional: Log duration
+		// duration := time.Since(start)
+	})
+}
+
 // Stop triggers the server to shutdown (placeholder for now)
 func Stop() {
 	// In a real implementation, we would use a context or channel to stop the server
@@ -264,6 +312,9 @@ func Start(port string) {
 			return
 		}
 
+		// Log WebSocket connection
+		log.Printf("New WebSocket connection from %s", r.RemoteAddr)
+
 		client := &Client{
 			hub:  hub,
 			conn: conn,
@@ -282,10 +333,14 @@ func Start(port string) {
 	if err != nil {
 		log.Println("Failed to create sub filesystem: ", err)
 	} else {
-		mux.Handle("/", http.FileServer(http.FS(publicFS)))
+		// Apply middleware to file server
+		fileHandler := http.FileServer(http.FS(publicFS))
+		mux.Handle("/", logMiddleware(fileHandler))
 	}
 
 	log.Println("Server starting on " + port)
+	log.Println("Version: " + GetVersion())
+
 	// Allow external access
 	if err := http.ListenAndServe(port, mux); err != nil {
 		log.Println("ListenAndServe: ", err)

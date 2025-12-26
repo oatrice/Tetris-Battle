@@ -27,6 +27,7 @@ This is a native Android application that serves as the WebSocket server for Tet
     *   Client connections/disconnections
     *   Match creation
     *   Game events (Pause, Game Over, etc.)
+    *   **File Access Logging:** Shows every file requested by connected browsers (e.g., `[HTTP] GET /app.js`), useful for debugging.
 *   **Background Service:** *(Ideally)* Runs in the foreground to prevent Android from killing the server process during a game.
 
 ## 🔧 Connectivity Guide

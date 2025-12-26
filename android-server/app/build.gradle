@@ -12,7 +12,7 @@ android {
         minSdk 24
         targetSdk 34
         versionCode 1
-        versionName "1.0"
+        versionName "1.1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -38,7 +38,9 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     
-    implementation files('libs/tetrisserver.aar')
+    // Check if the AAR file exists, otherwise this will cause build errors
+    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
+    
     // Gson for JSON parsing
     implementation 'com.google.code.gson:gson:2.10.1'
     
