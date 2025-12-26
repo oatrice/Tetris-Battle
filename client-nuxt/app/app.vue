@@ -421,4 +421,29 @@ h1 {
   display: flex;
   justify-content: center;
 }
+
+@media (max-width: 600px) {
+  .mode-buttons {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0 1rem;
+  }
+
+  .mode-btn.leaderboard {
+    grid-column: span 1;
+  }
+  
+  .mode-select {
+    margin-top: 2rem;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+
+  /* Hide Duo mode on mobile */
+  .mode-btn.duo {
+    display: none;
+  }
+}
 </style>
