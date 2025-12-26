@@ -89,7 +89,6 @@
           </button>
       </div>
 
-      <!-- Board -->
       <div class="board-section">
         <div class="mode-label desktop-only" :class="{ special: isSpecialMode }">
           {{ isSpecialMode ? '✨ SPECIAL' : '🎯 SOLO' }}
@@ -103,7 +102,15 @@
           @touchmove.prevent="handleTouchMove"
           @touchend.prevent="handleTouchEnd"
         />
-        <div v-if="game.isPaused && !game.isGameOver" class="overlay">⏸️ PAUSED</div>
+        <div v-if="game.isPaused && !game.isGameOver" class="overlay">
+            <div class="overlay-content">
+                <span class="paused-text">⏸️ PAUSED</span>
+                <div class="overlay-buttons">
+                    <button class="resume-btn" @click="game.togglePause()" title="Resume">▶️ Resume</button>
+                    <button class="home-btn" @click="$emit('back')" title="Back to Menu">🏠 Menu</button>
+                </div>
+            </div>
+        </div>
         <div v-if="game.isGameOver" class="overlay game-over">
           <span>💀 GAME OVER</span>
           
@@ -150,6 +157,7 @@
           <div class="game-over-buttons">
             <button @click="$emit('restart')">🔄 Restart</button>
             <button @click="showLeaderboard = true" class="leaderboard-btn">🏆 Leaderboard</button>
+             <button @click="$emit('back')" title="Back to Menu" class="home-btn">🏠 Menu</button>
           </div>
         </div>
       </div>
@@ -764,6 +772,60 @@ button {
   transition: background 0.2s;
 }
 
+
+/* Overlay Updates */
+.overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.overlay-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  width: 80%;
+  max-width: 250px;
+}
+
+.resume-btn {
+  background: linear-gradient(135deg, #00ff88, #00cc6a);
+  color: #004400;
+  padding: 0.8rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  width: 100%;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+  animation: pulse-green 2s infinite;
+  cursor: pointer;
+}
+
+.home-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #666;
+  color: #ccc;
+  padding: 0.8rem;
+  width: 100%;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.home-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+}
 
 .mobile-only {
   display: none;
