@@ -29,7 +29,12 @@ onMounted(() => {
   if (import.meta.client) {
       // Try local (relative) first, or fallback if needed (though usually relative works)
        fetch('/debug/version')
-        .then(res => res.text())
+        .then(async res => {
+          if (!res.ok) throw new Error('Not found')
+          const text = await res.text()
+          if (!text.startsWith('lib-')) throw new Error('Invalid version format')
+          return text
+        })
         .then(v => { libVersion.value = v })
         .catch(() => { /* Ignore fetch error (e.g. standalone dev mode) */ })
   }
