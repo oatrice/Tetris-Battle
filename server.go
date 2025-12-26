@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -259,7 +260,7 @@ func SetLogger(l Logger) {
 
 // GetVersion returns the current version of the Go library
 func GetVersion() string {
-	return "lib-v1.1.1"
+	return "lib-v1.1.2"
 }
 
 // androidWriter adapts Logger to io.Writer for standard log package
@@ -355,6 +356,19 @@ func Start(port string) {
 		fileHandler := http.FileServer(http.FS(publicFS))
 		mux.Handle("/", logMiddleware(fileHandler))
 	}
+
+	// Client Logging Bridge
+	mux.HandleFunc("/debug/log", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			return
+		}
+		buf := new(strings.Builder)
+		_, _ = io.Copy(buf, r.Body)
+		msg := strings.TrimSpace(buf.String())
+		if globalLogger != nil && msg != "" {
+			globalLogger.Log("[CLIENT] " + msg)
+		}
+	})
 
 	log.Println("Server starting on " + port)
 	log.Println("Version: " + GetVersion())

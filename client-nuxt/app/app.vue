@@ -97,25 +97,35 @@ let lastUpdate = 0
 const DROP_INTERVAL = 1000
 
 // ============ Mode Selection ============
+const remoteLog = (msg: string) => {
+  if (import.meta.client && window.location.port === '8080') {
+    fetch('/debug/log', { method: 'POST', body: msg }).catch(() => {})
+  }
+}
+
 const startSolo = () => {
+  remoteLog('User started Solo Mode')
   gameMode.value = 'solo'
   soloGame.value = reactive(new Game()) as Game
   startGameLoop()
 }
 
 const startSpecial = () => {
+  remoteLog('User started Special Mode')
   gameMode.value = 'special'
   soloGame.value = reactive(new SpecialGame()) as SpecialGame
   startGameLoop()
 }
 
 const startDuo = () => {
+  remoteLog('User started Duo Mode')
   gameMode.value = 'duo'
   duoGame.value = reactive(new DuoGame()) as DuoGame
   startGameLoop()
 }
 
 const startOnline = () => {
+  remoteLog('User clicked Online Mode')
   gameMode.value = 'online'
   const game = reactive(new OnlineGame()) as OnlineGame
   
