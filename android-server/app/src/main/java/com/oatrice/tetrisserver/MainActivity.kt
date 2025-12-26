@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
                     })
                     
                     withContext(Dispatchers.Main) {
-                        appendLog("Extensions loaded: v${tetrisserver.Tetrisserver.getVersion()}")
+                        appendLog("Extensions loaded: ${tetrisserver.Tetrisserver.getVersion()}")
                     }
 
                     // Tetrisserver is the package name from the .aar
