@@ -21,8 +21,11 @@ Before opening the Android project, you must build the Go shared library.
 3.  **Build `.aar`:**
     ```bash
     # Ensure ANDROID_NDK_HOME is set
-    gomobile bind -androidapi 24 -o android-server/app/libs/tetrisserver-lib-v1.1.3.aar -target=android .
+    gomobile bind -androidapi 24 -o android-server/app/libs/tetrisserver-lib-v1.1.4.aar -target=android .
     ```
+
+    > **Tip:** You can use `./rebuild_and_run.sh` to quickly test changes on your Mac before building the AAR for Android.
+
 ## 🚀 Getting Started
 
 ### Prerequisites

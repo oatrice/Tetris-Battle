@@ -260,7 +260,7 @@ func SetLogger(l Logger) {
 
 // GetVersion returns the current version of the Go library
 func GetVersion() string {
-	return "lib-v1.1.3"
+	return "lib-v1.1.4"
 }
 
 // androidWriter adapts Logger to io.Writer for standard log package
@@ -317,7 +317,8 @@ func Stop() {
 
 // Start launches the HTTP and WebSocket server on the specified port (e.g., ":8080")
 // usage: tetrisserver.Start(":8080")
-func Start(port string) {
+// NewServerHandler creates and configures the main HTTP handler
+func NewServerHandler() http.Handler {
 	hub := NewHub()
 	go hub.run()
 
@@ -370,11 +371,26 @@ func Start(port string) {
 		}
 	})
 
+	// Version Endpoint
+	mux.HandleFunc("/debug/version", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Access-Control-Allow-Origin", "*") // Helpful for dev
+		w.Write([]byte(GetVersion()))
+	})
+
+	return mux
+}
+
+// Start launches the HTTP and WebSocket server on the specified port (e.g., ":8080")
+// usage: tetrisserver.Start(":8080")
+func Start(port string) {
+	handler := NewServerHandler()
+
 	log.Println("Server starting on " + port)
 	log.Println("Version: " + GetVersion())
 
 	// Allow external access
-	if err := http.ListenAndServe(port, mux); err != nil {
+	if err := http.ListenAndServe(port, handler); err != nil {
 		log.Println("ListenAndServe: ", err)
 	}
 }

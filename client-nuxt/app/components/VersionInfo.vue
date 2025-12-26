@@ -1,6 +1,7 @@
 <template>
   <div class="version-info" :class="{ dev: versionInfo.isDev, dirty: versionInfo.isDirty }">
-    <span class="version">v{{ versionInfo.version }}</span>
+    <span class="version">App: v{{ versionInfo.version }}</span>
+    <span v-if="libVersion" class="version lib"> | Lib: {{ libVersion }}</span>
     <!-- In Dev: show hash/HMR based on dirty state. In Prod: hide details -->
     <template v-if="versionInfo.isDev && showDetails">
       <span class="hash">({{ hashDisplay }})</span>
@@ -19,15 +20,26 @@ defineProps<{
 
 const versionInfo = useVersionInfo()
 const currentTime = ref('')
+const libVersion = ref('')
 
 onMounted(() => {
   currentTime.value = new Date().toLocaleTimeString()
+  
+  // Fetch Lib Version
+  if (import.meta.client) {
+      // Try local (relative) first, or fallback if needed (though usually relative works)
+       fetch('/debug/version')
+        .then(res => res.text())
+        .then(v => { libVersion.value = v })
+        .catch(() => { /* Ignore fetch error (e.g. standalone dev mode) */ })
+  }
 })
 
 // If dirty (uncommitted changes), show HMR mode
 const hashDisplay = computed(() => {
   return versionInfo.isDirty ? 'HMR' : versionInfo.commitHash
 })
+
 
 const dateDisplay = computed(() => {
   return versionInfo.isDirty ? currentTime.value : versionInfo.commitDate

@@ -2,6 +2,16 @@
 
 All notable changes to the Android Server App project will be documented in this file.
 
+## [1.1.4] - 2025-12-26
+
+### Fixed
+*   **Android Crash:** Fixed `TypeError: crypto.randomUUID is not a function` by adding a polyfill in `LeaderboardService`.
+*   **TypeScript:** Resolved multiple type mismatch errors in `app.vue` by removing unnecessary `reactive()` wrappers.
+
+### Added
+*   **Version Display:** Added library version (`lib-v1.1.4`) to the main menu for easier debugging.
+*   **Tests:** Added `TestServerParity` to ensure Go server serves Nuxt assets correctly.
+
 ## [1.1.3] - 2025-12-26
 
 ### Fixed
