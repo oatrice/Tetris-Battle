@@ -17,8 +17,8 @@ func (m *MockLogger) Log(msg string) {
 
 func TestGetVersion(t *testing.T) {
 	v := tetrisserver.GetVersion()
-	if v != "lib-v1.1.2" {
-		t.Errorf("Expected version lib-v1.1.2, got %s", v)
+	if v != "lib-v1.1.3" {
+		t.Errorf("Expected version lib-v1.1.3, got %s", v)
 	}
 }
 
