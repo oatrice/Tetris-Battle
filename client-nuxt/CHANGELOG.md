@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.8.2] - 2025-12-26
+
+### Fixed
+- **Version Info Validation**: Improved the validation logic for version information to ensure accuracy and prevent potential display issues.
+
 ## [3.8.1] - 2025-12-26
 
 ### Fixed
