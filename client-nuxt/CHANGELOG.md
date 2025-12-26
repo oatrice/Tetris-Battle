@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.8.1] - 2025-12-26
+
+### Fixed
+- **Android WebView Polyfill**: Addressed an issue where the Android WebView polyfill was not correctly applied, potentially causing rendering or functionality problems in certain Android environments.
+
 ## [3.9.0] - 2025-12-25
 
 ### Added
