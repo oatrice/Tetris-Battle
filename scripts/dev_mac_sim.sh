@@ -3,19 +3,22 @@
 # ==============================================================================
 # 🍎 Tetris Battle - Local Mac Simulation Runner
 # ==============================================================================
-# Usage: ./rebuild_and_run.sh
+# Usage: ./scripts/dev_mac_sim.sh (or via 'make dev')
 #
 # Purpose:
 #   1. Rebuilds the Nuxt.js Client (Static Generation)
 #   2. Copies assets to the Go server's 'public' directory
 #   3. Runs the Go server in Mac Simulation mode (cmd/mac-sim)
-#
-# Use this script when:
-#   - You changed frontend code and want to test it locally on Mac.
-#   - You want to verify Go <-> Nuxt integration without an Android device.
 # ==============================================================================
 
 set -e
+
+# Resolve Project Root (One level up from this script)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "📂 Project Root: $PROJECT_ROOT"
+cd "$PROJECT_ROOT"
 
 echo "🍏 Building Nuxt Client..."
 cd client-nuxt

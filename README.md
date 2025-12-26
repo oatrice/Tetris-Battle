@@ -40,7 +40,7 @@ A native Android application that hosts the game server for local multiplayer ma
 ### 🍎 Mac Simulation (Local Dev)
 If you want to test the full stack (Go Server + Nuxt Client) locally without an Android device:
 ```bash
-./rebuild_and_run.sh
+make dev
 ```
 This script rebuilds the frontend, copies assets, and starts a local Go server simulating the Android environment on `http://localhost:8081`.
 
