@@ -15,7 +15,7 @@ import java.util.Collections
 
 class MainActivity : AppCompatActivity() {
 
-    private var server: TetrisServer? = null
+    // private var server: TetrisServer? = null
     private var isRunning = false
     private lateinit var logTv: TextView
     private lateinit var ipTv: TextView
@@ -49,15 +49,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun startServer() {
         try {
-            server = TetrisServer(8080) { msg ->
-                runOnUiThread { appendLog(msg) }
+            // Run Go Server in background thread because it blocks
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    // Tetrisserver is the package name from the .aar
+                    tetrisserver.Tetrisserver.start(":8080")
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        appendLog("Go Server Error: ${e.message}")
+                    }
+                }
             }
-            server?.start()
+
             isRunning = true
             toggleBtn.text = "Stop Server"
-            toggleBtn.background.setTint(getColor(R.color.teal_700)) // Change color needed?
+            // toggleBtn.background.setTint(getColor(R.color.teal_700)) 
             updateIp()
-            appendLog("Server starting on port 8080...")
+            appendLog("Go Server starting on port 8080...")
+            appendLog("Frontend available at http://${getIpAddress()}:8080")
         } catch (e: Exception) {
             appendLog("Error starting: ${e.message}")
         }
@@ -65,8 +74,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopServer() {
         try {
-            server?.stop()
-            server = null
+            tetrisserver.Tetrisserver.stop()
+            // server = null
             isRunning = false
             toggleBtn.text = "Start Server"
             appendLog("Server stopped.")

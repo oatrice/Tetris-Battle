@@ -1,4 +1,4 @@
-package main
+package tetrisserver
 
 import (
 	"embed"
@@ -242,11 +242,22 @@ func (c *Client) handleMessage(msg Message) {
 
 // ================= Main =================
 
-func main() {
+// Stop triggers the server to shutdown (placeholder for now)
+func Stop() {
+	// In a real implementation, we would use a context or channel to stop the server
+	// For now, Android can just kill the process/activity
+}
+
+// Start launches the HTTP and WebSocket server on the specified port (e.g., ":8080")
+// usage: tetrisserver.Start(":8080")
+func Start(port string) {
 	hub := NewHub()
 	go hub.run()
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	// Use a new ServeMux to avoid global state conflicts if restarted
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)
@@ -269,13 +280,14 @@ func main() {
 	// We use a sub-filesystem because the files are inside "public" folder in the embed
 	publicFS, err := fs.Sub(content, "public")
 	if err != nil {
-		log.Fatal("Failed to create sub filesystem: ", err)
+		log.Println("Failed to create sub filesystem: ", err)
+	} else {
+		mux.Handle("/", http.FileServer(http.FS(publicFS)))
 	}
-	http.Handle("/", http.FileServer(http.FS(publicFS)))
 
-	log.Println("Server started on :8080")
-	// Allow external access (bind to 0.0.0.0 is default for :8080)
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	log.Println("Server starting on " + port)
+	// Allow external access
+	if err := http.ListenAndServe(port, mux); err != nil {
+		log.Println("ListenAndServe: ", err)
 	}
 }

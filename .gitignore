@@ -48,3 +48,4 @@ android-server/.gradle
 android-server/app/build
 public/
 tetris-server-android
+android-server/app/libs/*.aar

@@ -103,26 +103,27 @@ The Go server (`server.go`) now:
 1.  **Embeds the Frontend:** The built Nuxt static files are embedded inside the Go binary.
 2.  **Serves Everything:** It acts as both the Web Server (HTTP) and Game Server (WebSocket).
 
-### How to Build & Run
-1.  **Build the Frontend:**
-    ```bash
-    npm run generate
-    ```
-    *(This creates the static files in `.output/public`, which the Go build script will auto-copy)*
+### Method 1: Termux (Simple)
+1.  **Build the Frontend:** `npm run generate`
+2.  **Build Binary:** `GOOS=linux GOARCH=arm64 go build -o tetris-server-android server.go`
+3.  **Run in Termux:** Copy to phone and run `./tetris-server-android`
 
-2.  **Build for Android (ARM64):**
+### Method 2: Native Android App (Gomobile) 📱
+The project includes a native Android wrapper (`android-server`) that runs the Go server internally as a library.
+
+1.  **Environment Setup:**
+    - Install Go 1.25+ and Android SDK/NDK.
+    - Install Gomobile: `go install golang.org/x/mobile/cmd/gomobile@latest && gomobile init`
+
+2.  **Build the Library (.aar):**
     ```bash
-    # This command builds the binary 'tetris-server-android'
-    # It automatically embeds the generated frontend files
-    GOOS=linux GOARCH=arm64 go build -o tetris-server-android server.go
+    # Embeds frontend matches directly into the AAR
+    export ANDROID_HOME=/path/to/sdk
+    export ANDROID_NDK_HOME=/path/to/ndk
+    gomobile bind -androidapi 24 -o android-server/app/libs/tetrisserver.aar -target=android .
     ```
 
-3.  **Run on Android (Termux):**
-    - Copy `tetris-server-android` to your phone.
-    - Run in Termux:
-      ```bash
-      chmod +x tetris-server-android
-      ./tetris-server-android
-      ```
-    - Connect other devices (iPad, Laptop) to the phone's Hotspot.
-    - Open browser on devices: `http://<PHONE_IP>:8080`
+3.  **Build the App:**
+    - Open `android-server` in Android Studio.
+    - Build & Run on your device.
+    - The app will have a "Start Server" button that launches the embedded Go server.

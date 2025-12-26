@@ -38,8 +38,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     
-    // WebSocket Server Library
-    implementation 'org.java-websocket:Java-WebSocket:1.5.3'
+    implementation files('libs/tetrisserver.aar')
     // Gson for JSON parsing
     implementation 'com.google.code.gson:gson:2.10.1'
     
