@@ -239,14 +239,14 @@ const handleKeydown = (e: KeyboardEvent) => {
 const handleSoloControls = (e: KeyboardEvent) => {
   if (!soloGame.value || soloGame.value.isGameOver) return
   
-  switch (e.key) {
+  switch (e.code) {
     case 'ArrowLeft': soloGame.value.moveLeft(); break
     case 'ArrowRight': soloGame.value.moveRight(); break
     case 'ArrowDown': soloGame.value.moveDown(true); break
     case 'ArrowUp': soloGame.value.rotate(); break
-    case ' ': e.preventDefault(); soloGame.value.hardDrop(); break
-    case 'c': case 'C': soloGame.value.hold(); break
-    case 'p': case 'P': soloGame.value.togglePause(); break
+    case 'Space': e.preventDefault(); soloGame.value.hardDrop(); break
+    case 'KeyC': case 'ShiftLeft': case 'ShiftRight': soloGame.value.hold(); break
+    case 'KeyP': case 'Escape': soloGame.value.togglePause(); break
   }
 }
 

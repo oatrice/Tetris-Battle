@@ -50,7 +50,7 @@
             {{ showGhost ? '👻' : '👤' }}
           </button>
           <button class="ctrl-btn" @click="$emit('back')" title="Back to Menu">
-            �
+            🏠
           </button>
         </div>
       </div>
