@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.8.3] - 2025-12-26
+
+### Fixed
+- **Soft Drop Score Calculation**: Corrected an issue where the score for soft dropping pieces was not being calculated correctly, leading to inaccurate game scores.
+
 ## [3.8.2] - 2025-12-26
 
 ### Fixed
