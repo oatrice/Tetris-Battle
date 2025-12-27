@@ -5,9 +5,37 @@ import OnlineGameVue from './OnlineGame.vue'
 import { OnlineGame } from '~/game/OnlineGame'
 
 // Mock dependencies
-const PlayerBoard = { template: '<div></div>' }
+const PlayerBoard = {
+    template: `
+    <div class="player-board-stub">
+        <slot name="under-next"></slot>
+    </div>`
+}
 
 describe('OnlineGame Layout', () => {
+    it('renders the opponent board inside the PlayerBoard "under-next" slot', async () => {
+        const game = new OnlineGame()
+        game.opponentName = 'OpponentPlayer'
+
+        const wrapper = mount(OnlineGameVue, {
+            props: { onlineGame: game },
+            global: { stubs: { PlayerBoard } }
+        })
+
+        // Skip name input
+        // @ts-ignore
+        wrapper.vm.showNameInput = false
+        await wrapper.vm.$nextTick()
+
+        // Verify opponent board is inside the stubbed slot
+        const opponentCanvas = wrapper.find('.player-board-stub canvas.game-canvas.opponent')
+        expect(opponentCanvas.exists()).toBe(true)
+
+        // Also verify the mini header exists
+        expect(wrapper.find('.mini-header').exists()).toBe(true)
+        expect(wrapper.text()).toContain('OpponentPlayer')
+    })
+
     it('shows Resume button INSIDE the local board overlay when PAUSED', async () => {
         const game = new OnlineGame()
         game.isPaused = true

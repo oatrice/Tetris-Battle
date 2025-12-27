@@ -27,6 +27,7 @@
         <div class="piece-box">
           <MiniPiece :piece="game.nextPiece" :size="12" />
         </div>
+        <slot name="under-next"></slot>
       </div>
     </div>
   </div>
