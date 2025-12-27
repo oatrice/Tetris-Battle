@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.13.0] - 2025-12-27
+
+### Added
+- **Gravity Disable Option**: Introduced a new option to disable the gravity effect in games. This allows players to play with a traditional falling piece mechanic, enhancing game customization and accessibility for different playstyles.
+
+### Changed
+- **Game Logic Refactoring**: Refactored core game logic to accommodate the new gravity disable option, ensuring smooth integration with existing game modes.
+
 ## [3.12.1] - 2025-12-27
 
 ### Fixed
