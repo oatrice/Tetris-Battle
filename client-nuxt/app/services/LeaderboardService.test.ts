@@ -32,8 +32,8 @@ describe('LeaderboardService', () => {
 
         it('should return saved scores sorted by score descending', () => {
             const entries: LeaderboardEntry[] = [
-                { playerName: 'Alice', score: 1000, level: 2, lines: 10, date: '2024-01-01' },
-                { playerName: 'Bob', score: 2000, level: 4, lines: 20, date: '2024-01-02' },
+                { id: '1', playerName: 'Alice', score: 1000, level: 2, lines: 10, date: '2024-01-01' },
+                { id: '2', playerName: 'Bob', score: 2000, level: 4, lines: 20, date: '2024-01-02' },
             ]
             localStorage.setItem('tetris-leaderboard-solo', JSON.stringify(entries))
 
@@ -46,7 +46,7 @@ describe('LeaderboardService', () => {
 
     describe('addScore', () => {
         it('should add score and return rank 1 for first entry', () => {
-            const entry: LeaderboardEntry = {
+            const entry: Omit<LeaderboardEntry, 'id'> = {
                 playerName: 'Player1',
                 score: 1000,
                 level: 2,
@@ -153,11 +153,6 @@ describe('LeaderboardService', () => {
             LeaderboardService.addScore({ playerName: 'P1', score: 3000, level: 1, lines: 1, date: '2024-01-01' })
             LeaderboardService.addScore({ playerName: 'P2', score: 1000, level: 1, lines: 1, date: '2024-01-01' })
 
-            // 3000, 1000 -> 2000 should be rank 2 (insert between 3000 and 1000)
-            // Wait, logic:
-            // 3000 (Rank 1)
-            // 2000 (Rank 2) -> New
-            // 1000 (Rank 3)
             expect(LeaderboardService.getPotentialRank(2000)).toBe(2)
         })
 
@@ -316,7 +311,7 @@ describe('LeaderboardService', () => {
 
             const history = LeaderboardService.getDuoLeaderboard()
             expect(history).toHaveLength(1)
-            expect(history[0].p1.name).toBe('Player 1')
+            expect(history[0]!.p1.name).toBe('Player 1')
         })
 
         it('should keep history sorted by newest first (unshift)', () => {
@@ -336,8 +331,8 @@ describe('LeaderboardService', () => {
 
             const history = LeaderboardService.getDuoLeaderboard()
             expect(history).toHaveLength(2)
-            expect(history[0].p1.name).toBe('New') // Newest first
-            expect(history[1].p1.name).toBe('Old')
+            expect(history[0]!.p1.name).toBe('New') // Newest first
+            expect(history[1]!.p1.name).toBe('Old')
         })
     })
 
@@ -364,9 +359,9 @@ describe('LeaderboardService', () => {
 
             const history = LeaderboardService.getOnlineLeaderboard()
             expect(history).toHaveLength(1)
-            expect(history[0].playerName).toBe('Oatrice')
-            expect(history[0].winScore).toBe(1500)
-            expect(history[0].maxScore).toBe(2300)
+            expect(history[0]!.playerName).toBe('Oatrice')
+            expect(history[0]!.winScore).toBe(1500)
+            expect(history[0]!.maxScore).toBe(2300)
         })
 
         it('should add online match (loser)', () => {
@@ -386,7 +381,28 @@ describe('LeaderboardService', () => {
             expect(result.winScore).toBeNull()
 
             const history = LeaderboardService.getOnlineLeaderboard()
-            expect(history[0].maxScore).toBe(800)
+            expect(history[0]!.maxScore).toBe(800)
+        })
+
+        it('should add online match (draw)', () => {
+            const result = LeaderboardService.addOnlineMatch({
+                date: '2024-01-01',
+                gameMode: 'lan',
+                isWinner: false,
+                isDraw: true,
+                playerName: 'Player1',
+                opponentName: 'Player2',
+                winScore: null,
+                maxScore: 1000,
+                opponentScore: 1000,
+                duration: 300
+            })
+
+            expect(result.isWinner).toBe(false)
+            expect(result.isDraw).toBe(true)
+
+            const history = LeaderboardService.getOnlineLeaderboard()
+            expect(history[0]!.isDraw).toBe(true)
         })
 
         it('should keep history sorted by newest first (unshift)', () => {
@@ -416,8 +432,8 @@ describe('LeaderboardService', () => {
 
             const history = LeaderboardService.getOnlineLeaderboard()
             expect(history).toHaveLength(2)
-            expect(history[0].playerName).toBe('NewMatch') // Newest first
-            expect(history[1].playerName).toBe('OldMatch')
+            expect(history[0]!.playerName).toBe('NewMatch') // Newest first
+            expect(history[1]!.playerName).toBe('OldMatch')
         })
 
         it('should limit to 50 matches', () => {
@@ -438,7 +454,7 @@ describe('LeaderboardService', () => {
 
             const history = LeaderboardService.getOnlineLeaderboard()
             expect(history).toHaveLength(50)
-            expect(history[0].playerName).toBe('Player50') // Newest (51st = index 50)
+            expect(history[0]!.playerName).toBe('Player50') // Newest (51st = index 50)
         })
 
         it('should clear online matches', () => {

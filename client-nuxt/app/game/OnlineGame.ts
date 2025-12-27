@@ -416,7 +416,11 @@ export class OnlineGame extends Game {
         })
 
         if (this.isGameOver) {
-            socketService.send('game_over')
+            // Only send Game Over if we actually lost the match.
+            // If we are winner, we are just ending our post-win solo run, so don't notify opponent.
+            if (!this.isWinner) {
+                socketService.send('game_over')
+            }
             this.stopDurationTimer()
         }
     }
@@ -477,6 +481,12 @@ export class OnlineGame extends Game {
         this.stopDurationTimer()
         this.currentPiece = this.spawnPiece()
         this.nextPiece = this.spawnPiece()
+
+        // Reset match outcome states
+        this.isWinner = false
+        this.isDraw = false
+        this.opponentGameOver = false
+        this.winScore = null
     }
 
     start() {

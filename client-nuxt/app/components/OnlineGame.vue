@@ -221,6 +221,7 @@ const saveGame = () => {
         date: new Date().toISOString(),
         gameMode: props.mode || 'online',
         isWinner: props.onlineGame.isWinner,
+        isDraw: props.onlineGame.isDraw,
         playerName: playerName.value || 'Player',
         opponentName: props.onlineGame.opponentName || 'Opponent',
         winScore: props.onlineGame.winScore,

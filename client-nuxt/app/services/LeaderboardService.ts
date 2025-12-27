@@ -31,6 +31,7 @@ export interface OnlineMatchResult {
     date: string
     gameMode: 'online' | 'lan'  // Distinguish between Online and LAN
     isWinner: boolean
+    isDraw?: boolean            // NEW: Explicit Draw state
     playerName: string
     opponentName: string
     winScore: number | null     // Score at time of winning (null if lost)
@@ -243,8 +244,9 @@ export class LeaderboardService {
         const history = this.getOnlineLeaderboard()
         const index = history.findIndex(m => m.id === id)
 
-        if (index !== -1) {
-            history[index] = { ...history[index], ...updates }
+        const entry = history[index]
+        if (index !== -1 && entry) {
+            history[index] = { ...entry, ...updates }
             localStorage.setItem(this.STORAGE_KEY_ONLINE_MATCHES, JSON.stringify(history))
             return true
         }
