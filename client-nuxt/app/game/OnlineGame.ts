@@ -3,7 +3,7 @@
  */
 import { Game } from './Game'
 import { socketService } from '~/services/SocketService'
-import { EffectType } from './EffectSystem'
+import { EffectType, EffectSystem, type GameEffect, type Particle } from './EffectSystem'
 
 export class OnlineGame extends Game {
     isOpponentConnected = false
@@ -31,6 +31,18 @@ export class OnlineGame extends Game {
     showGhostPiece = true // Toggle ghost piece visibility
     effectType: EffectType = EffectType.EXPLOSION // Visual effect type
     isHost = true // True = can edit settings, False = read-only (set by room_status)
+
+    // Effect System for visual line clear effects
+    readonly effectSystem = new EffectSystem()
+
+    // Expose effects for rendering
+    get effects(): GameEffect[] {
+        return this.effectSystem.effects
+    }
+
+    get particles(): Particle[] {
+        return this.effectSystem.particles
+    }
 
     constructor() {
         super()
@@ -214,6 +226,13 @@ export class OnlineGame extends Game {
         this.showGhostPiece = !this.showGhostPiece
     }
 
+    /**
+     * Update effect animations (call from game loop)
+     */
+    update(deltaTime: number): void {
+        this.effectSystem.update(deltaTime)
+    }
+
     // Continue playing solo after winning (for high score)
     continueAfterWin() {
         if (this.isWinner) {
@@ -247,6 +266,10 @@ export class OnlineGame extends Game {
 
     protected override lockPiece() {
         const linesBefore = this.linesCleared
+
+        // Set effect type before clearing (so effects use correct type)
+        this.effectSystem.setEffectType(this.effectType)
+
         super.lockPiece()
 
         this.broadcastState()
@@ -256,6 +279,18 @@ export class OnlineGame extends Game {
         }
 
         const linesDiff = this.linesCleared - linesBefore
+
+        // Create visual effects for cleared lines
+        if (linesDiff > 0) {
+            // Approximate line indices (bottom lines, since they were cleared)
+            const indices: number[] = []
+            for (let i = 0; i < linesDiff; i++) {
+                indices.push(19 - i) // Bottom lines
+            }
+            this.effectSystem.createEffects(indices, linesDiff)
+        }
+
+        // Send garbage attack for 2+ lines
         if (linesDiff >= 2 && this.attackMode === 'garbage') {
             const garbage = this.calculateGarbage(linesDiff)
             if (garbage > 0) {

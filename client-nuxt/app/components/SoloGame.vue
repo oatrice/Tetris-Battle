@@ -388,6 +388,7 @@ const renderGame = () => {
         ctx.globalAlpha = effect.life * 0.8
         ctx.stroke()
         ctx.globalAlpha = 1.0
+        ctx.lineWidth = 1 // Reset lineWidth to avoid affecting grid
       }
     })
 

@@ -199,6 +199,11 @@ const startGameLoop = () => {
       (soloGame.value as SpecialGame).update(deltaTime)
     }
     
+    // Update Online/LAN mode effects
+    if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value) {
+      onlineGame.value.update(deltaTime)
+    }
+    
     // Auto drop
     if (timestamp - lastUpdate > DROP_INTERVAL) {
       if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
