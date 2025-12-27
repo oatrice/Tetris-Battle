@@ -50,6 +50,14 @@
                     />
                     👻 Ghost Piece
                 </label>
+                <label class="settings-label ghost-toggle" :class="{ disabled: !onlineGame.isHost }">
+                    <input 
+                      type="checkbox" 
+                      v-model="onlineGame.useCascadeGravity" 
+                      :disabled="!onlineGame.isHost"
+                    />
+                    🔄 Cascade Gravity (Puyo Style)
+                </label>
             </div>
             
             <div class="btn-group">

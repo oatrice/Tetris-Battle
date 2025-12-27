@@ -231,4 +231,28 @@ describe('OnlineGame game_over handling', () => {
             })
         })
     })
+
+    describe('Cascade Gravity Settings', () => {
+        it('should default to cascade gravity off', () => {
+            expect(game.useCascadeGravity).toBe(false)
+        })
+
+        it('should allow toggling cascade gravity', () => {
+            game.useCascadeGravity = true
+            expect(game.useCascadeGravity).toBe(true)
+            game.useCascadeGravity = false
+            expect(game.useCascadeGravity).toBe(false)
+        })
+
+        it('should sync cascade gravity from room_status', () => {
+            triggerEvent('room_status', {
+                hasHost: true,
+                hostSettings: {
+                    attackMode: 'garbage',
+                    useCascadeGravity: true
+                }
+            })
+            expect(game.useCascadeGravity).toBe(true)
+        })
+    })
 })

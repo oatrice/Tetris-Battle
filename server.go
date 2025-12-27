@@ -23,15 +23,16 @@ type Message struct {
 }
 
 type Client struct {
-	hub            *Hub
-	conn           *websocket.Conn
-	send           chan []byte
-	id             string
-	name           string
-	room           *Room
-	attackMode     string // "garbage" or "lines"
-	showGhostPiece bool   // Ghost piece visibility
-	effectType     string // Visual effect type
+	hub               *Hub
+	conn              *websocket.Conn
+	send              chan []byte
+	id                string
+	name              string
+	room              *Room
+	attackMode        string // "garbage" or "lines"
+	showGhostPiece    bool   // Ghost piece visibility
+	effectType        string // Visual effect type
+	useCascadeGravity bool   // Puyo-style cascade gravity
 }
 
 type Room struct {
@@ -152,16 +153,17 @@ func (c *Client) sendRoomStatus() {
 	if c.hub.waitingClient != nil {
 		// There's a host waiting - send their settings
 		host := c.hub.waitingClient
-		log.Printf("[ROOM_STATUS] Sending host settings to client %s: attack=%s, ghost=%v, effect=%s",
-			c.id, host.attackMode, host.showGhostPiece, host.effectType)
+		log.Printf("[ROOM_STATUS] Sending host settings to client %s: attack=%s, ghost=%v, effect=%s, cascade=%v",
+			c.id, host.attackMode, host.showGhostPiece, host.effectType, host.useCascadeGravity)
 		c.send <- toJson(Message{
 			Type: "room_status",
 			Payload: map[string]interface{}{
 				"hasHost": true,
 				"hostSettings": map[string]interface{}{
-					"attackMode":     host.attackMode,
-					"showGhostPiece": host.showGhostPiece,
-					"effectType":     host.effectType,
+					"attackMode":        host.attackMode,
+					"showGhostPiece":    host.showGhostPiece,
+					"effectType":        host.effectType,
+					"useCascadeGravity": host.useCascadeGravity,
 				},
 			},
 		})
@@ -246,6 +248,9 @@ func (c *Client) handleMessage(msg Message) {
 			if effectType, ok := payloadMap["effectType"].(string); ok {
 				c.effectType = effectType
 			}
+			if cascade, ok := payloadMap["useCascadeGravity"].(bool); ok {
+				c.useCascadeGravity = cascade
+			}
 		}
 		// Set defaults
 		if c.name == "" {
@@ -257,11 +262,10 @@ func (c *Client) handleMessage(msg Message) {
 		if c.effectType == "" {
 			c.effectType = "explosion"
 		}
-		// showGhostPiece defaults to false (Go zero value), but we want true as default
-		// Since we can't distinguish "not sent" from "sent as false", we'll handle it in client
+		// showGhostPiece and useCascadeGravity default to false (Go zero values)
 
-		log.Printf("[JOIN] %s (%s) with settings: AttackMode=%s, Ghost=%v, Effect=%s",
-			c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType)
+		log.Printf("[JOIN] %s (%s) with settings: AttackMode=%s, Ghost=%v, Effect=%s, Cascade=%v",
+			c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType, c.useCascadeGravity)
 
 		c.hub.mu.Lock()
 		if c.hub.waitingClient != nil {
@@ -307,9 +311,10 @@ func (c *Client) handleMessage(msg Message) {
 						Payload: map[string]interface{}{
 							"hasHost": true,
 							"hostSettings": map[string]interface{}{
-								"attackMode":     c.attackMode,
-								"showGhostPiece": c.showGhostPiece,
-								"effectType":     c.effectType,
+								"attackMode":        c.attackMode,
+								"showGhostPiece":    c.showGhostPiece,
+								"effectType":        c.effectType,
+								"useCascadeGravity": c.useCascadeGravity,
 							},
 						},
 					})
@@ -317,8 +322,8 @@ func (c *Client) handleMessage(msg Message) {
 			}
 
 			c.hub.mu.Unlock()
-			log.Printf("[HOST] %s (%s) waiting with: attack=%s, ghost=%v, effect=%s",
-				c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType)
+			log.Printf("[HOST] %s (%s) waiting with: attack=%s, ghost=%v, effect=%s, cascade=%v",
+				c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType, c.useCascadeGravity)
 			c.send <- toJson(Message{Type: "waiting_for_opponent"})
 		}
 
