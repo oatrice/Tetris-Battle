@@ -43,10 +43,12 @@ const props = withDefaults(defineProps<{
   game: Game
   showHold?: boolean
   showNext?: boolean
+  showGhost?: boolean
   playerColor?: string
 }>(), {
   showHold: true,
   showNext: true,
+  showGhost: true,
   playerColor: '#333'
 })
 
@@ -92,14 +94,63 @@ const renderGame = () => {
     }
   }
 
-  // Ghost
-  const ghost = props.game.getGhostPiece()
-  ctx.globalAlpha = 0.25
-  ghost.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
-  ctx.globalAlpha = 1.0
+  // Ghost (only if enabled)
+  if (props.showGhost) {
+    const ghost = props.game.getGhostPiece()
+    ctx.globalAlpha = 0.25
+    ghost.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
+    ctx.globalAlpha = 1.0
+  }
 
   // Current piece
   props.game.currentPiece.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
+
+  // Line clear effects (OnlineGame)
+  if ('effects' in props.game) {
+    const game = props.game as any
+    
+    // Flash effects
+    game.effects?.forEach((effect: any) => {
+      if (effect.type === 'LINE_CLEAR') {
+        const alpha = effect.timeLeft / 300
+        ctx.fillStyle = effect.color
+        ctx.globalAlpha = alpha * 0.6
+        ctx.fillRect(0, effect.y * CELL_SIZE, canvasWidth, CELL_SIZE)
+        ctx.globalAlpha = 1.0
+      } else if (effect.type === 'WAVE') {
+        ctx.beginPath()
+        ctx.arc(effect.centerX, effect.centerY, effect.radius, 0, Math.PI * 2)
+        ctx.strokeStyle = effect.color
+        ctx.lineWidth = 4
+        ctx.globalAlpha = effect.life * 0.8
+        ctx.stroke()
+        ctx.globalAlpha = 1.0
+        ctx.lineWidth = 1 // Reset lineWidth to avoid affecting grid
+      }
+    })
+
+    // Particles
+    game.particles?.forEach((p: any) => {
+      ctx.globalAlpha = p.life
+      ctx.fillStyle = p.color
+      
+      if (p.isSquare && p.rotation !== undefined) {
+        // Shatter effect - rotating squares
+        ctx.save()
+        ctx.translate(p.x, p.y)
+        ctx.rotate(p.rotation)
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size)
+        ctx.restore()
+      } else {
+        // Circle particles
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      
+      ctx.globalAlpha = 1.0
+    })
+  }
 }
 
 const drawBlock = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string) => {

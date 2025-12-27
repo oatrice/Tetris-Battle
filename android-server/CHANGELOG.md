@@ -2,19 +2,16 @@
 
 All notable changes to the Android Server App project will be documented in this file.
 
-## [1.1.5] - 2025-12-26
-### Fixed
-*   **Mobile UI:** Fixed the "Exit" button being hidden on mobile devices by adding bottom padding and optimizing the game board layout.
-*   **Touch Controls:** Enabled page scrolling when the game is paused or over, ensuring users can access bottom controls.
+## [1.1.6] - 2025-12-27
+
+### Added
+- **Workflow:**
+    - Added an Android version update workflow for easier deployment.
+    - Added an automated version bumping script to streamline releases.
 
 ## [1.1.4] - 2025-12-26
 
-### Fixed
-*   **Android Crash:** Fixed `TypeError: crypto.randomUUID is not a function` by adding a polyfill in `LeaderboardService`.
-*   **TypeScript:** Resolved multiple type mismatch errors in `app.vue` by removing unnecessary `reactive()` wrappers.
-
 ### Added
-*   **Version Display:** Added library version (`lib-v1.1.4`) to the main menu for easier debugging.
 *   **Tests:** Added `TestServerParity` to ensure Go server serves Nuxt assets correctly.
 
 ## [1.1.3] - 2025-12-26
@@ -46,9 +43,11 @@ All notable changes to the Android Server App project will be documented in this
 *   **File Access Logging:** The live log now shows real-time HTTP requests from connected browsers (e.g., `[HTTP] GET /app.js`).
 *   **Version Display:** Added version number indication on startup.
 
+## [1.0.0] - Initial Release
+
 ### Added
 - **Initial Release:** First stable version of the Android Game Server.
-- **WebSocket Server:** Imolimented using `Java-WebSocket` running on port 8080.
+- **WebSocket Server:** Implemented using `Java-WebSocket` running on port 8080.
 - **Game Logic:**
   - `join_game`: Matchmaking logic supporting 1v1.
   - `game_start`: Broadcasting match details to players.

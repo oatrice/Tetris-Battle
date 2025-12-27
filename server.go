@@ -23,12 +23,16 @@ type Message struct {
 }
 
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
-	id   string
-	name string
-	room *Room
+	hub               *Hub
+	conn              *websocket.Conn
+	send              chan []byte
+	id                string
+	name              string
+	room              *Room
+	attackMode        string // "garbage" or "lines"
+	showGhostPiece    bool   // Ghost piece visibility
+	effectType        string // Visual effect type
+	useCascadeGravity bool   // Puyo-style cascade gravity
 }
 
 type Room struct {
@@ -69,6 +73,9 @@ func (h *Hub) run() {
 			h.clients[client] = true
 			h.mu.Unlock()
 			log.Printf("Client registered: %s", client.id)
+
+			// Send room status to inform client if host is waiting
+			go client.sendRoomStatus()
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -127,15 +134,49 @@ func toJson(v interface{}) []byte {
 	return b
 }
 
-func (c *Client) sendGameStart(opponentId string, opponentName string, matchId string) {
+func (c *Client) sendGameStart(opponentId string, opponentName string, matchId string, attackMode string) {
 	c.send <- toJson(Message{
 		Type: "game_start",
 		Payload: map[string]string{
 			"opponentId":   opponentId,
 			"opponentName": opponentName,
 			"matchId":      matchId,
+			"attackMode":   attackMode,
 		},
 	})
+}
+
+func (c *Client) sendRoomStatus() {
+	c.hub.mu.Lock()
+	defer c.hub.mu.Unlock()
+
+	if c.hub.waitingClient != nil {
+		// There's a host waiting - send their settings
+		host := c.hub.waitingClient
+		log.Printf("[ROOM_STATUS] Sending host settings to client %s: attack=%s, ghost=%v, effect=%s, cascade=%v",
+			c.id, host.attackMode, host.showGhostPiece, host.effectType, host.useCascadeGravity)
+		c.send <- toJson(Message{
+			Type: "room_status",
+			Payload: map[string]interface{}{
+				"hasHost": true,
+				"hostSettings": map[string]interface{}{
+					"attackMode":        host.attackMode,
+					"showGhostPiece":    host.showGhostPiece,
+					"effectType":        host.effectType,
+					"useCascadeGravity": host.useCascadeGravity,
+				},
+			},
+		})
+	} else {
+		// No host waiting - this client can be host
+		log.Printf("[ROOM_STATUS] No host waiting, client %s can be host", c.id)
+		c.send <- toJson(Message{
+			Type: "room_status",
+			Payload: map[string]interface{}{
+				"hasHost": false,
+			},
+		})
+	}
 }
 
 // ================= HTTP Handlers =================
@@ -193,15 +234,38 @@ func (c *Client) writePump() {
 func (c *Client) handleMessage(msg Message) {
 	switch msg.Type {
 	case "join_game":
-		// Extract name from payload
+		// Extract all settings from payload
 		if payloadMap, ok := msg.Payload.(map[string]interface{}); ok {
 			if name, ok := payloadMap["name"].(string); ok {
 				c.name = name
 			}
+			if attackMode, ok := payloadMap["attackMode"].(string); ok {
+				c.attackMode = attackMode
+			}
+			if showGhost, ok := payloadMap["showGhostPiece"].(bool); ok {
+				c.showGhostPiece = showGhost
+			}
+			if effectType, ok := payloadMap["effectType"].(string); ok {
+				c.effectType = effectType
+			}
+			if cascade, ok := payloadMap["useCascadeGravity"].(bool); ok {
+				c.useCascadeGravity = cascade
+			}
 		}
+		// Set defaults
 		if c.name == "" {
 			c.name = "Player " + c.id[len(c.id)-4:]
 		}
+		if c.attackMode == "" {
+			c.attackMode = "garbage"
+		}
+		if c.effectType == "" {
+			c.effectType = "explosion"
+		}
+		// showGhostPiece and useCascadeGravity default to false (Go zero values)
+
+		log.Printf("[JOIN] %s (%s) with settings: AttackMode=%s, Ghost=%v, Effect=%s, Cascade=%v",
+			c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType, c.useCascadeGravity)
 
 		c.hub.mu.Lock()
 		if c.hub.waitingClient != nil {
@@ -221,16 +285,45 @@ func (c *Client) handleMessage(msg Message) {
 			room.clients[opponent] = true
 			c.hub.mu.Unlock()
 
-			// Notify Start
-			c.sendGameStart(opponent.id, opponent.name, roomID)
-			opponent.sendGameStart(c.id, c.name, roomID)
+			// Use HOST (waiting client) attackMode for both players
+			syncedAttackMode := opponent.attackMode
 
-			log.Printf("Match started: %s (%s) vs %s (%s) in Room %s", c.id, c.name, opponent.id, opponent.name, roomID)
+			log.Printf("[CONFIG] Host: %s (AttackMode: %s) | Guest: %s (AttackMode: %s) -> Synced: %s",
+				opponent.name, opponent.attackMode, c.name, c.attackMode, syncedAttackMode)
+
+			// Notify Start with synced attackMode
+			c.sendGameStart(opponent.id, opponent.name, roomID, syncedAttackMode)
+			opponent.sendGameStart(c.id, c.name, roomID, syncedAttackMode)
+
+			log.Printf("Match started: %s (%s) vs %s (%s) in Room %s, AttackMode: %s", c.id, c.name, opponent.id, opponent.name, roomID, syncedAttackMode)
 
 		} else {
-			// Wait
+			// Wait - this client becomes the host
 			c.hub.waitingClient = c
+
+			// Broadcast room_status to ALL other connected clients who are not in a room
+			// This notifies any guests who connected before host clicked "Join"
+			for otherClient := range c.hub.clients {
+				if otherClient != c && otherClient.room == nil {
+					log.Printf("[BROADCAST] Notifying client %s that host %s is now waiting", otherClient.id, c.name)
+					otherClient.send <- toJson(Message{
+						Type: "room_status",
+						Payload: map[string]interface{}{
+							"hasHost": true,
+							"hostSettings": map[string]interface{}{
+								"attackMode":        c.attackMode,
+								"showGhostPiece":    c.showGhostPiece,
+								"effectType":        c.effectType,
+								"useCascadeGravity": c.useCascadeGravity,
+							},
+						},
+					})
+				}
+			}
+
 			c.hub.mu.Unlock()
+			log.Printf("[HOST] %s (%s) waiting with: attack=%s, ghost=%v, effect=%s, cascade=%v",
+				c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType, c.useCascadeGravity)
 			c.send <- toJson(Message{Type: "waiting_for_opponent"})
 		}
 

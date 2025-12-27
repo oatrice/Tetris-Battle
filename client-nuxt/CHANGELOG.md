@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.10.0] - 2025-12-27
+
+### Added
+- **LAN Online Mode**:
+    - Introduced a new LAN online mode for the Android server, allowing local network multiplayer.
+    - Implemented functionality to discover and connect to other players on the same local network.
+    - Added support for host and join functionalities for LAN games.
+
 ## [3.9.0] - 2025-12-27
 
 ### Added

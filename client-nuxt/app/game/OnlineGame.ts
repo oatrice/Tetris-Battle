@@ -3,6 +3,9 @@
  */
 import { Game } from './Game'
 import { socketService } from '~/services/SocketService'
+import { EffectType, EffectSystem, type GameEffect, type Particle } from './EffectSystem'
+import { applyGravity, clearLinesOnly } from './CascadeGravity'
+import { calculateScore } from './LineClearing'
 
 export class OnlineGame extends Game {
     isOpponentConnected = false
@@ -25,8 +28,30 @@ export class OnlineGame extends Game {
     gameDuration = 0 // Seconds
     private durationInterval: any = null
 
-    // Game Settings
+    // Game Settings (LAN)
     attackMode: 'lines' | 'garbage' = 'garbage' // Default to garbage
+    showGhostPiece = true // Toggle ghost piece visibility
+    effectType: EffectType = EffectType.EXPLOSION // Visual effect type
+    useCascadeGravity = false // Puyo-style cascade gravity
+    isHost = true // True = can edit settings, False = read-only (set by room_status)
+
+    // Cascade Gravity State
+    chainCount = 0
+    isCascading = false
+    private cascadeTimer = 0
+    private readonly CASCADE_DELAY = 150 // ms
+
+    // Effect System for visual line clear effects
+    readonly effectSystem = new EffectSystem()
+
+    // Expose effects for rendering
+    get effects(): GameEffect[] {
+        return this.effectSystem.effects
+    }
+
+    get particles(): Particle[] {
+        return this.effectSystem.particles
+    }
 
     constructor() {
         super()
@@ -67,6 +92,16 @@ export class OnlineGame extends Game {
             this.opponentId = payload.opponentId
             this.opponentName = payload.opponentName
             this.matchId = payload.matchId
+
+            // Sync attack mode from server (use host's setting)
+            if (payload.attackMode) {
+                const previousMode = this.attackMode
+                this.attackMode = payload.attackMode
+                console.log(`[CONFIG] AttackMode synced: ${previousMode} -> ${payload.attackMode} (isHost: ${this.isHost})`)
+            }
+
+            console.log(`[GAME START] Role: ${this.isHost ? 'HOST' : 'GUEST'}, AttackMode: ${this.attackMode}, Ghost: ${this.showGhostPiece}, Effect: ${this.effectType}`)
+
             this.isOpponentConnected = true
             this.reset()
             this.startCountdown()
@@ -102,7 +137,40 @@ export class OnlineGame extends Game {
         })
 
         socketService.on('waiting_for_opponent', () => {
-            console.log('Waiting for opponent...')
+            console.log('Waiting for opponent... (You are the host)')
+            this.isHost = true // Confirm host role
+        })
+
+        socketService.on('room_status', (payload: any) => {
+            console.log('[ROOM_STATUS] Received:', payload)
+
+            if (payload.hasHost) {
+                // Someone is already waiting - we are guest
+                console.log('[ROOM_STATUS] Host found, becoming GUEST')
+                this.isHost = false
+
+                if (payload.hostSettings) {
+                    console.log('[ROOM_STATUS] Syncing host settings:', payload.hostSettings)
+                    if (payload.hostSettings.attackMode) {
+                        this.attackMode = payload.hostSettings.attackMode
+                    }
+                    if (payload.hostSettings.showGhostPiece !== undefined) {
+                        this.showGhostPiece = payload.hostSettings.showGhostPiece
+                    }
+                    if (payload.hostSettings.effectType) {
+                        this.effectType = payload.hostSettings.effectType
+                    }
+                    if (payload.hostSettings.useCascadeGravity !== undefined) {
+                        this.useCascadeGravity = payload.hostSettings.useCascadeGravity
+                    }
+                }
+            } else {
+                // No host waiting - we will be host
+                console.log('[ROOM_STATUS] No host, becoming HOST')
+                this.isHost = true
+            }
+
+            console.log('[ROOM_STATUS] Final isHost:', this.isHost)
         })
 
         socketService.on('pause', () => {
@@ -145,7 +213,20 @@ export class OnlineGame extends Game {
     }
 
     joinGame(name: string) {
-        socketService.send('join_game', { name })
+        console.log(`[JOIN] Joining as "${name}" with settings:`, {
+            attackMode: this.attackMode,
+            showGhostPiece: this.showGhostPiece,
+            effectType: this.effectType,
+            useCascadeGravity: this.useCascadeGravity,
+            isHost: this.isHost
+        })
+        socketService.send('join_game', {
+            name,
+            attackMode: this.attackMode,
+            showGhostPiece: this.showGhostPiece,
+            effectType: this.effectType,
+            useCascadeGravity: this.useCascadeGravity
+        })
     }
 
     override togglePause() {
@@ -153,6 +234,70 @@ export class OnlineGame extends Game {
         const event = this.isPaused ? 'pause' : 'resume'
         console.log(`Sending ${event} signal`)
         socketService.send(event)
+    }
+
+    toggleGhostPiece() {
+        this.showGhostPiece = !this.showGhostPiece
+    }
+
+    /**
+     * Update effect animations and cascade gravity (call from game loop)
+     */
+    update(deltaTime: number): void {
+        // Update effects
+        this.effectSystem.update(deltaTime)
+
+        // Cascade Gravity Logic
+        if (!this.useCascadeGravity || !this.isCascading) return
+
+        this.cascadeTimer += deltaTime
+        if (this.cascadeTimer >= this.CASCADE_DELAY) {
+            const moved = applyGravity(this.board)
+            this.cascadeTimer = 0
+
+            if (!moved) {
+                const result = clearLinesOnly(this.board)
+                if (result.count > 0) {
+                    this.chainCount++
+                    this.linesCleared += result.count
+                    this.score += calculateScore(result.count, this.level) * this.chainCount
+                    this.level = Math.floor(this.linesCleared / 10) + 1
+
+                    // Create visual effects
+                    this.effectSystem.setEffectType(this.effectType)
+                    this.effectSystem.createEffects(result.indices, result.count)
+
+                    console.log('[OnlineGame] Chain', this.chainCount, '- lines:', result.count)
+
+                    // Broadcast updated state and send garbage if applicable
+                    this.broadcastState()
+                    if (result.count >= 2 && this.attackMode === 'garbage') {
+                        const garbage = this.calculateGarbage(result.count)
+                        if (garbage > 0) {
+                            socketService.send('attack', { lines: garbage })
+                        }
+                    }
+                } else {
+                    this.isCascading = false
+                    this.spawnCascadeNextPiece()
+                    console.log('[OnlineGame] Cascade complete')
+                }
+            }
+        }
+    }
+
+    /**
+     * Spawn next piece after cascade complete
+     */
+    private spawnCascadeNextPiece(): void {
+        this.currentPiece = this.nextPiece
+        this.nextPiece = this.spawnPiece()
+        this.holdUsedThisTurn = false
+
+        if (!this.canPlacePiece(this.currentPiece)) {
+            this.isGameOver = true
+            this.stopDurationTimer()
+        }
     }
 
     // Continue playing solo after winning (for high score)
@@ -187,20 +332,76 @@ export class OnlineGame extends Game {
     }
 
     protected override lockPiece() {
-        const linesBefore = this.linesCleared
-        super.lockPiece()
+        const PIECE_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
 
-        this.broadcastState()
+        // Set effect type before clearing
+        this.effectSystem.setEffectType(this.effectType)
 
-        if (this.isGameOver) {
-            this.stopDurationTimer()
-        }
+        if (this.useCascadeGravity) {
+            // Cascade Mode: Use clearLinesOnly and start cascade animation
+            const blocks = this.currentPiece.getBlocks()
+            const pieceColorIndex = PIECE_TYPES.indexOf(this.currentPiece.type) + 1
 
-        const linesDiff = this.linesCleared - linesBefore
-        if (linesDiff >= 2 && this.attackMode === 'garbage') {
-            const garbage = this.calculateGarbage(linesDiff)
-            if (garbage > 0) {
-                socketService.send('attack', { lines: garbage })
+            blocks.forEach(block => {
+                this.board.setCell(block.x, block.y, pieceColorIndex)
+            })
+
+            const result = clearLinesOnly(this.board)
+            console.log('[OnlineGame] lockPiece cascade - initial lines:', result.count)
+
+            if (result.count > 0) {
+                this.chainCount = 1
+                this.linesCleared += result.count
+                this.score += calculateScore(result.count, this.level)
+                this.level = Math.floor(this.linesCleared / 10) + 1
+
+                // Create visual effects
+                this.effectSystem.createEffects(result.indices, result.count)
+
+                this.isCascading = true
+                this.cascadeTimer = 0
+
+                // Broadcast state and send garbage
+                this.broadcastState()
+                if (result.count >= 2 && this.attackMode === 'garbage') {
+                    const garbage = this.calculateGarbage(result.count)
+                    if (garbage > 0) {
+                        socketService.send('attack', { lines: garbage })
+                    }
+                }
+            } else {
+                this.chainCount = 0
+                this.spawnCascadeNextPiece()
+                this.broadcastState()
+            }
+        } else {
+            // Normal Mode: Use parent lockPiece
+            const linesBefore = this.linesCleared
+            super.lockPiece()
+
+            this.broadcastState()
+
+            if (this.isGameOver) {
+                this.stopDurationTimer()
+            }
+
+            const linesDiff = this.linesCleared - linesBefore
+
+            // Create visual effects for cleared lines
+            if (linesDiff > 0) {
+                const indices: number[] = []
+                for (let i = 0; i < linesDiff; i++) {
+                    indices.push(19 - i)
+                }
+                this.effectSystem.createEffects(indices, linesDiff)
+            }
+
+            // Send garbage attack for 2+ lines
+            if (linesDiff >= 2 && this.attackMode === 'garbage') {
+                const garbage = this.calculateGarbage(linesDiff)
+                if (garbage > 0) {
+                    socketService.send('attack', { lines: garbage })
+                }
             }
         }
     }

@@ -164,21 +164,22 @@ export class EffectSystem {
      */
     private createExplosionParticles(indices: number[], linesCount: number): void {
         const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
-        const particlesPerCell = linesCount >= 4 ? 8 : (linesCount >= 2 ? 5 : 3)
+        // More particles for bigger impact (12 for single, 15 for double+, 20 for tetris)
+        const particlesPerCell = linesCount >= 4 ? 20 : (linesCount >= 2 ? 15 : 12)
 
         indices.forEach(y => {
             for (let x = 0; x < BOARD_WIDTH; x++) {
                 for (let i = 0; i < particlesPerCell; i++) {
                     const angle = Math.random() * Math.PI * 2
-                    const speed = 2 + Math.random() * 4
+                    const speed = 3 + Math.random() * 6
 
                     this.particles.push({
                         x: x * CELL_SIZE + CELL_SIZE / 2,
                         y: y * CELL_SIZE + CELL_SIZE / 2,
                         vx: Math.cos(angle) * speed,
-                        vy: Math.sin(angle) * speed - 2,
-                        size: 3 + Math.random() * 4,
-                        color: Math.random() > 0.7 ? '#ffffff' : color,
+                        vy: Math.sin(angle) * speed - 3,
+                        size: 4 + Math.random() * 5,
+                        color: Math.random() > 0.6 ? '#ffffff' : color,
                         life: 1.0,
                         gravity: 0.15
                     })
@@ -192,7 +193,8 @@ export class EffectSystem {
      */
     private createSparkleParticles(indices: number[], linesCount: number): void {
         const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
-        const particlesPerCell = linesCount >= 4 ? 6 : 4
+        // More sparkles for magical effect (12 for single, 15 for double+, 20 for tetris)
+        const particlesPerCell = linesCount >= 4 ? 20 : (linesCount >= 2 ? 15 : 12)
 
         indices.forEach(y => {
             for (let x = 0; x < BOARD_WIDTH; x++) {
@@ -200,12 +202,12 @@ export class EffectSystem {
                     this.particles.push({
                         x: x * CELL_SIZE + Math.random() * CELL_SIZE,
                         y: y * CELL_SIZE + CELL_SIZE / 2,
-                        vx: (Math.random() - 0.5) * 2,
-                        vy: -2 - Math.random() * 3,
-                        size: 2 + Math.random() * 3,
-                        color: Math.random() > 0.5 ? '#ffffff' : color,
+                        vx: (Math.random() - 0.5) * 3,
+                        vy: -3 - Math.random() * 4,
+                        size: 3 + Math.random() * 4,
+                        color: Math.random() > 0.4 ? '#ffffff' : color,
                         life: 1.0,
-                        gravity: -0.02
+                        gravity: -0.03
                     })
                 }
             }
@@ -213,12 +215,13 @@ export class EffectSystem {
     }
 
     /**
-     * 🌊 WAVE - Ripple wave from center
+     * 🌊 WAVE - Ripple wave from center + floating particles
      */
     private createWaveEffect(indices: number[], linesCount: number): void {
         const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
 
         indices.forEach(y => {
+            // Wave ripple
             this.effects.push({
                 type: 'WAVE',
                 centerX: BOARD_WIDTH * CELL_SIZE / 2,
@@ -228,6 +231,23 @@ export class EffectSystem {
                 color,
                 life: 1.0
             })
+
+            // Add floating particles along the wave (more for higher combos)
+            const waveParticles = linesCount >= 4 ? 15 : (linesCount >= 2 ? 12 : 10)
+            for (let x = 0; x < BOARD_WIDTH; x++) {
+                for (let i = 0; i < waveParticles; i++) {
+                    this.particles.push({
+                        x: x * CELL_SIZE + Math.random() * CELL_SIZE,
+                        y: y * CELL_SIZE + CELL_SIZE / 2,
+                        vx: (Math.random() - 0.5) * 4,
+                        vy: (Math.random() - 0.5) * 2,
+                        size: 3 + Math.random() * 3,
+                        color: Math.random() > 0.5 ? '#ffffff' : color,
+                        life: 1.0,
+                        gravity: 0
+                    })
+                }
+            }
         })
     }
 
@@ -236,25 +256,26 @@ export class EffectSystem {
      */
     private createShatterParticles(indices: number[], linesCount: number): void {
         const color = EFFECT_COLORS[Math.min(linesCount, 4)] || '#ffffff'
-        const fragmentsPerCell = 4
+        // More fragments for dramatic effect (8 for single, 10 for double+, 12 for tetris)
+        const fragmentsPerCell = linesCount >= 4 ? 12 : (linesCount >= 2 ? 10 : 8)
 
         indices.forEach(y => {
             for (let x = 0; x < BOARD_WIDTH; x++) {
                 for (let i = 0; i < fragmentsPerCell; i++) {
-                    const offsetX = (i % 2) * (CELL_SIZE / 2)
-                    const offsetY = Math.floor(i / 2) * (CELL_SIZE / 2)
+                    const offsetX = (i % 3) * (CELL_SIZE / 3)
+                    const offsetY = Math.floor(i / 3) * (CELL_SIZE / 2)
 
                     this.particles.push({
-                        x: x * CELL_SIZE + offsetX + CELL_SIZE / 4,
+                        x: x * CELL_SIZE + offsetX + CELL_SIZE / 6,
                         y: y * CELL_SIZE + offsetY + CELL_SIZE / 4,
-                        vx: (Math.random() - 0.5) * 3,
-                        vy: -1 - Math.random() * 2,
-                        size: CELL_SIZE / 2 - 2,
+                        vx: (Math.random() - 0.5) * 5,
+                        vy: -2 - Math.random() * 3,
+                        size: CELL_SIZE / 3,
                         color: Math.random() > 0.3 ? color : this.darkenColor(color),
                         life: 1.0,
-                        gravity: 0.25,
+                        gravity: 0.3,
                         rotation: Math.random() * Math.PI,
-                        rotationSpeed: (Math.random() - 0.5) * 0.3,
+                        rotationSpeed: (Math.random() - 0.5) * 0.5,
                         isSquare: true
                     })
                 }

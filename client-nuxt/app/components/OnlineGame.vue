@@ -8,6 +8,58 @@
         <div class="name-box">
             <h2>Enter Your Name</h2>
             <input v-model="playerName" @keyup.enter="joinGame" placeholder="Display Name..." maxlength="10" />
+            
+            <!-- LAN Settings -->
+            <div v-if="mode === 'lan'" class="lan-settings">
+                <!-- Role Badge -->
+                <div class="role-badge" :class="onlineGame.isHost ? 'host' : 'guest'">
+                    {{ onlineGame.isHost ? '👑 HOST (You set the rules)' : '👤 GUEST (Settings from host)' }}
+                </div>
+                
+                <label class="settings-label">
+                    🎮 Attack Mode:
+                    <select 
+                      v-model="onlineGame.attackMode" 
+                      class="mode-select"
+                      :disabled="!onlineGame.isHost"
+                    >
+                        <option value="garbage">Garbage Lines</option>
+                        <option value="lines">Score Attack</option>
+                    </select>
+                </label>
+                <label class="settings-label">
+                    🎆 Effect:
+                    <select 
+                      v-model="onlineGame.effectType" 
+                      class="mode-select"
+                      :disabled="!onlineGame.isHost"
+                    >
+                        <option value="explosion">🎆 Explosion</option>
+                        <option value="sparkle">✨ Sparkle</option>
+                        <option value="wave">🌊 Wave</option>
+                        <option value="shatter">💥 Shatter</option>
+                        <option value="classic">⚡ Classic</option>
+                    </select>
+                </label>
+                <label class="settings-label ghost-toggle" :class="{ disabled: !onlineGame.isHost }">
+                    <input 
+                      type="checkbox" 
+                      :checked="onlineGame.showGhostPiece" 
+                      @change="onlineGame.isHost && onlineGame.toggleGhostPiece()"
+                      :disabled="!onlineGame.isHost"
+                    />
+                    👻 Ghost Piece
+                </label>
+                <label class="settings-label ghost-toggle" :class="{ disabled: !onlineGame.isHost }">
+                    <input 
+                      type="checkbox" 
+                      v-model="onlineGame.useCascadeGravity" 
+                      :disabled="!onlineGame.isHost"
+                    />
+                    🔄 Cascade Gravity (Puyo Style)
+                </label>
+            </div>
+            
             <div class="btn-group">
                 <button @click="joinGame" class="join-btn" :disabled="!playerName">Join Game</button>
                 <button @click="emit('back')" class="cancel-btn">Cancel</button>
@@ -27,6 +79,7 @@
             :game="onlineGame" 
             :showHold="true" 
             :showNext="true"
+            :showGhost="onlineGame.showGhostPiece"
             playerColor="#00d4ff"
           />
           
@@ -92,13 +145,6 @@
       <div v-if="isWaiting" class="status-box waiting">
           <div class="spinner"></div>
           <div class="waiting-message">
-            <label class="settings-label">
-                Attack Mode:
-                <select v-model="onlineGame.attackMode" class="mode-select">
-                    <option value="garbage">Garbage Lines</option>
-                    <option value="lines">Score Attack</option>
-                </select>
-            </label>
             <span>Waiting for Opponent...</span>
           </div>
       </div>
@@ -371,6 +417,48 @@ onUnmounted(() => {
     color: white;
     font-size: 1.2rem;
     text-align: center;
+}
+
+.lan-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    width: 100%;
+    padding: 1rem;
+    background: rgba(0, 255, 136, 0.05);
+    border: 1px solid rgba(0, 255, 136, 0.2);
+    border-radius: 8px;
+}
+
+.role-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.role-badge.host {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    color: #ffd700;
+}
+
+.role-badge.guest {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 255, 0.15));
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    color: #00d4ff;
+}
+
+.mode-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #1a1a2a;
+}
+
+.settings-label.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .btn-group {
@@ -686,6 +774,18 @@ onUnmounted(() => {
 
 .mode-select:focus {
     border-color: #646cff;
+}
+
+.ghost-toggle {
+    cursor: pointer;
+    user-select: none;
+}
+
+.ghost-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #00ff88;
+    cursor: pointer;
 }
 
 /* Overlay Updates */
