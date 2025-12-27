@@ -2,6 +2,16 @@
 
 All notable changes to the Android Server App project will be documented in this file.
 
+## [1.1.7] - 2025-12-27
+
+### Added
+- **Gravity Setting Sync:** Server now broadcasts `increaseGravity` setting from host to guest via `room_status`.
+- **LAN Game Settings Sync:** Host settings (attack mode, gravity) are now synchronized to guests upon joining.
+
+### Fixed
+- **Guest Host Role:** Fixed `isHost` logic to correctly identify guest clients.
+- **Game Over Broadcast:** Improved `game_over` event handling to correctly determine winner/loser/draw states.
+
 ## [1.1.6] - 2025-12-27
 
 ### Added

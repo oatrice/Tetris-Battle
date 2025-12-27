@@ -33,7 +33,7 @@ export class OnlineGame extends Game {
     showGhostPiece = true // Toggle ghost piece visibility
     effectType: EffectType = EffectType.EXPLOSION // Visual effect type
     useCascadeGravity = false // Puyo-style cascade gravity
-    isHost = true // True = can edit settings, False = read-only (set by room_status)
+    isHost = false // Default to false (Guest) until confirmed by server. Safe default.
 
     // Cascade Gravity State
     chainCount = 0
@@ -60,8 +60,8 @@ export class OnlineGame extends Game {
     }
 
     // Public init method to be called AFTER reactive() wrapping
-    public init(wsUrl: string) {
-        this.initSocket(wsUrl)
+    public async init(wsUrl: string) {
+        return this.initSocket(wsUrl)
     }
 
     private startDurationTimer() {
@@ -81,12 +81,11 @@ export class OnlineGame extends Game {
     }
 
     private initSocket(wsUrl: string) {
-        socketService.connect(wsUrl).then(() => {
-            console.log('OnlineGame connected to socket:', wsUrl)
-        }).catch(err => {
-            console.error('OnlineGame connection failed', err)
-        })
+        // Register listeners BEFORE connecting to ensure we don't miss immediate events (like room_status)
+        // Check if we should clear listeners first? Ideally yes, but removeAllListeners in cleanup handles it for re-runs.
+        // But OnlineGame is usually one-shot.
 
+        // Listener registration (moved up)
         socketService.on('game_start', (payload: any) => {
             console.log('Game Started vs', payload.opponentName, 'MatchID:', payload.matchId)
             this.opponentId = payload.opponentId
@@ -163,6 +162,10 @@ export class OnlineGame extends Game {
                     if (payload.hostSettings.useCascadeGravity !== undefined) {
                         this.useCascadeGravity = payload.hostSettings.useCascadeGravity
                     }
+                    if (payload.hostSettings.increaseGravity !== undefined) {
+                        console.log('[ROOM_STATUS] Syncing increaseGravity:', payload.hostSettings.increaseGravity)
+                        this.increaseGravity = payload.hostSettings.increaseGravity
+                    }
                 }
             } else {
                 // No host waiting - we will be host
@@ -210,6 +213,14 @@ export class OnlineGame extends Game {
                 this.winScore = this.score  // Record score at win time
             }
         })
+
+        // Finally connect
+        return socketService.connect(wsUrl).then(() => {
+            console.log('OnlineGame connected to socket:', wsUrl)
+        }).catch(err => {
+            console.error('OnlineGame connection failed', err)
+            throw err // Propagate error
+        })
     }
 
     joinGame(name: string) {
@@ -225,7 +236,8 @@ export class OnlineGame extends Game {
             attackMode: this.attackMode,
             showGhostPiece: this.showGhostPiece,
             effectType: this.effectType,
-            useCascadeGravity: this.useCascadeGravity
+            useCascadeGravity: this.useCascadeGravity,
+            increaseGravity: this.increaseGravity
         })
     }
 
@@ -243,9 +255,14 @@ export class OnlineGame extends Game {
     /**
      * Update effect animations and cascade gravity (call from game loop)
      */
-    update(deltaTime: number): void {
+    override update(deltaTime: number): void {
         // Update effects
         this.effectSystem.update(deltaTime)
+
+        // Handle Gravity (inherited from Game)
+        if (this.countdown === null && (this.isOpponentConnected || this.isWinner)) {
+            super.update(deltaTime)
+        }
 
         // Cascade Gravity Logic
         if (!this.useCascadeGravity || !this.isCascading) return
@@ -467,6 +484,7 @@ export class OnlineGame extends Game {
 
     cleanup() {
         socketService.disconnect()
+        socketService.removeAllListeners()
         if (this.timer) clearInterval(this.timer)
         this.stopDurationTimer()
     }

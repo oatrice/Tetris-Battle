@@ -29,12 +29,13 @@
               type="text" 
               placeholder="localhost"
             />
+            <button v-if="serverIP" @click="serverIP = ''" class="clear-btn" title="Clear">✕</button>
             <span class="port-label">:8080</span>
             <button @click="copyIP" class="copy-btn" title="Copy">📋</button>
           </div>
           <div class="ip-presets">
             <button @click="serverIP = 'localhost'" :class="{ active: serverIP === 'localhost' }" class="preset-btn">💻 PC</button>
-            <button @click="serverIP = '192.168.43.1'" :class="{ active: serverIP === '192.168.43.1' }" class="preset-btn">📱 Hotspot</button>
+            <button @click="serverIP = '192.168.'" :class="{ active: serverIP === '192.168.' }" class="preset-btn">🌐 192.168...</button>
           </div>
           
           <p>3. กด Join เมื่อ Server พร้อม:</p>
@@ -58,7 +59,71 @@
               placeholder="192.168.x.x" 
               @keyup.enter="connectToLAN"
             />
+            <button v-if="serverIP" @click="serverIP = ''" class="clear-btn" title="Clear">✕</button>
             <span class="port-label">:8080</span>
+          </div>
+
+          <!-- History -->
+          <div v-if="ipHistory.length > 0" class="history-section">
+             <div class="history-header">
+                 <span>Recent:</span>
+                 <button @click="clearHistory" class="clear-history-btn">Clear All</button>
+             </div>
+             <div class="history-list">
+                 <div v-for="ip in ipHistory" :key="ip" class="history-item">
+                     <span @click="serverIP = ip" class="history-ip">{{ ip }}</span>
+                     <button @click="removeHistory(ip)" class="delete-history-btn" title="Remove">✕</button>
+                 </div>
+             </div>
+          </div>
+
+          <div class="ip-presets">
+             <button @click="serverIP = 'localhost'" :class="{ active: serverIP === 'localhost' }" class="preset-btn">💻 Localhost</button>
+             <button @click="serverIP = '192.168.'" :class="{ active: serverIP === '192.168.' }" class="preset-btn">🌐 192.168...</button>
+             <button @click="serverIP = getBrowserHostname()" class="preset-btn">🔗 Browser IP</button>
+          </div>
+
+          <div class="scan-section">
+            <div class="scan-settings" v-if="!isScanning">
+                 <label class="setting-label">🚀 Scan Speed: {{ scanBatchSize }} IPs/batch</label>
+                 <input type="range" v-model.number="scanBatchSize" min="5" max="50" step="5" class="range-slider">
+            </div>
+
+            <div class="scan-info" v-if="isScanning">
+                <div class="progress-text">
+                    <span>⏱️ {{ scanDuration }}s</span>
+                    <span>Checked: {{ scannedCount }}/255</span>
+                </div>
+                <div class="batch-text" v-if="currentBatchRange">
+                    Scanning: {{ currentBatchRange }}
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: (scannedCount/255)*100 + '%' }"></div>
+                </div>
+            </div>
+
+            <div class="scan-controls">
+                <button @click="scanLAN" class="scan-btn" :disabled="isScanning">
+                🔍 {{ isScanning ? 'Scanning...' : 'Scan LAN' }}
+                </button>
+                <button v-if="isScanning" @click="stopScan" class="stop-scan-btn">
+                🛑 Stop
+                </button>
+            </div>
+            
+            <div v-if="foundHosts.length > 0" class="found-hosts">
+              <span class="found-label">Found Servers:</span>
+              <div class="hosts-list">
+                <button 
+                  v-for="host in foundHosts" 
+                  :key="host" 
+                  class="found-host" 
+                  @click="serverIP = host"
+                >
+                  📡 {{ host }}
+                </button>
+              </div>
+            </div>
           </div>
           
           <button @click="connectToLAN" class="start-btn" :disabled="!serverIP || connecting">
@@ -76,15 +141,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const emit = defineEmits<{
   (e: 'back'): void
   (e: 'connect', wsUrl: string): void
 }>()
 
-defineProps<{
+const props = defineProps<{
   connected: boolean
+  connectionError?: string
 }>()
 
 type Step = 'choose' | 'host' | 'join'
@@ -93,34 +159,260 @@ const step = ref<Step>('choose')
 const serverIP = ref('localhost')
 const connecting = ref(false)
 const error = ref('')
+const isScanning = ref(false)
+const foundHosts = ref<string[]>([])
+const ipHistory = ref<string[]>([])
+
+// Scan Settings & Progress
+const scanBatchSize = ref(20)
+const scannedCount = ref(0)
+const scanDuration = ref("0.0")
+const currentBatchRange = ref("")
+let scanTimer: any = null
+
+// Watch for prop error
+watch(() => props.connectionError, (newVal) => {
+    if (newVal) {
+        error.value = newVal
+        connecting.value = false
+    }
+})
+
+// Load history on init
+if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('lan_ip_history')
+    if (saved) {
+        try {
+            ipHistory.value = JSON.parse(saved)
+        } catch (e) {
+            console.error('Failed to parse IP history', e)
+        }
+    }
+}
+
+const saveHistory = (ip: string) => {
+    if (!ip || ip === 'localhost') return
+    // Remove if exists to push to top
+    ipHistory.value = ipHistory.value.filter(h => h !== ip)
+    ipHistory.value.unshift(ip)
+    // Keep max 5
+    if (ipHistory.value.length > 5) ipHistory.value.pop()
+    localStorage.setItem('lan_ip_history', JSON.stringify(ipHistory.value))
+}
+
+const removeHistory = (ip: string) => {
+    ipHistory.value = ipHistory.value.filter(h => h !== ip)
+    localStorage.setItem('lan_ip_history', JSON.stringify(ipHistory.value))
+}
+
+const clearHistory = () => {
+    ipHistory.value = []
+    localStorage.removeItem('lan_ip_history')
+}
+
+// WebRTC trick to get local IP
+const detectLocalIPWithWebRTC = async () => {
+  return new Promise<string>((resolve) => {
+    try {
+      const pc = new RTCPeerConnection({ iceServers: [] })
+      pc.createDataChannel('')
+      pc.createOffer().then(pc.setLocalDescription.bind(pc))
+      pc.onicecandidate = (ice) => {
+        if (!ice || !ice.candidate || !ice.candidate.candidate) return
+        const result = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(ice.candidate.candidate)
+        if (result && result[1]) {
+           // Ignore 127.0.0.1
+           if (result[1] !== '127.0.0.1') {
+             resolve(result[1])
+             pc.close()
+           }
+        }
+      }
+      setTimeout(() => {
+          pc.close()
+          resolve('') 
+      }, 1000)
+    } catch (e) {
+      resolve('')
+    }
+  })
+}
 
 const detectLocalIP = () => {
   const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
   serverIP.value = isMobile ? '192.168.43.1' : 'localhost'
 }
 
-const showHostInstructions = () => {
-  detectLocalIP()
-  step.value = 'host'
+const showHostInstructions = async () => {
+    step.value = 'host'
+    // Try to detect real IP
+    const ip = await detectLocalIPWithWebRTC()
+    if (ip) {
+        serverIP.value = ip
+    } else {
+        detectLocalIP() // fallback
+    }
+}
+
+const stopScan = () => {
+    isScanning.value = false
+    error.value = 'Scan stopped'
+}
+
+const scanLAN = async () => {
+  foundHosts.value = []
+  isScanning.value = true
+  error.value = ''
+  
+  // Try to update subnet from local IP if input is default or empty
+  if (serverIP.value === 'localhost' || !serverIP.value || serverIP.value === '192.168.') {
+      console.log('[LAN] Trying to auto-detect local IP via WebRTC...')
+      const detected = await detectLocalIPWithWebRTC()
+      console.log('[LAN] Detected Local IP:', detected)
+      if (detected) {
+          // Only update if it looks different, to trigger reactivity
+          serverIP.value = detected 
+      }
+  }
+
+  // Determine subnet from current input or default to 192.168.1.
+  let subnet = '192.168.1' // Default Fallback
+  
+  // Extract subnet from serverIP (which might have been updated above)
+  const ipMatch = serverIP.value.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3})\.?/)
+  if (ipMatch && ipMatch[1]) {
+    subnet = ipMatch[1]
+  }
+
+  // console.log(`[LAN] Scanning Subnet: ${subnet}.x`)
+  // error.value = `Scanning ${subnet}.1 - ${subnet}.255 ...`
+
+  const port = 8080
+  
+  // Helper to scan a single IP
+  const scanIP = async (ip: string) => {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 2000)
+      try {
+          if (!isScanning.value) return // Stop early
+
+          // Log probing attempt
+          // console.log(`[LAN] Probing ${ip}...`)
+          
+          let res: Response | null = null
+          
+          try {
+              // Try standard CORS first
+              res = await fetch(`http://${ip}:${port}/debug/version`, { 
+                  method: 'GET',
+                  signal: controller.signal,
+                  mode: 'cors',
+                  cache: 'no-store'
+              })
+          } catch (corsErr) {
+              // If CORS fails, try no-cors to detect existence
+              if (isScanning.value) {
+                 try {
+                     res = await fetch(`http://${ip}:${port}/debug/version`, { 
+                          method: 'GET',
+                          signal: controller.signal,
+                          mode: 'no-cors',
+                          cache: 'no-store'
+                      })
+                 } catch (ign) {}
+              }
+          }
+
+          if (res) {
+              if (res.ok || res.type === 'opaque') {
+                  console.log(`[LAN] ✅ Found Host at ${ip} (Type: ${res.type})`)
+                  if (!foundHosts.value.includes(ip)) {
+                      foundHosts.value.push(ip)
+                  }
+              } else {
+                  console.log(`[LAN] ⚠️ Response from ${ip} but not OK`)
+              }
+          }
+      } catch (e: any) {
+          // Log specific error for debugging
+           if (e.name !== 'AbortError') {
+            //  console.warn(`[LAN] Error probing ${ip}:`, e)
+           }
+      } finally {
+          clearTimeout(timeoutId)
+      }
+  }
+
+  // Generate all IPs
+  const allIPs: string[] = []
+  for (let i = 1; i <= 255; i++) {
+      allIPs.push(`${subnet}.${i}`)
+  }
+
+  // Start Timer
+  const startTime = performance.now()
+  scanDuration.value = "0.0"
+  scannedCount.value = 0
+  if (scanTimer) clearInterval(scanTimer)
+  scanTimer = setInterval(() => {
+    const elapsed = (performance.now() - startTime) / 1000
+    scanDuration.value = elapsed.toFixed(1)
+  }, 100)
+
+  // Process in batches
+  for (let i = 0; i < allIPs.length; i += scanBatchSize.value) {
+      if (!isScanning.value) break // Allow canceling
+      const batch = allIPs.slice(i, i + scanBatchSize.value)
+      
+      // Update UI for current batch
+      currentBatchRange.value = `${batch[0]} - ${batch[batch.length-1]}`
+      
+      await Promise.all(batch.map(ip => scanIP(ip)))
+      
+      scannedCount.value += batch.length
+  }
+
+  isScanning.value = false
+  clearInterval(scanTimer)
+  currentBatchRange.value = ''
+  
+  if (foundHosts.value.length === 0 && !error.value.includes('stopped')) {
+      error.value = `No servers found in ${subnet}.x`
+  } else if (foundHosts.value.length > 0) {
+      error.value = '' // Clear scanning message
+  }
 }
 
 const copyIP = () => {
   navigator.clipboard.writeText(`${serverIP.value}:8080`)
 }
 
+const getBrowserHostname = () => {
+    return window.location.hostname
+}
+
 const connectToLAN = () => {
   if (!serverIP.value) return
   
+  saveHistory(serverIP.value)
+
   connecting.value = true
   error.value = ''
   
   const wsUrl = `ws://${serverIP.value}:8080/ws`
   emit('connect', wsUrl)
   
-  // Reset connecting after a timeout (parent handles actual connection)
+  // Parent should handle success/fail. 
+  // If parent fails, it will pass 'connectionError' prop back
+  // If parent succeeds, this component is unmounted.
+  
+  // Safety fallback: if app.vue doesn't respond with error or success within 10s, reset UI
   setTimeout(() => {
-    connecting.value = false
-  }, 1500)
+    if (connecting.value) {
+        connecting.value = false
+        error.value = 'Connection attempt timed out (UI Failsafe)'
+    }
+  }, 10000)
 }
 </script>
 
@@ -140,9 +432,17 @@ const connectToLAN = () => {
   gap: 1.5rem;
 }
 
+.lan-menu h2 {
+  color: #38ef7d;
+  font-size: 2rem;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(56, 239, 125, 0.5);
+}
+
 .lan-desc {
-  color: #888;
-  font-size: 0.9rem;
+  color: #b0b0b0;
+  font-size: 1rem;
+  margin-top: -0.5rem;
 }
 
 .lan-buttons {
@@ -250,6 +550,20 @@ const connectToLAN = () => {
   cursor: pointer;
 }
 
+.clear-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 0.5rem;
+    font-size: 1.2rem;
+}
+
+.clear-btn:hover {
+    color: #ff6b6b;
+}
+
 .ip-presets {
   display: flex;
   gap: 0.5rem;
@@ -273,10 +587,77 @@ const connectToLAN = () => {
   color: white;
 }
 
+.presets-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
 .preset-btn.active {
   background: rgba(0,200,100,0.2);
   border-color: #00cc66;
   color: #00ff88;
+}
+
+.history-section {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 0.3rem;
+}
+
+.clear-history-btn {
+    background: transparent;
+    border: none;
+    color: #ff6b6b;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    background: #1a1a2a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 0.2rem 0.6rem;
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+.history-ip {
+    cursor: pointer;
+    color: #aaa;
+    margin-right: 0.4rem;
+}
+
+.history-ip:hover {
+    color: white;
+}
+
+.delete-history-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.delete-history-btn:hover {
+    color: #ff6b6b;
 }
 
 .join-form {
@@ -333,5 +714,150 @@ const connectToLAN = () => {
   border-radius: 6px;
   width: 100%;
   text-align: center;
+}
+
+.scan-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(0,0,0,0.2);
+  padding: 0.8rem;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+.scan-btn {
+  background: #2a2a40;
+  border: 1px solid #444;
+  color: #88ccff;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  flex: 1;
+}
+
+.scan-controls {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.stop-scan-btn {
+    background: #3f1a1a;
+    border: 1px solid #ff4444;
+    color: #ff6b6b;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.stop-scan-btn:hover {
+    background: #5a2020;
+    color: white;
+}
+
+.scan-btn:hover:not(:disabled) {
+  background: #3a3a50;
+  color: white;
+  border-color: #666;
+}
+
+.scan-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.found-hosts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.found-label {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.hosts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.found-host {
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  color: #00ff88;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-family: monospace;
+}
+
+.found-host:hover {
+  background: rgba(0, 255, 136, 0.2);
+  transform: translateX(4px);
+}
+
+.scan-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.setting-label {
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+.range-slider {
+    width: 100%;
+    accent-color: #00ff88;
+}
+
+.scan-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+    background: rgba(0,0,0,0.3);
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #fff;
+    font-family: monospace;
+}
+
+.batch-text {
+    font-size: 0.75rem;
+    color: #88ccff;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #444;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #00ff88;
+    transition: width 0.3s ease;
 }
 </style>

@@ -12,6 +12,15 @@
         <button @click="startLAN" class="mode-btn lan">📡 LAN</button>
         <button @click="showLeaderboard = true" class="mode-btn leaderboard">🏆 Leaderboard</button>
       </div>
+      
+      <!-- Game Options -->
+      <div class="game-options">
+        <label class="toggle-switch">
+          <input type="checkbox" v-model="increaseSpeed">
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">⚡ Speed Increase</span>
+        </label>
+      </div>
     </div>
     
     <!-- Leaderboard Modal -->
@@ -53,6 +62,7 @@
       <LANGameComponent 
         v-if="!onlineGame"
         :connected="!!onlineGame"
+        :connectionError="lanError"
         @back="backToMenu" 
         @connect="connectLAN"
       />
@@ -91,67 +101,79 @@ const showLeaderboard = ref(false)
 
 // Get runtime config for WebSocket URL
 const config = useRuntimeConfig()
+const lanError = ref('')
 
 let animationId: number | null = null
 let lastUpdate = 0
-const DROP_INTERVAL = 1000
-
-// ============ Mode Selection ============
-const remoteLog = (msg: string) => {
-  if (import.meta.client && window.location.port === '8080') {
-    fetch('/debug/log', { method: 'POST', body: msg }).catch(() => {})
-  }
-}
+const increaseSpeed = ref(true)
 
 const startSolo = () => {
-  remoteLog('User started Solo Mode')
+  console.log('[App] Starting Solo Mode')
   gameMode.value = 'solo'
-  soloGame.value = reactive(new Game()) as any
+  const game = new Game()
+  game.increaseGravity = increaseSpeed.value
+  soloGame.value = reactive(game) as any
   startGameLoop()
 }
 
 const startSpecial = () => {
-  remoteLog('User started Special Mode')
+  console.log('[App] Starting Special Mode')
   gameMode.value = 'special'
-  soloGame.value = reactive(new SpecialGame()) as any
+  const game = new SpecialGame()
+  game.increaseGravity = increaseSpeed.value
+  soloGame.value = reactive(game) as any
   startGameLoop()
 }
 
 const startDuo = () => {
-  remoteLog('User started Duo Mode')
+  console.log('[App] Starting Duo Mode')
   gameMode.value = 'duo'
-  duoGame.value = new DuoGame()
+  const game = new DuoGame()
+  game.increaseGravity = increaseSpeed.value
+  duoGame.value = game
   startGameLoop()
 }
 
 const startOnline = () => {
-  remoteLog('User clicked Online Mode')
-  gameMode.value = 'online'
-  const game = reactive(new OnlineGame()) as any
-  
-  let wsUrl = config.public.wsUrl
-  // Auto-detect if running on same port (Serving from Go)
-  if (import.meta.client && window.location.port === '8080') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      wsUrl = `${protocol}//${window.location.host}/ws`
-      console.log('Auto-detected WS URL:', wsUrl)
-  }
-
-  game.init(wsUrl)
-  onlineGame.value = game
-  startGameLoop()
+    console.log('[App] Starting Online Mode')
+    gameMode.value = 'online'
+    const game = reactive(new OnlineGame()) as any
+    game.increaseGravity = increaseSpeed.value
+    // Auto-connect to default/prod server
+    const url = config.public.wsUrl || 'wss://tetris-server.fly.dev'
+    console.log('[App] Connecting to:', url)
+    
+    game.init(url).then(() => {
+        console.log('[App] Online connected')
+        onlineGame.value = game
+        startGameLoop()
+    }).catch((err: any) => {
+        console.error('[App] Online init failed', err)
+        alert('Could not connect to online server')
+        gameMode.value = null
+    })
 }
 
 const startLAN = () => {
+  console.log('[App] Starting LAN Mode')
   gameMode.value = 'lan'
   onlineGame.value = null // Reset until user connects
+  lanError.value = ''
 }
 
-const connectLAN = (wsUrl: string) => {
+const connectLAN = async (wsUrl: string) => {
+  lanError.value = ''
   const game = reactive(new OnlineGame()) as any
-  game.init(wsUrl)
-  onlineGame.value = game
-  startGameLoop()
+  game.increaseGravity = increaseSpeed.value
+  try {
+      await game.init(wsUrl)
+      onlineGame.value = game
+      startGameLoop()
+  } catch (e: any) {
+      console.error('Connection failed inside app.vue:', e)
+      lanError.value = `Connection Failed: ${e?.message || 'Unknown Error'}`
+      // Ensure we stay on LAN menu (onlineGame remains null)
+  }
 }
 
 const restartGame = () => {
@@ -194,30 +216,13 @@ const startGameLoop = () => {
     const deltaTime = lastFrameTime > 0 ? timestamp - lastFrameTime : 0
     lastFrameTime = timestamp
     
-    // Update Special mode cascade animation
-    if (gameMode.value === 'special' && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
-      (soloGame.value as SpecialGame).update(deltaTime)
-    }
-    
-    // Update Online/LAN mode effects
-    if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value) {
+    // Update Game State (Gravity + Effects)
+    if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value) {
+      soloGame.value.update(deltaTime)
+    } else if (gameMode.value === 'duo' && duoGame.value) {
+      duoGame.value.update(deltaTime)
+    } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value) {
       onlineGame.value.update(deltaTime)
-    }
-    
-    // Auto drop
-    if (timestamp - lastUpdate > DROP_INTERVAL) {
-      if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
-        if (gameMode.value !== 'special' || !(soloGame.value as SpecialGame).isCascading) {
-          soloGame.value.moveDown()
-        }
-      } else if (gameMode.value === 'duo' && duoGame.value) {
-        duoGame.value.tick()
-      } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value && !onlineGame.value.isGameOver && (onlineGame.value.isOpponentConnected || onlineGame.value.isWinner)) {
-         if (onlineGame.value.countdown === null && !onlineGame.value.isPaused) {
-             onlineGame.value.moveDown()
-         }
-      }
-      lastUpdate = timestamp
     }
 
     // [FIX] Trigger ref update manually since we switched to shallowRef
@@ -354,6 +359,8 @@ h1 {
 /* Mode Selection */
 .mode-select {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   margin-top: 4rem;
 }
@@ -386,8 +393,8 @@ h1 {
 }
 
 .mode-btn.duo {
-  background: linear-gradient(135deg, #43e97b, #38f9d7);
-  color: #1a1a2e;
+  background: linear-gradient(135deg, #ff9966, #ff5e62);
+  color: white;
 }
 
 .mode-btn.online {
@@ -424,6 +431,77 @@ h1 {
 .game-area {
   display: flex;
   justify-content: center;
+}
+
+/* Game Options - Toggle Switch */
+.game-options {
+  margin-top: 2.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
+}
+
+.toggle-switch:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(0, 212, 255, 0.4);
+}
+
+.toggle-switch input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 42px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: linear-gradient(135deg, #00d4ff, #0072ff);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(18px);
+}
+
+.toggle-label {
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  user-select: none;
+}
+
+.toggle-switch input:checked ~ .toggle-label {
+  color: #00d4ff;
 }
 
 @media (max-width: 600px) {

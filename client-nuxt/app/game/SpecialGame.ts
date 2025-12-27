@@ -56,11 +56,17 @@ export class SpecialGame extends Game {
     /**
      * Update cascade gravity animation (call from game loop with deltaTime)
      */
-    update(deltaTime: number): void {
+    /**
+     * Update cascade gravity animation (call from game loop with deltaTime)
+     */
+    override update(deltaTime: number): void {
         // Update effects
         this.effectSystem.update(deltaTime)
 
-        if (!this.isCascading) return
+        if (!this.isCascading) {
+            super.update(deltaTime)
+            return
+        }
 
         this.cascadeTimer += deltaTime
         if (this.cascadeTimer >= this.CASCADE_DELAY) {

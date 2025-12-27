@@ -31,6 +31,8 @@ export class Game {
     public allowHold: boolean = false
     protected pieceQueue: TetrominoType[]
     protected holdUsedThisTurn: boolean
+    protected dropTimer: number = 0
+    public increaseGravity: boolean = true
 
     constructor() {
         this.board = new Board()
@@ -288,5 +290,32 @@ export class Game {
      */
     togglePause(): void {
         this.isPaused = !this.isPaused
+    }
+
+    /**
+     * Get drop interval in milliseconds based on current level
+     * Formula: 1000ms * (0.9 ^ (level - 1))
+     * Minimum speed caps at 100ms
+     */
+    getDropInterval(): number {
+        if (!this.increaseGravity) return 1000
+        const interval = 1000 * Math.pow(0.9, this.level - 1)
+        return Math.max(100, Math.floor(interval))
+    }
+
+    /**
+     * Update game state based on elapsed time
+     * @param deltaTime Time in ms since last update
+     */
+    update(deltaTime: number): void {
+        if (this.isPaused || this.isGameOver) return
+
+        this.dropTimer += deltaTime
+        const interval = this.getDropInterval()
+
+        if (this.dropTimer >= interval) {
+            this.moveDown()
+            this.dropTimer = 0 // Reset timer to avoid accumulating multiple drops in one frame (prevent unwanted catch-up)
+        }
     }
 }

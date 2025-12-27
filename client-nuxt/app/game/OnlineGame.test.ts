@@ -44,8 +44,8 @@ describe('OnlineGame game_over handling', () => {
     })
 
     describe('Host/Guest Role', () => {
-        it('should default to being host (isHost = true)', () => {
-            expect(game.isHost).toBe(true)
+        it('should default to being guest (isHost = false)', () => {
+            expect(game.isHost).toBe(false)
         })
 
         it('should become guest when room_status indicates host exists', () => {
@@ -253,6 +253,45 @@ describe('OnlineGame game_over handling', () => {
                 }
             })
             expect(game.useCascadeGravity).toBe(true)
+        })
+    })
+
+    describe('Increase Gravity Settings (Host Priority)', () => {
+        it('should default to increaseGravity = true', () => {
+            expect(game.increaseGravity).toBe(true)
+        })
+
+        it('should sync increaseGravity from host settings via room_status', () => {
+            // Guest starts with default (true)
+            expect(game.increaseGravity).toBe(true)
+
+            // Host has set increaseGravity to false
+            triggerEvent('room_status', {
+                hasHost: true,
+                hostSettings: {
+                    attackMode: 'garbage',
+                    increaseGravity: false
+                }
+            })
+
+            // Guest should sync to host's setting
+            expect(game.increaseGravity).toBe(false)
+        })
+
+        it('should keep local increaseGravity if host does not specify (backwards compatibility)', () => {
+            game.increaseGravity = false // Guest sets to false
+
+            // Host settings don't include increaseGravity
+            triggerEvent('room_status', {
+                hasHost: true,
+                hostSettings: {
+                    attackMode: 'lines'
+                    // No increaseGravity field
+                }
+            })
+
+            // Guest should keep their own setting
+            expect(game.increaseGravity).toBe(false)
         })
     })
 })

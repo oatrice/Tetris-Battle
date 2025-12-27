@@ -4,10 +4,10 @@
        @touchmove="handleTouchMove" 
        @touchend="handleTouchEnd">
     <!-- Name Input Overlay -->
-    <div v-if="showNameInput" class="name-overlay">
+    <div v-if="showNameInput" class="name-overlay" @touchstart.stop @touchmove.stop @touchend.stop @mousedown.stop @click.stop>
         <div class="name-box">
             <h2>Enter Your Name</h2>
-            <input v-model="playerName" @keyup.enter="joinGame" placeholder="Display Name..." maxlength="10" />
+            <input v-model="playerName" @keyup.enter="joinGame" placeholder="Display Name..." maxlength="10" autofocus />
             
             <!-- LAN Settings -->
             <div v-if="mode === 'lan'" class="lan-settings">
@@ -61,7 +61,7 @@
             </div>
             
             <div class="btn-group">
-                <button @click="joinGame" class="join-btn" :disabled="!playerName">Join Game</button>
+                <button @click="joinGame" class="join-btn">Join Game</button>
                 <button @click="emit('back')" class="cancel-btn">Cancel</button>
             </div>
         </div>
@@ -264,7 +264,10 @@ watch(() => props.onlineGame.isGameOver, (newVal) => {
 })
 
 const joinGame = () => {
-    if (!playerName.value.trim()) return
+    if (!playerName.value.trim()) {
+        alert('Please enter your name!')
+        return
+    }
     props.onlineGame.joinGame(playerName.value.trim())
     showNameInput.value = false
 }

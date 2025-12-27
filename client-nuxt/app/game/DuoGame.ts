@@ -22,6 +22,15 @@ export class DuoGame {
         this.isPaused = false
     }
 
+    get increaseGravity(): boolean {
+        return this.player1.increaseGravity
+    }
+
+    set increaseGravity(value: boolean) {
+        this.player1.increaseGravity = value
+        this.player2.increaseGravity = value
+    }
+
     // ============ Player 1 Controls ============
     p1MoveLeft(): void {
         if (!this.isPaused && !this.player1.isGameOver) {
@@ -117,11 +126,11 @@ export class DuoGame {
     }
 
     // ============ Game Loop ============
-    tick(): void {
+    update(deltaTime: number): void {
         if (this.isPaused || this.winner !== null) return
 
-        this.player1.moveDown()
-        this.player2.moveDown()
+        this.player1.update(deltaTime)
+        this.player2.update(deltaTime)
 
         this.checkWinCondition()
     }

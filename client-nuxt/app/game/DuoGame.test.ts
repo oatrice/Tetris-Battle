@@ -111,7 +111,7 @@ describe('DuoGame', () => {
             const initialY1 = duoGame.player1.currentPiece.y
             const initialY2 = duoGame.player2.currentPiece.y
 
-            duoGame.tick()
+            duoGame.update(1100)
 
             expect(duoGame.player1.currentPiece.y).toBe(initialY1 + 1)
             expect(duoGame.player2.currentPiece.y).toBe(initialY2 + 1)
@@ -121,7 +121,7 @@ describe('DuoGame', () => {
             duoGame.togglePause()
             const initialY1 = duoGame.player1.currentPiece.y
 
-            duoGame.tick()
+            duoGame.update(1100)
 
             expect(duoGame.player1.currentPiece.y).toBe(initialY1)
         })
@@ -244,7 +244,7 @@ describe('DuoGame', () => {
             // Winner should still be able to move until explicitly locked
             // But game tick should not continue
             const initialY = duoGame.player2.currentPiece.y
-            duoGame.tick()
+            duoGame.update(1100)
 
             // Tick should not progress (winner declared)
             expect(duoGame.player2.currentPiece.y).toBe(initialY)
@@ -311,14 +311,14 @@ describe('DuoGame', () => {
 
             // Pause
             duoGame.togglePause()
-            duoGame.tick() // Should do nothing
+            duoGame.update(1100) // Should do nothing
 
             expect(duoGame.player1.currentPiece.y).toBe(initialY1)
             expect(duoGame.player2.currentPiece.y).toBe(initialY2)
 
             // Unpause
             duoGame.togglePause()
-            duoGame.tick() // Should work now
+            duoGame.update(1100) // Should work now
 
             expect(duoGame.player1.currentPiece.y).toBe(initialY1 + 1)
             expect(duoGame.player2.currentPiece.y).toBe(initialY2 + 1)

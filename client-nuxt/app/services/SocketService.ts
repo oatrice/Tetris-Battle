@@ -8,7 +8,7 @@ export class SocketService {
 
     constructor() { }
 
-    connect(url: string): Promise<void> {
+    connect(url: string, timeoutMs: number = 5000): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
                 resolve()
@@ -17,18 +17,29 @@ export class SocketService {
 
             this.socket = new WebSocket(url)
 
+            // Timeout logic
+            const timer = setTimeout(() => {
+                if (this.socket && this.socket.readyState !== WebSocket.OPEN) {
+                    this.socket.close() // Cancel the connection attempt
+                    reject(new Error(`Connection timed out after ${timeoutMs}ms`))
+                }
+            }, timeoutMs)
+
             this.socket.onopen = () => {
+                clearTimeout(timer)
                 console.log('WS Connected')
                 this.isConnected = true
                 resolve()
             }
 
             this.socket.onerror = (err) => {
+                clearTimeout(timer)
                 console.error('WS Error', err)
                 reject(err)
             }
 
             this.socket.onclose = () => {
+                clearTimeout(timer) // Ensure timer is cleared on close (e.g. immediate close)
                 console.log('WS Disconnected')
                 this.isConnected = false
                 this.emit('disconnected', null)
@@ -37,6 +48,7 @@ export class SocketService {
             this.socket.onmessage = (event) => {
                 try {
                     const msg = JSON.parse(event.data)
+                    // console.log('[WS] Received:', msg.type) // Debug log
                     this.handleMessage(msg)
                 } catch (e) {
                     console.error('Failed to parse WS msg', e)
@@ -87,6 +99,10 @@ export class SocketService {
             this.socket.close()
             this.socket = null
         }
+    }
+
+    removeAllListeners() {
+        this.listeners.clear()
     }
 }
 
