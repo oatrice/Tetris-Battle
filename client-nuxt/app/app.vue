@@ -97,39 +97,47 @@ const lanError = ref('')
 let animationId: number | null = null
 let lastUpdate = 0
 const startSolo = () => {
+  console.log('[App] Starting Solo Mode')
   gameMode.value = 'solo'
   soloGame.value = reactive(new Game()) as any
   startGameLoop()
 }
 
 const startSpecial = () => {
+  console.log('[App] Starting Special Mode')
   gameMode.value = 'special'
   soloGame.value = reactive(new SpecialGame()) as any
   startGameLoop()
 }
 
 const startDuo = () => {
+  console.log('[App] Starting Duo Mode')
   gameMode.value = 'duo'
   duoGame.value = new DuoGame()
   startGameLoop()
 }
 
 const startOnline = () => {
+    console.log('[App] Starting Online Mode')
     gameMode.value = 'online'
     const game = reactive(new OnlineGame()) as any
     // Auto-connect to default/prod server
     const url = config.public.wsUrl || 'wss://tetris-server.fly.dev'
+    console.log('[App] Connecting to:', url)
+    
     game.init(url).then(() => {
+        console.log('[App] Online connected')
         onlineGame.value = game
         startGameLoop()
     }).catch((err: any) => {
-        console.error('Online init failed', err)
+        console.error('[App] Online init failed', err)
         alert('Could not connect to online server')
         gameMode.value = null
     })
 }
 
 const startLAN = () => {
+  console.log('[App] Starting LAN Mode')
   gameMode.value = 'lan'
   onlineGame.value = null // Reset until user connects
   lanError.value = ''
