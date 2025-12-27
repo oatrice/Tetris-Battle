@@ -362,7 +362,7 @@ func SetLogger(l Logger) {
 
 // GetVersion returns the current version of the Go library
 func GetVersion() string {
-	return "lib-v1.1.6"
+	return "lib-v1.1.7"
 }
 
 // androidWriter adapts Logger to io.Writer for standard log package
