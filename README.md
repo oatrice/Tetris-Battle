@@ -1,8 +1,13 @@
 # Tetris Battle
 
-![Version](https://img.shields.io/badge/version-3.2.1-blue)
+<!-- Version Badges -->
+![Frontend](https://img.shields.io/badge/Frontend-v3.13.0-00DC82?logo=nuxt.js&logoColor=white)
+![Android Server](https://img.shields.io/badge/Android_Server-v1.1.7-3DDC84?logo=android&logoColor=white)
+
+<!-- Tech Stack Badges -->
 ![Nuxt](https://img.shields.io/badge/Nuxt-4.x-00DC82?logo=nuxt.js)
 ![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js)
+![Go](https://img.shields.io/badge/Go-1.21-00ADD8?logo=go&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![PWA](https://img.shields.io/badge/PWA-ready-5A0FC8?logo=pwa)
