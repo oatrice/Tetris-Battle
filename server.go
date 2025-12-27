@@ -467,7 +467,12 @@ func NewServerHandler() http.Handler {
 	// Version Endpoint
 	mux.HandleFunc("/debug/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
-		w.Header().Set("Access-Control-Allow-Origin", "*") // Helpful for dev
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Private-Network", "true") // Crucial for Local Network Access
+		if r.Method == "OPTIONS" {
+			return
+		}
 		w.Write([]byte(GetVersion()))
 	})
 

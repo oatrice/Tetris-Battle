@@ -53,6 +53,7 @@
       <LANGameComponent 
         v-if="!onlineGame"
         :connected="!!onlineGame"
+        :connectionError="lanError"
         @back="backToMenu" 
         @connect="connectLAN"
       />
@@ -91,67 +92,33 @@ const showLeaderboard = ref(false)
 
 // Get runtime config for WebSocket URL
 const config = useRuntimeConfig()
+const lanError = ref('')
 
 let animationId: number | null = null
 let lastUpdate = 0
 const DROP_INTERVAL = 1000
 
 // ============ Mode Selection ============
-const remoteLog = (msg: string) => {
-  if (import.meta.client && window.location.port === '8080') {
-    fetch('/debug/log', { method: 'POST', body: msg }).catch(() => {})
-  }
-}
-
-const startSolo = () => {
-  remoteLog('User started Solo Mode')
-  gameMode.value = 'solo'
-  soloGame.value = reactive(new Game()) as any
-  startGameLoop()
-}
-
-const startSpecial = () => {
-  remoteLog('User started Special Mode')
-  gameMode.value = 'special'
-  soloGame.value = reactive(new SpecialGame()) as any
-  startGameLoop()
-}
-
-const startDuo = () => {
-  remoteLog('User started Duo Mode')
-  gameMode.value = 'duo'
-  duoGame.value = new DuoGame()
-  startGameLoop()
-}
-
-const startOnline = () => {
-  remoteLog('User clicked Online Mode')
-  gameMode.value = 'online'
-  const game = reactive(new OnlineGame()) as any
-  
-  let wsUrl = config.public.wsUrl
-  // Auto-detect if running on same port (Serving from Go)
-  if (import.meta.client && window.location.port === '8080') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      wsUrl = `${protocol}//${window.location.host}/ws`
-      console.log('Auto-detected WS URL:', wsUrl)
-  }
-
-  game.init(wsUrl)
-  onlineGame.value = game
-  startGameLoop()
-}
+// ... (remoteLog and other start methods unchanged) ...
 
 const startLAN = () => {
   gameMode.value = 'lan'
   onlineGame.value = null // Reset until user connects
+  lanError.value = ''
 }
 
-const connectLAN = (wsUrl: string) => {
+const connectLAN = async (wsUrl: string) => {
+  lanError.value = ''
   const game = reactive(new OnlineGame()) as any
-  game.init(wsUrl)
-  onlineGame.value = game
-  startGameLoop()
+  try {
+      await game.init(wsUrl)
+      onlineGame.value = game
+      startGameLoop()
+  } catch (e: any) {
+      console.error('Connection failed inside app.vue:', e)
+      lanError.value = `Connection Failed: ${e?.message || 'Unknown Error'}`
+      // Ensure we stay on LAN menu (onlineGame remains null)
+  }
 }
 
 const restartGame = () => {

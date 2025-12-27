@@ -60,8 +60,8 @@ export class OnlineGame extends Game {
     }
 
     // Public init method to be called AFTER reactive() wrapping
-    public init(wsUrl: string) {
-        this.initSocket(wsUrl)
+    public async init(wsUrl: string) {
+        return this.initSocket(wsUrl)
     }
 
     private startDurationTimer() {
@@ -81,12 +81,11 @@ export class OnlineGame extends Game {
     }
 
     private initSocket(wsUrl: string) {
-        socketService.connect(wsUrl).then(() => {
-            console.log('OnlineGame connected to socket:', wsUrl)
-        }).catch(err => {
-            console.error('OnlineGame connection failed', err)
-        })
+        // Register listeners BEFORE connecting to ensure we don't miss immediate events (like room_status)
+        // Check if we should clear listeners first? Ideally yes, but removeAllListeners in cleanup handles it for re-runs.
+        // But OnlineGame is usually one-shot.
 
+        // Listener registration (moved up)
         socketService.on('game_start', (payload: any) => {
             console.log('Game Started vs', payload.opponentName, 'MatchID:', payload.matchId)
             this.opponentId = payload.opponentId
@@ -209,6 +208,14 @@ export class OnlineGame extends Game {
                 this.isPaused = true  // Pause to show win message
                 this.winScore = this.score  // Record score at win time
             }
+        })
+
+        // Finally connect
+        return socketService.connect(wsUrl).then(() => {
+            console.log('OnlineGame connected to socket:', wsUrl)
+        }).catch(err => {
+            console.error('OnlineGame connection failed', err)
+            throw err // Propagate error
         })
     }
 
@@ -467,6 +474,7 @@ export class OnlineGame extends Game {
 
     cleanup() {
         socketService.disconnect()
+        socketService.removeAllListeners()
         if (this.timer) clearInterval(this.timer)
         this.stopDurationTimer()
     }
