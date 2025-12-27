@@ -92,8 +92,14 @@
                 </div>
                 <div class="online-result">
                     <!-- Result Badge -->
-                    <div class="result-badge" :class="match.isWinner ? 'win' : 'lose'">
-                        {{ match.isWinner ? '🏆 WIN' : '❌ LOSE' }}
+                    <div v-if="match.isDraw" class="result-badge draw">
+                        🤝 DRAW
+                    </div>
+                    <div v-else-if="match.isWinner" class="result-badge win">
+                        🏆 WIN
+                    </div>
+                    <div v-else class="result-badge lose">
+                        ❌ LOSE
                     </div>
                     
                     <!-- Player -->
@@ -420,6 +426,12 @@ h2 {
     background: rgba(255, 107, 107, 0.2);
     color: #ff6b6b;
     border: 1px solid rgba(255, 107, 107, 0.4);
+}
+
+.result-badge.draw {
+    background: rgba(0, 212, 255, 0.2);
+    color: #00d4ff;
+    border: 1px solid rgba(0, 212, 255, 0.4);
 }
 
 .online-player {
