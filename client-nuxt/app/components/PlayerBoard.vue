@@ -43,10 +43,12 @@ const props = withDefaults(defineProps<{
   game: Game
   showHold?: boolean
   showNext?: boolean
+  showGhost?: boolean
   playerColor?: string
 }>(), {
   showHold: true,
   showNext: true,
+  showGhost: true,
   playerColor: '#333'
 })
 
@@ -92,11 +94,13 @@ const renderGame = () => {
     }
   }
 
-  // Ghost
-  const ghost = props.game.getGhostPiece()
-  ctx.globalAlpha = 0.25
-  ghost.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
-  ctx.globalAlpha = 1.0
+  // Ghost (only if enabled)
+  if (props.showGhost) {
+    const ghost = props.game.getGhostPiece()
+    ctx.globalAlpha = 0.25
+    ghost.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))
+    ctx.globalAlpha = 1.0
+  }
 
   // Current piece
   props.game.currentPiece.getBlocks().forEach(b => drawBlock(ctx, b.x, b.y, props.game.currentPiece.color))

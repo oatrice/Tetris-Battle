@@ -22,6 +22,7 @@ vi.mock('~/services/SocketService', () => ({
 
 // Import after mock
 import { OnlineGame } from './OnlineGame'
+import { EffectType } from './EffectSystem'
 
 // Helper to trigger mock events
 const triggerEvent = (event: string, payload?: any) => {
@@ -42,6 +43,42 @@ describe('OnlineGame game_over handling', () => {
         vi.clearAllMocks()
     })
 
+    describe('Host/Guest Role', () => {
+        it('should default to being host (isHost = true)', () => {
+            expect(game.isHost).toBe(true)
+        })
+
+        it('should become guest when room_status indicates host exists', () => {
+            triggerEvent('room_status', {
+                hasHost: true,
+                hostSettings: {
+                    attackMode: 'lines',
+                    showGhostPiece: false
+                }
+            })
+
+            expect(game.isHost).toBe(false)
+            expect(game.attackMode).toBe('lines')
+            expect(game.showGhostPiece).toBe(false)
+        })
+
+        it('should remain host when room_status has no host', () => {
+            triggerEvent('room_status', {
+                hasHost: false
+            })
+
+            expect(game.isHost).toBe(true)
+        })
+
+        it('should confirm host role when receiving waiting_for_opponent', () => {
+            game.isHost = false // Reset to test
+
+            triggerEvent('waiting_for_opponent')
+
+            expect(game.isHost).toBe(true)
+        })
+    })
+
     describe('receiving game_start event', () => {
         it('should extraction matchId from payload', () => {
             triggerEvent('game_start', {
@@ -51,6 +88,35 @@ describe('OnlineGame game_over handling', () => {
             })
             expect(game.matchId).toBe('room-12345')
             expect(game.opponentId).toBe('op1')
+        })
+
+        it('should sync attackMode from server payload', () => {
+            // Player set local attackMode to 'lines'
+            game.attackMode = 'lines'
+
+            // Server responds with synced attackMode (from host)
+            triggerEvent('game_start', {
+                opponentId: 'op1',
+                opponentName: 'Opponent',
+                matchId: 'room-12345',
+                attackMode: 'garbage' // Server overrides with host's setting
+            })
+
+            // Local attackMode should be synced to server's value
+            expect(game.attackMode).toBe('garbage')
+        })
+
+        it('should keep local attackMode if server does not provide one', () => {
+            game.attackMode = 'lines'
+
+            triggerEvent('game_start', {
+                opponentId: 'op1',
+                opponentName: 'Opponent',
+                matchId: 'room-12345'
+                // No attackMode in payload (backwards compatibility)
+            })
+
+            expect(game.attackMode).toBe('lines')
         })
     })
 
@@ -121,6 +187,48 @@ describe('OnlineGame game_over handling', () => {
         it('should allow changing attack mode', () => {
             game.attackMode = 'lines'
             expect(game.attackMode).toBe('lines')
+        })
+    })
+
+    describe('Ghost Piece Toggle', () => {
+        it('should show ghost piece by default', () => {
+            expect(game.showGhostPiece).toBe(true)
+        })
+
+        it('should allow toggling ghost piece visibility', () => {
+            game.showGhostPiece = false
+            expect(game.showGhostPiece).toBe(false)
+        })
+
+        it('should have toggleGhostPiece method', () => {
+            expect(typeof game.toggleGhostPiece).toBe('function')
+        })
+
+        it('should toggle ghost piece visibility when toggleGhostPiece is called', () => {
+            expect(game.showGhostPiece).toBe(true)
+            game.toggleGhostPiece()
+            expect(game.showGhostPiece).toBe(false)
+            game.toggleGhostPiece()
+            expect(game.showGhostPiece).toBe(true)
+        })
+    })
+
+    describe('Effect Type Settings', () => {
+        it('should default to explosion effect', () => {
+            expect(game.effectType).toBe(EffectType.EXPLOSION)
+        })
+
+        it('should allow changing effect type', () => {
+            game.effectType = EffectType.SPARKLE
+            expect(game.effectType).toBe(EffectType.SPARKLE)
+        })
+
+        it('should accept all valid effect types', () => {
+            const validTypes = [EffectType.EXPLOSION, EffectType.SPARKLE, EffectType.WAVE, EffectType.SHATTER, EffectType.CLASSIC]
+            validTypes.forEach(type => {
+                game.effectType = type
+                expect(game.effectType).toBe(type)
+            })
         })
     })
 })

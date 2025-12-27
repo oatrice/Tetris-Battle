@@ -3,6 +3,7 @@
  */
 import { Game } from './Game'
 import { socketService } from '~/services/SocketService'
+import { EffectType } from './EffectSystem'
 
 export class OnlineGame extends Game {
     isOpponentConnected = false
@@ -25,8 +26,11 @@ export class OnlineGame extends Game {
     gameDuration = 0 // Seconds
     private durationInterval: any = null
 
-    // Game Settings
+    // Game Settings (LAN)
     attackMode: 'lines' | 'garbage' = 'garbage' // Default to garbage
+    showGhostPiece = true // Toggle ghost piece visibility
+    effectType: EffectType = EffectType.EXPLOSION // Visual effect type
+    isHost = true // True = can edit settings, False = read-only (set by room_status)
 
     constructor() {
         super()
@@ -67,6 +71,16 @@ export class OnlineGame extends Game {
             this.opponentId = payload.opponentId
             this.opponentName = payload.opponentName
             this.matchId = payload.matchId
+
+            // Sync attack mode from server (use host's setting)
+            if (payload.attackMode) {
+                const previousMode = this.attackMode
+                this.attackMode = payload.attackMode
+                console.log(`[CONFIG] AttackMode synced: ${previousMode} -> ${payload.attackMode} (isHost: ${this.isHost})`)
+            }
+
+            console.log(`[GAME START] Role: ${this.isHost ? 'HOST' : 'GUEST'}, AttackMode: ${this.attackMode}, Ghost: ${this.showGhostPiece}, Effect: ${this.effectType}`)
+
             this.isOpponentConnected = true
             this.reset()
             this.startCountdown()
@@ -102,7 +116,37 @@ export class OnlineGame extends Game {
         })
 
         socketService.on('waiting_for_opponent', () => {
-            console.log('Waiting for opponent...')
+            console.log('Waiting for opponent... (You are the host)')
+            this.isHost = true // Confirm host role
+        })
+
+        socketService.on('room_status', (payload: any) => {
+            console.log('[ROOM_STATUS] Received:', payload)
+
+            if (payload.hasHost) {
+                // Someone is already waiting - we are guest
+                console.log('[ROOM_STATUS] Host found, becoming GUEST')
+                this.isHost = false
+
+                if (payload.hostSettings) {
+                    console.log('[ROOM_STATUS] Syncing host settings:', payload.hostSettings)
+                    if (payload.hostSettings.attackMode) {
+                        this.attackMode = payload.hostSettings.attackMode
+                    }
+                    if (payload.hostSettings.showGhostPiece !== undefined) {
+                        this.showGhostPiece = payload.hostSettings.showGhostPiece
+                    }
+                    if (payload.hostSettings.effectType) {
+                        this.effectType = payload.hostSettings.effectType
+                    }
+                }
+            } else {
+                // No host waiting - we will be host
+                console.log('[ROOM_STATUS] No host, becoming HOST')
+                this.isHost = true
+            }
+
+            console.log('[ROOM_STATUS] Final isHost:', this.isHost)
         })
 
         socketService.on('pause', () => {
@@ -145,7 +189,18 @@ export class OnlineGame extends Game {
     }
 
     joinGame(name: string) {
-        socketService.send('join_game', { name })
+        console.log(`[JOIN] Joining as "${name}" with settings:`, {
+            attackMode: this.attackMode,
+            showGhostPiece: this.showGhostPiece,
+            effectType: this.effectType,
+            isHost: this.isHost
+        })
+        socketService.send('join_game', {
+            name,
+            attackMode: this.attackMode,
+            showGhostPiece: this.showGhostPiece,
+            effectType: this.effectType
+        })
     }
 
     override togglePause() {
@@ -153,6 +208,10 @@ export class OnlineGame extends Game {
         const event = this.isPaused ? 'pause' : 'resume'
         console.log(`Sending ${event} signal`)
         socketService.send(event)
+    }
+
+    toggleGhostPiece() {
+        this.showGhostPiece = !this.showGhostPiece
     }
 
     // Continue playing solo after winning (for high score)
