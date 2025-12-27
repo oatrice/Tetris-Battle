@@ -29,12 +29,13 @@
               type="text" 
               placeholder="localhost"
             />
+            <button v-if="serverIP" @click="serverIP = ''" class="clear-btn" title="Clear">✕</button>
             <span class="port-label">:8080</span>
             <button @click="copyIP" class="copy-btn" title="Copy">📋</button>
           </div>
           <div class="ip-presets">
             <button @click="serverIP = 'localhost'" :class="{ active: serverIP === 'localhost' }" class="preset-btn">💻 PC</button>
-            <button @click="serverIP = '192.168.43.1'" :class="{ active: serverIP === '192.168.43.1' }" class="preset-btn">📱 Hotspot</button>
+            <button @click="serverIP = '192.168.'" :class="{ active: serverIP === '192.168.' }" class="preset-btn">🌐 192.168...</button>
           </div>
           
           <p>3. กด Join เมื่อ Server พร้อม:</p>
@@ -58,7 +59,13 @@
               placeholder="192.168.x.x" 
               @keyup.enter="connectToLAN"
             />
+            <button v-if="serverIP" @click="serverIP = ''" class="clear-btn" title="Clear">✕</button>
             <span class="port-label">:8080</span>
+          </div>
+          <div class="ip-presets">
+             <button @click="serverIP = 'localhost'" :class="{ active: serverIP === 'localhost' }" class="preset-btn">💻 Localhost</button>
+             <button @click="serverIP = '192.168.'" :class="{ active: serverIP === '192.168.' }" class="preset-btn">🌐 192.168...</button>
+             <button @click="serverIP = getBrowserHostname()" class="preset-btn">🔗 Browser IP</button>
           </div>
           
           <button @click="connectToLAN" class="start-btn" :disabled="!serverIP || connecting">
@@ -106,6 +113,10 @@ const showHostInstructions = () => {
 
 const copyIP = () => {
   navigator.clipboard.writeText(`${serverIP.value}:8080`)
+}
+
+const getBrowserHostname = () => {
+    return window.location.hostname
 }
 
 const connectToLAN = () => {
@@ -248,6 +259,20 @@ const connectToLAN = () => {
   padding: 0.3rem 0.5rem;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.clear-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 0.5rem;
+    font-size: 1.2rem;
+}
+
+.clear-btn:hover {
+    color: #ff6b6b;
 }
 
 .ip-presets {

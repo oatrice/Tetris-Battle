@@ -386,8 +386,8 @@ h1 {
 }
 
 .mode-btn.duo {
-  background: linear-gradient(135deg, #43e97b, #38f9d7);
-  color: #1a1a2e;
+  background: linear-gradient(135deg, #ff9966, #ff5e62);
+  color: white;
 }
 
 .mode-btn.online {
