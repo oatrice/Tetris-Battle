@@ -162,6 +162,10 @@ export class OnlineGame extends Game {
                     if (payload.hostSettings.useCascadeGravity !== undefined) {
                         this.useCascadeGravity = payload.hostSettings.useCascadeGravity
                     }
+                    if (payload.hostSettings.increaseGravity !== undefined) {
+                        console.log('[ROOM_STATUS] Syncing increaseGravity:', payload.hostSettings.increaseGravity)
+                        this.increaseGravity = payload.hostSettings.increaseGravity
+                    }
                 }
             } else {
                 // No host waiting - we will be host
@@ -232,7 +236,8 @@ export class OnlineGame extends Game {
             attackMode: this.attackMode,
             showGhostPiece: this.showGhostPiece,
             effectType: this.effectType,
-            useCascadeGravity: this.useCascadeGravity
+            useCascadeGravity: this.useCascadeGravity,
+            increaseGravity: this.increaseGravity
         })
     }
 

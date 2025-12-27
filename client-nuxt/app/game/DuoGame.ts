@@ -22,6 +22,15 @@ export class DuoGame {
         this.isPaused = false
     }
 
+    get increaseGravity(): boolean {
+        return this.player1.increaseGravity
+    }
+
+    set increaseGravity(value: boolean) {
+        this.player1.increaseGravity = value
+        this.player2.increaseGravity = value
+    }
+
     // ============ Player 1 Controls ============
     p1MoveLeft(): void {
         if (!this.isPaused && !this.player1.isGameOver) {

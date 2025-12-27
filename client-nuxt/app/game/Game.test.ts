@@ -58,6 +58,17 @@ describe('Game', () => {
             const maxSpeed = game.getDropInterval()
             expect(maxSpeed).toBeGreaterThan(0)
         })
+
+        it('should maintain constant speed when increaseGravity is false', () => {
+            game.increaseGravity = false
+            game.level = 10
+
+            // @ts-ignore
+            const speedLevel10 = game.getDropInterval()
+            // @ts-ignore
+            // Should equal level 1 speed (1000ms)
+            expect(speedLevel10).toBe(1000)
+        })
     })
 
     describe('moveLeft', () => {

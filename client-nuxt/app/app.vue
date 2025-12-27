@@ -12,6 +12,14 @@
         <button @click="startLAN" class="mode-btn lan">📡 LAN</button>
         <button @click="showLeaderboard = true" class="mode-btn leaderboard">🏆 Leaderboard</button>
       </div>
+      
+      <!-- Gravity Toggle -->
+      <div class="gravity-toggle">
+        <label>
+            <input type="checkbox" v-model="increaseSpeed">
+            Increase Speed on Level Up
+        </label>
+      </div>
     </div>
     
     <!-- Leaderboard Modal -->
@@ -96,24 +104,32 @@ const lanError = ref('')
 
 let animationId: number | null = null
 let lastUpdate = 0
+const increaseSpeed = ref(true)
+
 const startSolo = () => {
   console.log('[App] Starting Solo Mode')
   gameMode.value = 'solo'
-  soloGame.value = reactive(new Game()) as any
+  const game = new Game()
+  game.increaseGravity = increaseSpeed.value
+  soloGame.value = reactive(game) as any
   startGameLoop()
 }
 
 const startSpecial = () => {
   console.log('[App] Starting Special Mode')
   gameMode.value = 'special'
-  soloGame.value = reactive(new SpecialGame()) as any
+  const game = new SpecialGame()
+  game.increaseGravity = increaseSpeed.value
+  soloGame.value = reactive(game) as any
   startGameLoop()
 }
 
 const startDuo = () => {
   console.log('[App] Starting Duo Mode')
   gameMode.value = 'duo'
-  duoGame.value = new DuoGame()
+  const game = new DuoGame()
+  game.increaseGravity = increaseSpeed.value
+  duoGame.value = game
   startGameLoop()
 }
 
@@ -121,6 +137,7 @@ const startOnline = () => {
     console.log('[App] Starting Online Mode')
     gameMode.value = 'online'
     const game = reactive(new OnlineGame()) as any
+    game.increaseGravity = increaseSpeed.value
     // Auto-connect to default/prod server
     const url = config.public.wsUrl || 'wss://tetris-server.fly.dev'
     console.log('[App] Connecting to:', url)
@@ -146,6 +163,7 @@ const startLAN = () => {
 const connectLAN = async (wsUrl: string) => {
   lanError.value = ''
   const game = reactive(new OnlineGame()) as any
+  game.increaseGravity = increaseSpeed.value
   try {
       await game.init(wsUrl)
       onlineGame.value = game
@@ -410,6 +428,27 @@ h1 {
 .game-area {
   display: flex;
   justify-content: center;
+}
+
+/* Gravity Toggle */
+.gravity-toggle {
+  margin-top: 2rem;
+  color: #00d4ff;
+  font-size: 1.2rem;
+}
+
+.gravity-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  justify-content: center;
+}
+
+.gravity-toggle input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  cursor: pointer;
 }
 
 @media (max-width: 600px) {

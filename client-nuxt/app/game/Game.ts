@@ -32,6 +32,7 @@ export class Game {
     protected pieceQueue: TetrominoType[]
     protected holdUsedThisTurn: boolean
     protected dropTimer: number = 0
+    public increaseGravity: boolean = true
 
     constructor() {
         this.board = new Board()
@@ -297,6 +298,7 @@ export class Game {
      * Minimum speed caps at 100ms
      */
     getDropInterval(): number {
+        if (!this.increaseGravity) return 1000
         const interval = 1000 * Math.pow(0.9, this.level - 1)
         return Math.max(100, Math.floor(interval))
     }
