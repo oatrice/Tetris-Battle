@@ -1,25 +1,28 @@
 <template>
-  <div class="duo-area"
-       @touchstart="handleTouchStart" 
-       @touchmove="handleTouchMove" 
-       @touchend="handleTouchEnd">
+  <div class="duo-area">
     <!-- Player 1 Board -->
-    <div class="player-section">
-      <div class="player-header p1">
-        <span class="player-label">P1</span>
-        <span class="controls-hint">WASD + Q/E</span>
-      </div>
-      <PlayerBoard 
-        :game="duoGame.player1" 
-        :showHold="true" 
-        :showNext="true"
-        playerColor="#00d4ff"
-      />
-      <div class="player-stats">
-        <span class="score">{{ duoGame.player1.score }}</span>
-        <span>L{{ duoGame.player1.level }} • {{ duoGame.player1.linesCleared }}</span>
-        <div v-if="p1IsHighScore" class="record-badge">🏆 NEW RECORD!</div>
-      </div>
+    <div class="player-touch-wrapper p1-touch-zone"
+         @touchstart="p1Controls.handleTouchStart" 
+         @touchmove="p1Controls.handleTouchMove" 
+         @touchend="p1Controls.handleTouchEnd">
+         
+        <div class="player-section">
+            <div class="player-header p1">
+                <span class="player-label">P1</span>
+                <span class="controls-hint">WASD + Q/E</span>
+            </div>
+            <PlayerBoard 
+                :game="duoGame.player1" 
+                :showHold="true" 
+                :showNext="true"
+                playerColor="#00d4ff"
+            />
+            <div class="player-stats">
+                <span class="score">{{ duoGame.player1.score }}</span>
+                <span>L{{ duoGame.player1.level }} • {{ duoGame.player1.linesCleared }}</span>
+                <div v-if="p1IsHighScore" class="record-badge">🏆 NEW RECORD!</div>
+            </div>
+        </div>
     </div>
 
     <!-- VS -->
@@ -71,22 +74,28 @@
     </div>
 
     <!-- Player 2 Board -->
-    <div class="player-section">
-      <div class="player-header p2">
-        <span class="player-label">P2</span>
-        <span class="controls-hint">←→↓↑ + ,/.</span>
-      </div>
-      <PlayerBoard 
-        :game="duoGame.player2" 
-        :showHold="true" 
-        :showNext="true"
-        playerColor="#ff6b6b"
-      />
-      <div class="player-stats">
-        <span class="score">{{ duoGame.player2.score }}</span>
-        <span>L{{ duoGame.player2.level }} • {{ duoGame.player2.linesCleared }}</span>
-        <div v-if="p2IsHighScore" class="record-badge">NEW HIGH SCORE!</div>
-      </div>
+    <div class="player-touch-wrapper p2-touch-zone"
+         @touchstart="p2Controls.handleTouchStart" 
+         @touchmove="p2Controls.handleTouchMove" 
+         @touchend="p2Controls.handleTouchEnd">
+         
+        <div class="player-section">
+            <div class="player-header p2">
+                <span class="player-label">P2</span>
+                <span class="controls-hint">←→↓↑ + ,/.</span>
+            </div>
+            <PlayerBoard 
+                :game="duoGame.player2" 
+                :showHold="true" 
+                :showNext="true"
+                playerColor="#ff6b6b"
+            />
+            <div class="player-stats">
+                <span class="score">{{ duoGame.player2.score }}</span>
+                <span>L{{ duoGame.player2.level }} • {{ duoGame.player2.linesCleared }}</span>
+                <div v-if="p2IsHighScore" class="record-badge">NEW HIGH SCORE!</div>
+            </div>
+        </div>
     </div>
   </div>
 </template>
@@ -106,11 +115,10 @@ const props = defineProps<{
 
 const emit = defineEmits(['restart', 'back', 'show-leaderboard'])
 
-// ============ Mobile Touch Controls for P1 ============
-const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchControls(
+const p1Controls = useTouchControls(
     () => props.duoGame.player1,
     {
-        checkPause: false, // We check duoGame.isPaused, not player1.isPaused
+        checkPause: false, 
         customAction: (action: GameAction) => {
             if (props.duoGame.isPaused || props.duoGame.winner) return
             
@@ -132,6 +140,40 @@ const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchControls(
                     break
                 case GameAction.HOLD:
                     props.duoGame.p1Hold()
+                    break
+                case GameAction.PAUSE:
+                    props.duoGame.togglePause()
+                    break
+            }
+        }
+    }
+)
+
+const p2Controls = useTouchControls(
+    () => props.duoGame.player2,
+    {
+        checkPause: false,
+        customAction: (action: GameAction) => {
+            if (props.duoGame.isPaused || props.duoGame.winner) return
+            
+            switch (action) {
+                case GameAction.MOVE_LEFT:
+                    props.duoGame.p2MoveLeft()
+                    break
+                case GameAction.MOVE_RIGHT:
+                    props.duoGame.p2MoveRight()
+                    break
+                case GameAction.ROTATE_CW:
+                    props.duoGame.p2Rotate()
+                    break
+                case GameAction.SOFT_DROP:
+                    props.duoGame.p2MoveDown()
+                    break
+                case GameAction.HARD_DROP:
+                    props.duoGame.p2HardDrop()
+                    break
+                case GameAction.HOLD:
+                    props.duoGame.p2Hold()
                     break
                 case GameAction.PAUSE:
                     props.duoGame.togglePause()
@@ -204,12 +246,36 @@ const resetStats = () => {
 </script>
 
 <style scoped>
+/* Main Container - Full Screen */
 .duo-area {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 2rem;
-  padding: 1rem;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 100%;
+  height: 100vh; /* Full viewport height */
+  overflow: hidden; /* Prevent scrolling */
+  position: relative;
+  background: #0d1117; /* Ensure background covers full screen */
+  touch-action: none; /* Disable browser gestures */
+}
+
+/* Touch Zones - Grow to fill space */
+.player-touch-wrapper {
+  flex: 1; /* Take up all available space */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center board vertically */
+  align-items: center;     /* Center board horizontally */
+  height: 100%;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 1; /* Base layer */
+}
+
+/* Visual Feedback for Touch Zones (optional, subtle) */
+.player-touch-wrapper:active {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .player-section {
@@ -217,6 +283,32 @@ const resetStats = () => {
   flex-direction: column;
   gap: 1rem;
   align-items: center;
+  pointer-events: none; /* Clicks pass through to wrapper */
+  z-index: 2; /* Content above background */
+  padding: 1rem; /* Visual padding for the board itself */
+}
+
+/* VS Section - Middle Column */
+.vs-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: 80px; /* Fixed narrow width */
+  z-index: 10; /* Above players */
+  background: rgba(0,0,0,0.2);
+  height: 100%;
+}
+
+.vs-text {
+  font-size: 2rem; /* Smaller to fit narrow column */
+  font-weight: 900;
+  background: linear-gradient(to bottom, #fff, #999);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: italic;
 }
 
 .player-header {
@@ -235,11 +327,19 @@ const resetStats = () => {
 .p2 .player-label { color: #ff6b6b; }
 
 .controls-hint {
-  font-size: 0.8rem;
-  color: #888;
-  background: rgba(0,0,0,0.3);
-  padding: 0.2rem 0.6rem;
-  border-radius: 10px;
+  display: none; /* Hide hints in touch mode to clean up UI? Or keep small? */
+}
+
+/* Show hints only on larger screens or make them small transparent */
+@media (min-width: 1024px) {
+    .controls-hint {
+        display: block;
+        font-size: 0.8rem;
+        color: #888;
+        background: rgba(0,0,0,0.3);
+        padding: 0.2rem 0.6rem;
+        border-radius: 10px;
+    }
 }
 
 .player-stats {
@@ -247,6 +347,8 @@ const resetStats = () => {
   flex-direction: column;
   gap: 0.25rem;
   font-family: monospace;
+  align-items: center;
+  text-align: center;
 }
 
 .score {
@@ -255,121 +357,7 @@ const resetStats = () => {
   color: #ffd700;
 }
 
-.vs-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding-top: 10rem; /* Push down to center between boards visually */
-  position: relative;
-}
-
-.vs-text {
-  font-size: 3rem;
-  font-weight: 900;
-  background: linear-gradient(to bottom, #fff, #999);
-  -webkit-background-clip: text;
-  color: transparent;
-  font-style: italic;
-}
-
-
-/* Stats Section */
-.stats-container {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-    background: rgba(0,0,0,0.4);
-    padding: 0.8rem 1.5rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-
-.stat-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.2rem;
-}
-
-.stat-label {
-    font-size: 0.8rem;
-    color: #888;
-    font-weight: bold;
-    letter-spacing: 1px;
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: 900;
-    line-height: 1;
-}
-
-.p1-wins .stat-value { color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.4); }
-.p2-wins .stat-value { color: #ff6b6b; text-shadow: 0 0 10px rgba(255, 107, 107, 0.4); }
-
-.stat-divider {
-    font-size: 1.5rem;
-    color: #444;
-}
-
-/* Match Save Form */
-.match-save-section {
-    width: 100%;
-    margin-bottom: 1rem;
-}
-
-.save-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    align-items: center;
-}
-
-.player-inputs {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-}
-
-.p1-in { border-bottom: 2px solid #00d4ff; }
-.p2-in { border-bottom: 2px solid #ff6b6b; }
-
-.vs-label {
-    font-weight: bold;
-    color: #888;
-    font-size: 0.9rem;
-}
-
-.save-match-btn {
-    background: #00ff88;
-    color: #1a1a1a;
-    border: none;
-    padding: 0.8rem 2rem;
-    font-size: 1rem;
-    font-weight: bold;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
-    width: 100%;
-}
-
-.save-match-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
-}
-
-.saved-msg {
-    color: #00ff88;
-    font-weight: bold;
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-    animation: bounce 0.5s;
-}
-
+/* Winner Overlay - Centered on screen */
 .winner-overlay {
   position: absolute;
   top: 50%;
@@ -398,42 +386,67 @@ const resetStats = () => {
   animation: bounce 1s infinite alternate;
 }
 
+/* Stats Section in Middle */
+.stats-container {
+    display: flex;
+    flex-direction: column; /* Stack vertically in narrow column */
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    padding: 0;
+    border: none;
+    margin-bottom: 0;
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.stat-label {
+    font-size: 0.6rem;
+    color: #888;
+    font-weight: bold;
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.p1-wins .stat-value { color: #00d4ff; }
+.p2-wins .stat-value { color: #ff6b6b; }
+
+.stat-divider {
+    display: none; /* Hide divider in vertical stack */
+}
+
+.reset-icon {
+    font-size: 1rem;
+    opacity: 0.3;
+}
+
 .pause-text {
-  font-size: 3rem;
+  font-size: 2rem;
   animation: pulse 1s infinite;
-}
-
-.restart-btn {
-  background: linear-gradient(135deg, #00d4ff, #0056b3);
   color: white;
-  border: none;
-  padding: 1rem 2rem;
-  font-size: 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.1s;
-  width: 100%;
-}
-
-.restart-btn:hover {
-  transform: scale(1.05);
 }
 
 .back-btn {
   background: transparent;
-  border: 1px solid #666;
-  color: #aaa;
-  padding: 0.5rem 1rem;
+  border: 1px solid #444;
+  color: #888;
+  padding: 0.4rem 0.8rem;
   border-radius: 6px;
   cursor: pointer;
-  margin-top: 1rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
+/* Animations */
 @keyframes bounce {
   from { transform: scale(1); }
   to { transform: scale(1.1); }
@@ -444,6 +457,39 @@ const resetStats = () => {
   50% { opacity: 0.5; }
   100% { opacity: 1; }
 }
+
+/* Helper for save form - keep it usable */
+.match-save-section {
+    width: 100%;
+}
+.save-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+.player-inputs {
+    justify-content: center;
+}
+.hs-input {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    padding: 0.5rem;
+    color: white;
+    text-align: center;
+    width: 120px;
+}
+.save-match-btn, .restart-btn, .view-leaderboard-btn {
+    padding: 0.8rem;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+}
+.save-match-btn { background: #00ff88; color: black; }
+.restart-btn { background: #00d4ff; color: white; }
+.view-leaderboard-btn { background: #ffd700; color: black; }
 
 .reset-icon {
     background: transparent;

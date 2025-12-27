@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.12.0] - 2025-12-27
+
+### Added
+- **Duo Game Touch Controls**: Introduced new touch controls for the Duo Game component, enhancing the mobile gaming experience.
+
 ## [3.11.0] - 2025-12-27
 
 ### Added
