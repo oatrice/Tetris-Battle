@@ -432,9 +432,17 @@ const connectToLAN = () => {
   gap: 1.5rem;
 }
 
+.lan-menu h2 {
+  color: #38ef7d;
+  font-size: 2rem;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(56, 239, 125, 0.5);
+}
+
 .lan-desc {
-  color: #888;
-  font-size: 0.9rem;
+  color: #b0b0b0;
+  font-size: 1rem;
+  margin-top: -0.5rem;
 }
 
 .lan-buttons {

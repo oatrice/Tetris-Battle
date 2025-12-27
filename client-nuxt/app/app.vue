@@ -13,11 +13,12 @@
         <button @click="showLeaderboard = true" class="mode-btn leaderboard">🏆 Leaderboard</button>
       </div>
       
-      <!-- Gravity Toggle -->
-      <div class="gravity-toggle">
-        <label>
-            <input type="checkbox" v-model="increaseSpeed">
-            Increase Speed on Level Up
+      <!-- Game Options -->
+      <div class="game-options">
+        <label class="toggle-switch">
+          <input type="checkbox" v-model="increaseSpeed">
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">⚡ Speed Increase</span>
         </label>
       </div>
     </div>
@@ -358,6 +359,8 @@ h1 {
 /* Mode Selection */
 .mode-select {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   margin-top: 4rem;
 }
@@ -430,25 +433,75 @@ h1 {
   justify-content: center;
 }
 
-/* Gravity Toggle */
-.gravity-toggle {
-  margin-top: 2rem;
-  color: #00d4ff;
-  font-size: 1.2rem;
+/* Game Options - Toggle Switch */
+.game-options {
+  margin-top: 2.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
-.gravity-toggle label {
+.toggle-switch {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   cursor: pointer;
-  justify-content: center;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
 }
 
-.gravity-toggle input[type="checkbox"] {
-  width: 1.2rem;
-  height: 1.2rem;
-  cursor: pointer;
+.toggle-switch:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(0, 212, 255, 0.4);
+}
+
+.toggle-switch input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 42px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: linear-gradient(135deg, #00d4ff, #0072ff);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(18px);
+}
+
+.toggle-label {
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  user-select: none;
+}
+
+.toggle-switch input:checked ~ .toggle-label {
+  color: #00d4ff;
 }
 
 @media (max-width: 600px) {
