@@ -81,7 +81,17 @@
             :showNext="true"
             :showGhost="onlineGame.showGhostPiece"
             playerColor="#00d4ff"
-          />
+          >
+            <template #under-next>
+                 <div class="mini-opponent-board">
+                    <div class="mini-header">
+                        <span class="mini-label">{{ onlineGame.opponentName || 'OPPONENT' }}</span>
+                        <span class="mini-score">{{ onlineGame.getOpponentScore() }}</span>
+                    </div>
+                    <canvas ref="opponentCanvas" :width="canvasWidth" :height="canvasHeight" class="game-canvas opponent"></canvas>
+                 </div>
+            </template>
+          </PlayerBoard>
           
           <div v-if="isWaiting || (onlineGame.countdown !== null) || onlineGame.isPaused || onlineGame.isGameOver || onlineGame.isDraw" class="board-overlay">
              <div v-if="isWaiting" class="overlay-content">
@@ -159,22 +169,7 @@
      <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
     </div>
 
-    <!-- Remote Player (Opponent) -->
-    <div class="player-section opponent-section">
-      <div class="player-header p2">
-        <span class="player-label">{{ onlineGame.opponentName || 'OPPONENT' }}</span>
-         <div class="opponent-score">{{ onlineGame.getOpponentScore() }}</div>
-      </div>
-      
-      <div class="board-container">
-          <canvas ref="opponentCanvas" :width="canvasWidth" :height="canvasHeight" class="game-canvas opponent"></canvas>
-      </div>
-
-      <div class="player-stats">
-         <!-- We could show opponent lines if we synced them -->
-         <span>Score: {{ onlineGame.getOpponentScore() }}</span>
-      </div>
-    </div>
+    <!-- Remote Player (Opponent) - MOVED INTO PLAYER BOARD -->
   </div>
 </template>
 
@@ -290,7 +285,7 @@ const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchControls(
     }
 )
 
-const CELL_SIZE = 24
+const CELL_SIZE = 10
 const BOARD_WIDTH = 10
 const BOARD_HEIGHT = 20
 const canvasWidth = BOARD_WIDTH * CELL_SIZE
@@ -795,6 +790,36 @@ onUnmounted(() => {
   gap: 0.8rem;
   width: 80%;
   max-width: 250px;
+}
+
+.mini-opponent-board {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.mini-header {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.6rem;
+    color: #888;
+    margin-bottom: 2px;
+}
+
+.mini-label {
+    color: #ff6b6b;
+    font-weight: bold;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mini-score {
+    color: #ffd700;
 }
 
 .game-over-content {

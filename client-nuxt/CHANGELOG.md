@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.11.0] - 2025-12-27
+
+### Added
+- **Opponent Board Minimization**: Added functionality to minimize the opponent's board during online games, providing a cleaner interface and more focus on the player's own board.
+
 ## [3.10.0] - 2025-12-27
 
 ### Added
