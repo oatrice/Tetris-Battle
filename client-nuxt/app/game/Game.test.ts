@@ -1,7 +1,3 @@
-/**
- * 🔴 RED Phase: Game Test
- * Failing tests for Game class - main game state manager
- */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Game } from './Game'
 
@@ -33,6 +29,34 @@ describe('Game', () => {
 
         it('should start as not paused', () => {
             expect(game.isPaused).toBe(false)
+        })
+    })
+
+    describe('Speed & Level', () => {
+        it('should return default drop interval for level 1', () => {
+            expect(game.level).toBe(1)
+            // @ts-ignore - method not implemented yet
+            expect(game.getDropInterval()).toBe(1000)
+        })
+
+        it('should decrease drop interval as level increases', () => {
+            game.level = 2
+            // @ts-ignore
+            const speedLevel2 = game.getDropInterval()
+
+            game.level = 5
+            // @ts-ignore
+            const speedLevel5 = game.getDropInterval()
+
+            expect(speedLevel2).toBeLessThan(1000)
+            expect(speedLevel5).toBeLessThan(speedLevel2)
+        })
+
+        it('should cap minimum speed', () => {
+            game.level = 99
+            // @ts-ignore
+            const maxSpeed = game.getDropInterval()
+            expect(maxSpeed).toBeGreaterThan(0)
         })
     })
 
@@ -320,6 +344,36 @@ describe('Game', () => {
 
             // Piece should still be the same instance (meaning it wasn't locked and replaced)
             expect(game.currentPiece).toBe(initialPiece)
+        })
+    })
+
+    describe('update (Game Loop)', () => {
+        it('should accumulate time and trigger moveDown', () => {
+            const initialY = game.currentPiece.y
+
+            // Advance time by 500ms (less than default 1000ms)
+            // @ts-ignore
+            game.update(500)
+            expect(game.currentPiece.y).toBe(initialY)
+
+            // Advance another 600ms (total 1100ms > 1000ms)
+            // @ts-ignore
+            game.update(600)
+            expect(game.currentPiece.y).toBe(initialY + 1)
+        })
+
+        it('should respect increased speed at higher levels', () => {
+            game.level = 2
+            // @ts-ignore
+            const interval = game.getDropInterval() // e.g. 900ms
+
+            const initialY = game.currentPiece.y
+
+            // Advance by slightly more than interval
+            // @ts-ignore
+            game.update(interval + 10)
+
+            expect(game.currentPiece.y).toBe(initialY + 1)
         })
     })
 })

@@ -250,9 +250,14 @@ export class OnlineGame extends Game {
     /**
      * Update effect animations and cascade gravity (call from game loop)
      */
-    update(deltaTime: number): void {
+    override update(deltaTime: number): void {
         // Update effects
         this.effectSystem.update(deltaTime)
+
+        // Handle Gravity (inherited from Game)
+        if (this.countdown === null && (this.isOpponentConnected || this.isWinner)) {
+            super.update(deltaTime)
+        }
 
         // Cascade Gravity Logic
         if (!this.useCascadeGravity || !this.isCascading) return

@@ -96,10 +96,38 @@ const lanError = ref('')
 
 let animationId: number | null = null
 let lastUpdate = 0
-const DROP_INTERVAL = 1000
+const startSolo = () => {
+  gameMode.value = 'solo'
+  soloGame.value = reactive(new Game()) as any
+  startGameLoop()
+}
 
-// ============ Mode Selection ============
-// ... (remoteLog and other start methods unchanged) ...
+const startSpecial = () => {
+  gameMode.value = 'special'
+  soloGame.value = reactive(new SpecialGame()) as any
+  startGameLoop()
+}
+
+const startDuo = () => {
+  gameMode.value = 'duo'
+  duoGame.value = new DuoGame()
+  startGameLoop()
+}
+
+const startOnline = () => {
+    gameMode.value = 'online'
+    const game = reactive(new OnlineGame()) as any
+    // Auto-connect to default/prod server
+    const url = config.public.wsUrl || 'wss://tetris-server.fly.dev'
+    game.init(url).then(() => {
+        onlineGame.value = game
+        startGameLoop()
+    }).catch((err: any) => {
+        console.error('Online init failed', err)
+        alert('Could not connect to online server')
+        gameMode.value = null
+    })
+}
 
 const startLAN = () => {
   gameMode.value = 'lan'
@@ -161,30 +189,13 @@ const startGameLoop = () => {
     const deltaTime = lastFrameTime > 0 ? timestamp - lastFrameTime : 0
     lastFrameTime = timestamp
     
-    // Update Special mode cascade animation
-    if (gameMode.value === 'special' && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
-      (soloGame.value as SpecialGame).update(deltaTime)
-    }
-    
-    // Update Online/LAN mode effects
-    if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value) {
+    // Update Game State (Gravity + Effects)
+    if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value) {
+      soloGame.value.update(deltaTime)
+    } else if (gameMode.value === 'duo' && duoGame.value) {
+      duoGame.value.update(deltaTime)
+    } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value) {
       onlineGame.value.update(deltaTime)
-    }
-    
-    // Auto drop
-    if (timestamp - lastUpdate > DROP_INTERVAL) {
-      if ((gameMode.value === 'solo' || gameMode.value === 'special') && soloGame.value && !soloGame.value.isPaused && !soloGame.value.isGameOver) {
-        if (gameMode.value !== 'special' || !(soloGame.value as SpecialGame).isCascading) {
-          soloGame.value.moveDown()
-        }
-      } else if (gameMode.value === 'duo' && duoGame.value) {
-        duoGame.value.tick()
-      } else if ((gameMode.value === 'online' || gameMode.value === 'lan') && onlineGame.value && !onlineGame.value.isGameOver && (onlineGame.value.isOpponentConnected || onlineGame.value.isWinner)) {
-         if (onlineGame.value.countdown === null && !onlineGame.value.isPaused) {
-             onlineGame.value.moveDown()
-         }
-      }
-      lastUpdate = timestamp
     }
 
     // [FIX] Trigger ref update manually since we switched to shallowRef

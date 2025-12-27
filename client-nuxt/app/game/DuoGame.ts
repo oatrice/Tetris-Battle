@@ -117,11 +117,11 @@ export class DuoGame {
     }
 
     // ============ Game Loop ============
-    tick(): void {
+    update(deltaTime: number): void {
         if (this.isPaused || this.winner !== null) return
 
-        this.player1.moveDown()
-        this.player2.moveDown()
+        this.player1.update(deltaTime)
+        this.player2.update(deltaTime)
 
         this.checkWinCondition()
     }
