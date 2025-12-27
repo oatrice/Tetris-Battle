@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.12.1] - 2025-12-27
+
+### Fixed
+- **Win/Draw Conflict Resolution**: Resolved a race condition in online games where a win or draw could be incorrectly registered due to conflicting game state updates. This ensures accurate game outcome reporting.
+
 ## [3.12.0] - 2025-12-27
 
 ### Added
