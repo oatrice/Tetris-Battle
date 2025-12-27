@@ -33,7 +33,7 @@ export class OnlineGame extends Game {
     showGhostPiece = true // Toggle ghost piece visibility
     effectType: EffectType = EffectType.EXPLOSION // Visual effect type
     useCascadeGravity = false // Puyo-style cascade gravity
-    isHost = true // True = can edit settings, False = read-only (set by room_status)
+    isHost = false // Default to false (Guest) until confirmed by server. Safe default.
 
     // Cascade Gravity State
     chainCount = 0

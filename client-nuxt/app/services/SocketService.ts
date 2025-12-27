@@ -48,6 +48,7 @@ export class SocketService {
             this.socket.onmessage = (event) => {
                 try {
                     const msg = JSON.parse(event.data)
+                    // console.log('[WS] Received:', msg.type) // Debug log
                     this.handleMessage(msg)
                 } catch (e) {
                     console.error('Failed to parse WS msg', e)

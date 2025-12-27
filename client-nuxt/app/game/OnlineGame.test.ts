@@ -44,8 +44,8 @@ describe('OnlineGame game_over handling', () => {
     })
 
     describe('Host/Guest Role', () => {
-        it('should default to being host (isHost = true)', () => {
-            expect(game.isHost).toBe(true)
+        it('should default to being guest (isHost = false)', () => {
+            expect(game.isHost).toBe(false)
         })
 
         it('should become guest when room_status indicates host exists', () => {
