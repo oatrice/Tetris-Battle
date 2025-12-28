@@ -1,8 +1,8 @@
 <template>
   <div class="player-board">
-    <div class="board-layout">
+    <div class="board-layout" :class="{ 'hide-hold': !showHold }">
       <!-- Hold -->
-      <div v-if="showHold" class="mini-panel">
+      <div v-if="showHold" class="mini-panel hold-panel">
         <div class="panel-label">HOLD</div>
         <div class="piece-box" :style="{ opacity: game.heldPiece ? 1 : 0.3 }">
           <MiniPiece v-if="game.heldPiece" :piece="game.heldPiece" :size="12" />
@@ -22,7 +22,7 @@
       </div>
 
       <!-- Next -->
-      <div v-if="showNext" class="mini-panel">
+      <div v-if="showNext" class="mini-panel next-panel">
         <div class="panel-label">NEXT</div>
         <div class="piece-box">
           <MiniPiece :piece="game.nextPiece" :size="12" />
@@ -277,6 +277,21 @@ onMounted(() => {
   .piece-box {
     padding: 0.2rem;
     min-height: 40px;
+  }
+
+  /* When hold is hidden, next panel takes full width */
+  .board-layout.hide-hold {
+    grid-template-columns: 1fr;
+  }
+
+  .board-layout.hide-hold .next-panel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .board-layout.hide-hold .board-container {
+    grid-column: 1;
+    grid-row: 2;
   }
 }
 </style>
