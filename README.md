@@ -90,6 +90,166 @@ go run cmd/mac-sim/main.go
 
 ---
 
+## 📡 LAN Mode Guide (Multiplayer)
+
+LAN Mode ช่วยให้คุณเล่นกับเพื่อนผ่านเครือข่าย Local โดยใช้ **Android Server App** หรือ **Mac/PC Simulation** เป็น Server กลาง
+
+### 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    GAME SERVER                          │
+│  (Android App / Mac Simulation / Go Server)             │
+│                  IP: 192.168.x.x:8080                   │
+└─────────────────────────────────────────────────────────┘
+                    ▲               ▲
+          WebSocket │               │ WebSocket
+                    │               │
+             ┌──────┴───┐     ┌─────┴─────┐
+             │ Player 1 │     │ Player 2  │
+             │  (HOST)  │     │  (GUEST)  │
+             └──────────┘     └───────────┘
+```
+
+### 🔧 Prerequisites
+
+1. **Server** - หนึ่งในตัวเลือกต่อไปนี้:
+   - 📱 **Android Server App** - ติดตั้งจาก `/android-server`
+   - 💻 **Mac Simulation** - รัน `make dev` หรือ `go run cmd/mac-sim/main.go`
+
+2. **Clients** - เปิด Web Browser (Chrome/Safari/Edge) แล้วไปที่ `http://<SERVER_IP>:8080`
+
+---
+
+### 🔗 Connection Scenarios
+
+#### 📌 Scenario 1: PC ↔ PC (Same WiFi)
+
+เหมาะสำหรับการทดสอบบน LAN เดียวกัน
+
+```
+[PC - Server]                    [PC - Client]
+     │                                 │
+     └───── Same WiFi Network ─────────┘
+           (192.168.1.x)
+```
+
+**ขั้นตอน:**
+1. **PC1 (Server):** รัน `make dev` → Server จะแสดง IP (เช่น `192.168.1.100:8080`)
+2. **PC2 (Client):** เปิด Browser → `http://192.168.1.100:8080`
+3. ทั้งคู่เลือก **LAN Mode** → ใส่ชื่อ → **Join Game**
+
+---
+
+#### 📌 Scenario 2: PC → Mobile (PC เป็น Server)
+
+PC รัน Server, Mobile เชื่อมต่อเข้ามา
+
+```
+[PC - Server (Host)]
+   192.168.1.100:8080
+          │
+          ▼
+[Mobile - Client via WiFi]
+```
+
+**ขั้นตอน:**
+1. **PC:** รัน `make dev` หรือ `go run cmd/mac-sim/main.go`
+2. **PC:** ตรวจสอบ IP ของ PC (ใช้ `ipconfig` บน Windows หรือ `ifconfig` บน Mac)
+3. **Mobile:** เชื่อมต่อ **WiFi เดียวกัน** กับ PC
+4. **Mobile:** เปิด Browser → `http://<PC_IP>:8080` (เช่น `http://192.168.1.100:8080`)
+5. ทั้งคู่เลือก **LAN Mode** → **Join Game**
+
+---
+
+#### 📌 Scenario 3: Mobile → PC (Mobile เป็น Server ผ่าน Android App)
+
+Android เปิด Server, PC เชื่อมต่อเข้ามา
+
+```
+[Android - Server App]
+   192.168.1.50:8080
+          │
+          ▼
+[PC - Client via WiFi]
+```
+
+**ขั้นตอน:**
+1. **Android:** เปิด **Tetris Battle Server** app → กด **Start**
+2. **Android:** App จะแสดง IP Address (เช่น `192.168.1.50`)
+3. **PC:** เปิด Browser → `http://192.168.1.50:8080`
+4. ทั้งคู่เลือก **LAN Mode** → **Join Game**
+
+---
+
+#### 📌 Scenario 4: Mobile ↔ Mobile (Same WiFi)
+
+เล่น 2 มือถือบน WiFi เดียวกัน
+
+```
+[Mobile 1 - Server (Android App)]
+        192.168.1.50:8080
+               │
+               ▼
+[Mobile 2 - Client (Browser)]
+```
+
+**ขั้นตอน:**
+1. **Mobile 1 (Android):** เปิด Server App → กด **Start** → ดู IP
+2. **Mobile 2:** เชื่อมต่อ **WiFi เดียวกัน**
+3. **Mobile 2:** เปิด Browser → `http://<Mobile1_IP>:8080`
+4. ทั้งคู่เลือก **LAN Mode** → **Join Game**
+
+---
+
+#### 📌 Scenario 5: Mobile Hotspot (ไม่มี WiFi Router)
+
+ใช้ Hotspot ของมือถือเครื่องหนึ่งแทน Router
+
+```
+┌───────────────────────────────────┐
+│  [Mobile 1 - Hotspot + Server]    │
+│  ┌────────────────────────────┐   │
+│  │ Hotspot: "MyHotspot"       │   │
+│  │ Server IP: 192.168.43.1    │   │
+│  └────────────────────────────┘   │
+└───────────────────────────────────┘
+               │
+               ▼
+[Mobile 2 / PC - Connects to Hotspot]
+```
+
+**ขั้นตอน:**
+1. **Mobile 1:** เปิด **Hotspot** (ปกติจะได้ IP `192.168.43.1`)
+2. **Mobile 1:** เปิด **Tetris Battle Server** app → กด **Start**
+3. **Mobile 2 / PC:** เชื่อมต่อ WiFi ไปที่ Hotspot ของ Mobile 1
+4. **Mobile 2 / PC:** เปิด Browser → `http://192.168.43.1:8080`
+5. ทั้งคู่เลือก **LAN Mode** → **Join Game**
+
+> 💡 **Tip:** IP ของ Hotspot มักจะเป็น `192.168.43.1` บน Android หรือ `172.20.10.1` บน iPhone
+
+---
+
+### 🎮 Host vs Guest
+
+| Role | คำอธิบาย |
+|------|----------|
+| 👑 **Host** | ผู้เล่นคนแรกที่ Join → ตั้งค่า Game Settings ได้ (Attack Mode, Ghost Piece, Cascade) |
+| 👤 **Guest** | ผู้เล่นคนที่สอง → Settings จะ Sync มาจาก Host |
+
+---
+
+### ⚠️ Troubleshooting
+
+| ปัญหา | วิธีแก้ |
+|-------|--------|
+| เชื่อมต่อไม่ได้ | ตรวจสอบว่าอยู่ในเครือข่ายเดียวกัน (Same WiFi/Hotspot) |
+| หน้าจอขาวหรือ Error | ตรวจสอบว่า Server กำลังรันอยู่ ลอง Refresh หน้า |
+| IP ไม่ถูกต้อง | ใช้ปุ่ม **Use Browser URL** ใน Join Game popup |
+| Firewall บล็อก | ปิด Firewall ชั่วคราว หรืออนุญาต Port 8080 |
+
+---
+
 # Legacy C++ Version (Raylib)
 
 *The documentation below applies to the original C++ implementation.*
