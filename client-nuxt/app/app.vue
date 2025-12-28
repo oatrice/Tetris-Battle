@@ -8,7 +8,8 @@
         <button @click="startSolo" class="mode-btn solo">🎯 Normal</button>
         <button @click="startSpecial" class="mode-btn special">✨ Special</button>
         <button @click="startDuo" class="mode-btn duo">👥 Duo</button>
-        <button @click="startOnline" class="mode-btn online">🌐 Online</button>
+        <!-- <button @click="startOnline" class="mode-btn online">🌐 Online</button> -->
+        <!-- Waiting for socket server deployment -->
         <button @click="startLAN" class="mode-btn lan">📡 LAN</button>
         <button @click="showLeaderboard = true" class="mode-btn leaderboard">🏆 Leaderboard</button>
       </div>
