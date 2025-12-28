@@ -74,6 +74,12 @@
         <span class="player-label">{{ playerName || 'YOU' }}</span>
         <span class="controls-hint">{{ controlsHintText }}</span>
       </div>
+
+      <!-- Mobile: Opponent info bar (full width) -->
+      <div class="mobile-opponent-bar mobile-only">
+        <span class="opp-label">Opponent: <strong>{{ onlineGame.opponentName || '???' }}</strong></span>
+        <span class="opp-score">{{ onlineGame.getOpponentScore() }}</span>
+      </div>
       
       <div class="board-wrapper" style="position: relative;">
           <PlayerBoard 
@@ -84,7 +90,7 @@
             playerColor="#00d4ff"
           >
             <template #under-next>
-                 <div class="mini-opponent-board">
+                 <div class="mini-opponent-board desktop-only">
                     <div class="mini-header">
                         <span class="mini-label">{{ onlineGame.opponentName || 'OPPONENT' }}</span>
                         <span class="mini-score">{{ onlineGame.getOpponentScore() }}</span>
@@ -407,6 +413,20 @@ onUnmounted(() => {
   gap: 2rem;
   padding: 1rem;
   position: relative;
+}
+
+/* Desktop/Mobile visibility */
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: block;
+}
+
+/* Mobile opponent bar (hidden on desktop) */
+.mobile-opponent-bar {
+  display: none;
 }
 
 .name-overlay {
@@ -919,6 +939,42 @@ onUnmounted(() => {
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
+  .mobile-only {
+      display: block !important;
+  }
+
+  .desktop-only {
+      display: none !important;
+  }
+
+  /* Mobile opponent bar - full width */
+  .mobile-opponent-bar {
+      display: flex !important;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 100vw;
+      background: rgba(22, 33, 62, 0.95);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+  }
+
+  .opp-label {
+      color: #aaa;
+      font-size: 0.9rem;
+  }
+
+  .opp-label strong {
+      color: #ff6b6b;
+  }
+
+  .opp-score {
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 1.2rem;
+  }
+
   .online-area {
       flex-direction: column;
       align-items: center;
@@ -1027,14 +1083,6 @@ onUnmounted(() => {
   .back-btn {
       padding: 0.4rem 0.8rem;
       font-size: 0.8rem;
-  }
-
-  .mini-opponent-board {
-      margin-top: 0.3rem;
-  }
-
-  .mini-header {
-      font-size: 0.7rem;
   }
 }
 </style>
