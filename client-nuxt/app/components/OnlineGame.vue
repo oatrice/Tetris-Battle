@@ -158,7 +158,7 @@
         </div>
 
         <div v-else-if="!showNameInput && !onlineGame.isPaused" class="active-controls">
-             <button @click="emit('back')" class="home-btn small">Exit Game</button>
+             <button @click="emit('back')" class="home-btn small">Exit</button>
         </div>
       </div>
     </div>
@@ -182,7 +182,8 @@
         Pause
      </button>
      
-     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
+     
+     <!-- Quit button removed (redundant with Exit Game in player stats) -->
     </div>
 
     <!-- Remote Player (Opponent) - MOVED INTO PLAYER BOARD -->
