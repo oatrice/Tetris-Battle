@@ -963,8 +963,8 @@ button {
 
   /* Fullscreen mode for mobile */
   .solo-game {
-    min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
     padding: 0.25rem;
+    height: 100%; /* Changed from min-height: 100dvh */
     margin: 0;
     align-items: center;
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
@@ -983,7 +983,7 @@ button {
     gap: 0.3rem;
     width: 100%;
     max-width: 100vw;
-    height: 100dvh; /* Dynamic Height */
+    height: 100%; /* Changed from 100dvh */
     align-items: start;
     justify-items: center;
     padding: 0.2rem;

@@ -406,13 +406,14 @@ onUnmounted(() => {
   width: 100%;
   min-height: 100vh;
   margin: 0;
-  padding: 1rem;
+  padding: 0; /* Disable padding */
   font-family: 'Segoe UI', sans-serif;
   text-align: center;
   outline: none;
   background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
   box-sizing: border-box;
 }
+
 
 h1 {
   color: #00d4ff;
@@ -495,6 +496,7 @@ h1 {
 .game-area {
   display: flex;
   justify-content: center;
+  height: 100%; /* Full height */
 }
 
 /* Game Options - Toggle Switch */

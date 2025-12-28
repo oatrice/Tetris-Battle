@@ -1010,7 +1010,7 @@ onUnmounted(() => {
       gap: 0;
       padding: 0;
       width: 100vw;
-      height: 100dvh; /* FIXED VIEWPORT HEIGHT */
+      height: 100%; /* Changed from 100dvh */
       overflow: hidden;
       background: #0f0c29;
       position: relative;
