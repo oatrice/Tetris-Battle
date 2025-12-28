@@ -1,6 +1,12 @@
-# Nuxt Minimal Starter
+# Tetris Battle - Nuxt Client
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+> 🎮 **Frontend Web Application** for Tetris Battle built with Nuxt.js + TypeScript
+
+📖 **For LAN Multiplayer Guide & Game Controls**, see the [Main README](../README.md#-lan-mode-guide-multiplayer)
+
+---
+
+## 🚀 Quick Start
 
 ## Setup
 

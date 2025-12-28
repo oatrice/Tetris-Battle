@@ -1,11 +1,66 @@
 
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import DuoGameVue from './DuoGame.vue'
 import { DuoGame } from '~/game/DuoGame'
 
 // Mock sub-components
 const PlayerBoard = { template: '<div class="player-board-stub"></div>' }
+
+// Helper to set userAgent
+const setMobileUserAgent = (isMobile: boolean) => {
+    Object.defineProperty(navigator, 'userAgent', {
+        value: isMobile ? 'Mozilla/5.0 (iPad; CPU OS 14_0 like Mac OS X)' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        configurable: true
+    })
+}
+
+describe('DuoGame Controls Hint', () => {
+    const originalUserAgent = navigator.userAgent
+
+    afterEach(() => {
+        Object.defineProperty(navigator, 'userAgent', {
+            value: originalUserAgent,
+            configurable: true
+        })
+    })
+
+    it('shows "Swipe" controls hint on mobile/tablet devices', async () => {
+        setMobileUserAgent(true)
+
+        const game = new DuoGame()
+        const wrapper = mount(DuoGameVue, {
+            props: { duoGame: game },
+            global: { stubs: { PlayerBoard } }
+        })
+
+        const controlsHints = wrapper.findAll('.controls-hint')
+        expect(controlsHints.length).toBe(2) // P1 and P2
+
+        // All hints should contain Swipe on mobile
+        controlsHints.forEach(hint => {
+            expect(hint.text()).toContain('Swipe')
+            expect(hint.text()).not.toContain('WASD')
+        })
+    })
+
+    it('shows keyboard controls hint on desktop devices', async () => {
+        setMobileUserAgent(false)
+
+        const game = new DuoGame()
+        const wrapper = mount(DuoGameVue, {
+            props: { duoGame: game },
+            global: { stubs: { PlayerBoard } }
+        })
+
+        const controlsHints = wrapper.findAll('.controls-hint')
+        expect(controlsHints.length).toBe(2)
+
+        // P1 has WASD, P2 has Arrows
+        expect(controlsHints[0]!.text()).toContain('WASD')
+        expect(controlsHints[1]!.text()).toContain('←→↓↑')
+    })
+})
 
 describe('DuoGame UI Touch Controls', () => {
     it('should have separate touch zones for P1 and P2', async () => {
