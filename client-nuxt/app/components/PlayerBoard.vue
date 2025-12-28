@@ -260,13 +260,30 @@ onMounted(() => {
     order: 3;
     display: flex;
     justify-content: center;
+    margin: 0; /* Reset */
+    width: 100%;
+    height: 100%;
+    align-items: flex-start;
+  }
+
+  .game-canvas {
+    height: auto;
+    /* Revert to original calculation */
+    max-height: calc(100vh - 100px);
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
   }
 
   .mini-panel {
     min-width: auto;
+    width: 100%; /* Force full width */
     padding: 0.2rem;
     background: rgba(22, 33, 62, 0.8);
     border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .panel-label {
@@ -275,8 +292,14 @@ onMounted(() => {
   }
 
   .piece-box {
-    padding: 0.2rem;
+    padding: 0; /* Remove padding */
     min-height: 40px;
+    width: 100%; /* Full width */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,0.2); 
+    flex: 1;
   }
 
   /* When hold is hidden, next panel takes full width */

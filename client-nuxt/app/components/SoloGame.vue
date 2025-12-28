@@ -2,9 +2,8 @@
   <div class="solo-game" ref="gameContainer" :class="{ 'force-fullscreen': isFullscreen }">
     <div class="game-layout">
       <!-- Mobile 1: Mode Label -->
-      <div class="mode-label mobile-only" :class="{ special: isSpecialMode }">
-          {{ isSpecialMode ? '✨ SPECIAL' : '🎯 NORMAL' }}
-      </div>
+      <!-- Mobile 1: Mode Label (HIDDEN) -->
+
       <!-- Hold (Special mode only) -->
       <div v-if="isSpecialMode" class="side-panel hold-panel">
         <h4>HOLD</h4>
@@ -56,40 +55,18 @@
       </div>
 
       <!-- Mobile: Row 2 (Score | Effect) -->
-      <div class="mobile-stats-row mobile-only">
-          <div class="stats-box">
-             <p class="score">{{ game.score }}</p>
-             <p v-if="isSpecialMode && 'chainCount' in game && (game as any).chainCount > 0" class="chain">
-                🔥 {{ (game as any).chainCount }}
-             </p>
-          </div>
-          
-          <div v-if="isSpecialMode" class="effect-box">
-              <select v-model="selectedEffect" @change="onEffectChange" class="mobile-select">
-                <option v-for="(label, type) in effectLabels" :key="type" :value="type">
-                  {{ label }}
-                </option>
-              </select>
-          </div>
-          <!-- If not special mode, maybe stretch stats or leave empty? User asked for | Score | Effect |. 
-               I'll let stats take full width if no effect. -->
+      <!-- Mobile: Top Bar (Score + Pause) -->
+      <!-- Mobile: Top Bar Elements (Direct Grid Children) -->
+      <!-- Left: Score Box (50%) -->
+      <div class="stats-box mobile-only">
+          <span class="score-label">SCORE</span>
+          <span class="score-value">{{ game.score }}</span>
       </div>
 
-      <!-- Mobile: Row 3 (Controls) -->
-      <div class="control-buttons mobile-only mobile-controls-row">
-          <button class="ctrl-btn" @click="game.togglePause()" :title="game.isPaused ? 'Resume' : 'Pause'">
-            {{ game.isPaused ? '▶️' : '⏸️' }}
-          </button>
-          <button class="ctrl-btn" @click="showGhost = !showGhost" :title="showGhost ? 'Hide Ghost' : 'Show Ghost'">
-            {{ showGhost ? '👻' : '👤' }}
-          </button>
-          <button class="ctrl-btn fullscreen-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'">
-            {{ isFullscreen ? '🔲' : '📺' }}
-          </button>
-          <button class="ctrl-btn" @click="$emit('back')" title="Back to Menu">
-            🏠
-          </button>
-      </div>
+      <!-- Right: Pause Button (50%) -->
+      <button class="ctrl-btn pause-btn mobile-only" @click="game.togglePause()">
+        {{ game.isPaused ? '▶️ RESUME' : '⏸️ PAUSE' }}
+      </button>
 
       <div class="board-section">
         <div class="mode-label desktop-only" :class="{ special: isSpecialMode }">
@@ -995,159 +972,160 @@ button {
 
   .game-layout {
     display: grid;
+    /* 2 Columns for Hold/Next */
     grid-template-columns: 1fr 1fr;
+    /* Rows: Top(Score/Pause) | Panels | Board */
+    grid-template-rows: 28px auto 1fr;
+    grid-template-areas: 
+      "score  pause"
+      "hold   next"
+      "board  board";
     gap: 0.3rem;
     width: 100%;
     max-width: 100vw;
-    align-items: center;
+    height: 100dvh; /* Dynamic Height */
+    align-items: start;
+    justify-items: center;
+    padding: 0.2rem;
   }
   
-  /* 1. Mode Label (Full width top) */
-  .mode-label.mobile-only {
-    grid-column: 1 / -1;
-    margin-bottom: 0;
-    text-align: center;
-    order: 1;
+  /* 2. Mobile Top Items (Score + Pause 1:1) */
+  .stats-box {
+    grid-area: score;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: row; 
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0 0.3rem;
+    border: 1px solid rgba(255,255,255,0.1);
   }
 
-  /* Mobile: Compact side panels */
-  .side-panel {
-    padding: 0.3rem;
-    border-radius: 6px;
-    min-width: 60px;
-    max-width: 70px;
+  .score-label {
+    font-size: 0.5rem; 
+    color: #ccc;
+    font-weight: bold;
+    margin: 0;
   }
 
-  .side-panel h4 {
-    margin: 0 0 0.15rem;
-    font-size: 0.5rem;
-    letter-spacing: 0.5px;
+  .score-value {
+    font-size: 0.75rem;
+    color: #ffd700;
+    font-weight: bold;
+    line-height: 1;
   }
 
-  .side-panel-spacer {
-    width: 40px;
+  .pause-btn.mobile-only {
+    grid-area: pause;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #ff416c, #ff4b2b) !important;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
   }
 
   .piece-preview {
     border-radius: 4px;
-    padding: 0.15rem;
+    padding: 0;
     min-height: 40px;
-  }
-
-  .stats {
-    margin-top: 0.25rem;
-  }
-
-  .stats .score {
-    font-size: 0.75rem;
-  }
-
-  .stats p {
-    margin: 0;
-    font-size: 0.55rem;
-    line-height: 1.2;
-  }
-  
-  /* 2. Controls (Row 2 - Full Width) */
-  .mobile-controls-row {
-    grid-column: 1 / -1;
+    width: 100%;
     display: flex;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.2rem 0.3rem;
-    background: rgba(0,0,0,0.2);
-    border-radius: 4px;
-    order: 2;
-  }
-
-  /* 3. Stats & Effect (Row 3 - Full Width) */
-  .mobile-stats-row {
-    grid-column: 1 / -1;
-    display: flex;
-    gap: 0.3rem;
-    width: 100%;
-    background: #6385db; /* Lighter background for contrast */
-    border-radius: 4px;
-    padding: 0.3rem 0.5rem;
     align-items: center;
-    justify-content: space-around;
-    order: 3;
-    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+    background: rgba(0,0,0,0.2); 
+    flex: 1; /* Take available space */
   }
-  
-  .mobile-stats-row .stats-box p {
-    color: #0f0c29; /* Dark text for contrast */
-    font-weight: 500;
-    font-size: 0.6rem;
+
+  /* 4. Panels (Grid positioned) */
+  .hold-panel, .next-panel {
+    position: relative;
+    width: 100%; /* Fill grid cell */
+    max-width: none; /* Remove limit to match top bar alignment */
+    height: auto;
+    
+    /* COMPACT STYLES */
+    background: #16213e; 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 0.2rem;
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-self: stretch; /* STRETCH TO FILL GRID CELL */
     margin: 0;
-    line-height: 1.1;
-  }
-  
-  .mobile-stats-row .stats-box .score {
-    color: #000; /* Distinct dark score */
-    text-shadow: none;
-    font-size: 0.85rem;
-  }
-  
-  /* 4. Hold Panel (Left) */
-  .hold-panel {
-    grid-column: 1;
-    width: 100%;
-    max-width: none;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    order: 4;
+    z-index: 10;
   }
 
-  /* 4. Next Panel (Right or Full) */
-  .next-panel {
-    grid-column: 2;
-    width: 100%;
-    max-width: none;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    order: 4;
-  }
-  
-  .next-panel.full-width {
-    grid-column: 1 / -1;
-  }
+  .hold-panel { grid-area: hold; }
+  .next-panel { grid-area: next; }
 
-  /* 5. Board (Full width bottom) */
+  /* 5. Board (Center Grid) */
   .board-section {
-    grid-column: 1 / -1;
+    grid-area: board;
+    width: 100%;
+    height: 100%;
     display: flex;
+    align-items: flex-start;
     justify-content: center;
-    margin-top: 0.5rem;
-    order: 5;
+    padding: 0;
+    margin: 0; /* Reset */
+    overflow: hidden;
   }
 
   .game-canvas {
-    max-width: 95vw; 
     height: auto;
+    /* Revert to original calculation */
+    max-height: calc(100vh - 100px);
+    width: auto;
+    max-width: 100%;
+    object-fit: contain; 
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.3);
   }
+
+
+
   
-  /* Reset panel styles for mobile grid items */
-  .side-panel {
-    margin: 0;
-    min-width: 0;
-    background: #6385db; /* Lighter background for contrast */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
+  /* Reset panel styles */
+
   
   .side-panel h4 {
-    color: #0f0c29; /* Darker text for contrast */
-    font-weight: 900;
-    text-shadow: none;
+    color: #aaa;
+    font-size: 0.5rem;
+    margin-bottom: 2px;
+    text-shadow: 1px 1px 2px black;
+  }
+
+  /* Make sure Next Panel is not full width in special mode */
+  .next-panel.full-width {
+    grid-column: 1 / -1; /* Span full row */
+    width: 100%; 
+    max-width: none; /* UNLIMITED WIDTH */
+    border-radius: 4px; /* Optional: edge to edge look */
+    justify-self: stretch;
   }
   
-  .side-panel-spacer {
+  /* Hide unused leftovers */
+  .mobile-controls-row,
+  .mobile-stats-row,
+  .mode-label.mobile-only {
     display: none;
   }
+
 }
 
 </style>
