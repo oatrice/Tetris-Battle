@@ -442,7 +442,7 @@ h1 {
 
 .mode-btn.lan {
   background: linear-gradient(135deg, #11998e, #38ef7d);
-  color: #1a1a2e;
+  color: white;
 }
 
 .mode-btn:hover {
@@ -452,7 +452,7 @@ h1 {
 
 .mode-btn.leaderboard {
   background: linear-gradient(135deg, #ffd700, #ffaa00);
-  color: #1a1a2e;
+  color: white;
   grid-column: span 2;
 }
 

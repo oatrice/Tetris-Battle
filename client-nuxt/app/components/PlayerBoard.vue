@@ -227,4 +227,56 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 3rem;
 }
+
+/* Mobile: Move Hold/Next to top of board */
+@media (max-width: 768px) {
+  .board-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.3rem;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  /* Hold panel - top left */
+  .mini-panel:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    order: 1;
+  }
+
+  /* Next panel - top right */
+  .mini-panel:last-child {
+    grid-column: 2;
+    grid-row: 1;
+    order: 2;
+  }
+
+  /* Canvas - full width below */
+  .board-container {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    order: 3;
+    display: flex;
+    justify-content: center;
+  }
+
+  .mini-panel {
+    min-width: auto;
+    padding: 0.2rem;
+    background: rgba(22, 33, 62, 0.8);
+    border-radius: 6px;
+  }
+
+  .panel-label {
+    font-size: 0.5rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .piece-box {
+    padding: 0.2rem;
+    min-height: 40px;
+  }
+}
 </style>
