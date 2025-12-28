@@ -53,7 +53,7 @@ const props = withDefaults(defineProps<{
   playerColor: '#333'
 })
 
-const CELL_SIZE = 20
+const CELL_SIZE = 24
 const BOARD_WIDTH = 10
 const BOARD_HEIGHT = 20
 const canvasWidth = BOARD_WIDTH * CELL_SIZE

@@ -1,9 +1,9 @@
 <template>
-  <div class="solo-game">
+  <div class="solo-game" ref="gameContainer">
     <div class="game-layout">
       <!-- Mobile 1: Mode Label -->
       <div class="mode-label mobile-only" :class="{ special: isSpecialMode }">
-          {{ isSpecialMode ? '✨ SPECIAL' : '🎯 SOLO' }}
+          {{ isSpecialMode ? '✨ SPECIAL' : '🎯 NORMAL' }}
       </div>
       <!-- Hold (Special mode only) -->
       <div v-if="isSpecialMode" class="side-panel hold-panel">
@@ -59,7 +59,6 @@
       <div class="mobile-stats-row mobile-only">
           <div class="stats-box">
              <p class="score">{{ game.score }}</p>
-             <p>L{{ game.level }} • Lines {{ game.linesCleared }}</p> 
              <p v-if="isSpecialMode && 'chainCount' in game && (game as any).chainCount > 0" class="chain">
                 🔥 {{ (game as any).chainCount }}
              </p>
@@ -84,6 +83,9 @@
           <button class="ctrl-btn" @click="showGhost = !showGhost" :title="showGhost ? 'Hide Ghost' : 'Show Ghost'">
             {{ showGhost ? '👻' : '👤' }}
           </button>
+          <button class="ctrl-btn fullscreen-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'">
+            {{ isFullscreen ? '🔲' : '📺' }}
+          </button>
           <button class="ctrl-btn" @click="$emit('back')" title="Back to Menu">
             🏠
           </button>
@@ -91,7 +93,7 @@
 
       <div class="board-section">
         <div class="mode-label desktop-only" :class="{ special: isSpecialMode }">
-          {{ isSpecialMode ? '✨ SPECIAL' : '🎯 SOLO' }}
+          {{ isSpecialMode ? '✨ SPECIAL' : '🎯 NORMAL' }}
         </div>
         <canvas 
           ref="canvas" 
@@ -192,7 +194,7 @@ const props = defineProps<{
 
 defineEmits(['restart', 'back'])
 
-const CELL_SIZE = 24
+const CELL_SIZE = 26
 const BOARD_WIDTH = 10
 const BOARD_HEIGHT = 20
 const canvasWidth = BOARD_WIDTH * CELL_SIZE
@@ -433,8 +435,74 @@ const loop = () => {
   frameId = requestAnimationFrame(loop)
 }
 
+// Ref for auto-scroll
+const gameContainer = ref<HTMLElement | null>(null)
+
+// Fullscreen state
+const isFullscreen = ref(false)
+const showFullscreenToast = ref(false)
+
+// Check if mobile
+const isMobile = () => {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
+// Toggle fullscreen mode
+const toggleFullscreen = async () => {
+  // Hide toast immediately when user taps
+  showFullscreenToast.value = false
+  
+  try {
+    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        await document.exitFullscreen()
+      } else if ((document as any).webkitExitFullscreen) {
+        await (document as any).webkitExitFullscreen()
+      }
+      isFullscreen.value = false
+    } else {
+      // Enter fullscreen
+      const elem = document.documentElement
+      if (elem.requestFullscreen) {
+        await elem.requestFullscreen()
+        isFullscreen.value = true
+        // Scroll to game board after fullscreen
+        setTimeout(() => {
+          gameContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+        }, 300)
+      } else if ((elem as any).webkitRequestFullscreen) {
+        await (elem as any).webkitRequestFullscreen()
+        isFullscreen.value = true
+        // Scroll to game board after fullscreen
+        setTimeout(() => {
+          gameContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+        }, 300)
+      }
+    }
+  } catch (e) {
+    console.log('[Fullscreen] Error:', e)
+    // Fallback: Just toggle the CSS fullscreen state
+    isFullscreen.value = !isFullscreen.value
+    if (isFullscreen.value) {
+      // Scroll to game board
+      setTimeout(() => {
+        gameContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      }, 300)
+    }
+  }
+}
+
 onMounted(() => {
   frameId = requestAnimationFrame(loop)
+  
+  // Auto scroll on mobile
+  if (isMobile() && gameContainer.value) {
+    setTimeout(() => {
+      gameContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }, 300)
+  }
 })
 </script>
 
@@ -442,6 +510,52 @@ onMounted(() => {
 .solo-game {
   display: flex;
   justify-content: center;
+  min-height: 100vh;
+  align-items: flex-start;
+  padding-top: 0.5rem;
+  position: relative;
+}
+
+/* Fullscreen Toast */
+.fullscreen-toast {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #00d4ff, #0072ff);
+  color: white;
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  z-index: 1000;
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+  animation: pulse-toast 1s ease-in-out infinite alternate;
+  cursor: pointer;
+}
+
+@keyframes pulse-toast {
+  from { transform: translateX(-50%) scale(1); }
+  to { transform: translateX(-50%) scale(1.05); }
+}
+
+/* Toast Transition */
+.toast-enter-active {
+  animation: toast-in 0.3s ease-out;
+}
+
+.toast-leave-active {
+  animation: toast-out 0.3s ease-in;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to { opacity: 0; transform: translateX(-50%) translateY(-20px); }
 }
 
 .game-layout {
@@ -450,6 +564,7 @@ onMounted(() => {
   align-items: flex-start;
 }
 
+/* Desktop: Normal size UI */
 .side-panel {
   background: #16213e;
   padding: 1rem;
@@ -841,11 +956,21 @@ button {
     display: block;
   }
 
+  /* Fullscreen mode for mobile */
+  .solo-game {
+    min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    padding: 0.25rem;
+    margin: 0;
+    align-items: center;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  }
+
   .game-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.8rem;
+    gap: 0.3rem;
     width: 100%;
+    max-width: 100vw;
     align-items: center;
   }
   
@@ -856,16 +981,54 @@ button {
     text-align: center;
     order: 1;
   }
+
+  /* Mobile: Compact side panels */
+  .side-panel {
+    padding: 0.3rem;
+    border-radius: 6px;
+    min-width: 60px;
+    max-width: 70px;
+  }
+
+  .side-panel h4 {
+    margin: 0 0 0.15rem;
+    font-size: 0.5rem;
+    letter-spacing: 0.5px;
+  }
+
+  .side-panel-spacer {
+    width: 40px;
+  }
+
+  .piece-preview {
+    border-radius: 4px;
+    padding: 0.15rem;
+    min-height: 40px;
+  }
+
+  .stats {
+    margin-top: 0.25rem;
+  }
+
+  .stats .score {
+    font-size: 0.75rem;
+  }
+
+  .stats p {
+    margin: 0;
+    font-size: 0.55rem;
+    line-height: 1.2;
+  }
   
   /* 2. Controls (Row 2 - Full Width) */
   .mobile-controls-row {
     grid-column: 1 / -1;
     display: flex;
     justify-content: center;
-    gap: 1rem;
-    padding: 0.5rem;
+    gap: 0.5rem;
+    padding: 0.2rem 0.3rem;
     background: rgba(0,0,0,0.2);
-    border-radius: 8px;
+    border-radius: 4px;
     order: 2;
   }
 
@@ -873,11 +1036,11 @@ button {
   .mobile-stats-row {
     grid-column: 1 / -1;
     display: flex;
-    gap: 1rem;
+    gap: 0.3rem;
     width: 100%;
     background: #6385db; /* Lighter background for contrast */
-    border-radius: 8px;
-    padding: 0.8rem;
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
     align-items: center;
     justify-content: space-around;
     order: 3;
@@ -887,11 +1050,15 @@ button {
   .mobile-stats-row .stats-box p {
     color: #0f0c29; /* Dark text for contrast */
     font-weight: 500;
+    font-size: 0.6rem;
+    margin: 0;
+    line-height: 1.1;
   }
   
   .mobile-stats-row .stats-box .score {
     color: #000; /* Distinct dark score */
     text-shadow: none;
+    font-size: 0.85rem;
   }
   
   /* 4. Hold Panel (Left) */

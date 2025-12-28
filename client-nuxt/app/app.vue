@@ -5,7 +5,7 @@
     <!-- Mode Selection -->
     <div v-if="!gameMode" class="mode-select">
       <div class="mode-buttons">
-        <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
+        <button @click="startSolo" class="mode-btn solo">🎯 Normal</button>
         <button @click="startSpecial" class="mode-btn special">✨ Special</button>
         <button @click="startDuo" class="mode-btn duo">👥 Duo</button>
         <button @click="startOnline" class="mode-btn online">🌐 Online</button>
@@ -107,8 +107,34 @@ let animationId: number | null = null
 let lastUpdate = 0
 const increaseSpeed = ref(true)
 
-const startSolo = () => {
+// Check if mobile
+const isMobile = () => {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
+// Request fullscreen for mobile
+const requestMobileFullscreen = async () => {
+  if (!isMobile()) return
+  
+  try {
+    const elem = document.documentElement
+    if (elem.requestFullscreen) {
+      await elem.requestFullscreen()
+    } else if ((elem as any).webkitRequestFullscreen) {
+      await (elem as any).webkitRequestFullscreen()
+    }
+  } catch (e) {
+    console.log('[Fullscreen] Could not enter fullscreen:', e)
+  }
+}
+
+const startSolo = async () => {
   console.log('[App] Starting Solo Mode')
+  
+  // Request fullscreen on mobile
+  await requestMobileFullscreen()
+  
   gameMode.value = 'solo'
   const game = new Game()
   game.increaseGravity = increaseSpeed.value
@@ -116,8 +142,12 @@ const startSolo = () => {
   startGameLoop()
 }
 
-const startSpecial = () => {
+const startSpecial = async () => {
   console.log('[App] Starting Special Mode')
+  
+  // Request fullscreen on mobile
+  await requestMobileFullscreen()
+  
   gameMode.value = 'special'
   const game = new SpecialGame()
   game.increaseGravity = increaseSpeed.value
