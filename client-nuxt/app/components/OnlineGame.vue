@@ -59,6 +59,15 @@
                     />
                     🔄 Cascade Gravity (Puyo Style)
                 </label>
+                <label class="settings-label ghost-toggle" :class="{ disabled: !onlineGame.isHost }">
+                    <input 
+                      type="checkbox" 
+                      :checked="onlineGame.allowHoldPiece" 
+                      @change="onlineGame.isHost && onlineGame.toggleHoldPiece()"
+                      :disabled="!onlineGame.isHost"
+                    />
+                    ✋ Hold Piece
+                </label>
             </div>
             
             <div class="btn-group">
@@ -84,7 +93,7 @@
       <div class="board-wrapper" style="position: relative;">
           <PlayerBoard 
             :game="onlineGame" 
-            :showHold="true" 
+            :showHold="onlineGame.allowHoldPiece" 
             :showNext="true"
             :showGhost="onlineGame.showGhostPiece"
             playerColor="#00d4ff"
