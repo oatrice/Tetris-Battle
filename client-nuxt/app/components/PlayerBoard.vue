@@ -1,8 +1,8 @@
 <template>
   <div class="player-board">
-    <div class="board-layout">
+    <div class="board-layout" :class="{ 'hide-hold': !showHold }">
       <!-- Hold -->
-      <div v-if="showHold" class="mini-panel">
+      <div v-if="showHold" class="mini-panel hold-panel">
         <div class="panel-label">HOLD</div>
         <div class="piece-box" :style="{ opacity: game.heldPiece ? 1 : 0.3 }">
           <MiniPiece v-if="game.heldPiece" :piece="game.heldPiece" :size="12" />
@@ -22,7 +22,7 @@
       </div>
 
       <!-- Next -->
-      <div v-if="showNext" class="mini-panel">
+      <div v-if="showNext" class="mini-panel next-panel">
         <div class="panel-label">NEXT</div>
         <div class="piece-box">
           <MiniPiece :piece="game.nextPiece" :size="12" />
@@ -53,7 +53,7 @@ const props = withDefaults(defineProps<{
   playerColor: '#333'
 })
 
-const CELL_SIZE = 20
+const CELL_SIZE = 24
 const BOARD_WIDTH = 10
 const BOARD_HEIGHT = 20
 const canvasWidth = BOARD_WIDTH * CELL_SIZE
@@ -226,5 +226,72 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.85);
   border-radius: 4px;
   font-size: 3rem;
+}
+
+/* Mobile: Move Hold/Next to top of board */
+@media (max-width: 768px) {
+  .board-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.3rem;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  /* Hold panel - top left */
+  .mini-panel:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    order: 1;
+  }
+
+  /* Next panel - top right */
+  .mini-panel:last-child {
+    grid-column: 2;
+    grid-row: 1;
+    order: 2;
+  }
+
+  /* Canvas - full width below */
+  .board-container {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    order: 3;
+    display: flex;
+    justify-content: center;
+  }
+
+  .mini-panel {
+    min-width: auto;
+    padding: 0.2rem;
+    background: rgba(22, 33, 62, 0.8);
+    border-radius: 6px;
+  }
+
+  .panel-label {
+    font-size: 0.5rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .piece-box {
+    padding: 0.2rem;
+    min-height: 40px;
+  }
+
+  /* When hold is hidden, next panel takes full width */
+  .board-layout.hide-hold {
+    grid-template-columns: 1fr;
+  }
+
+  .board-layout.hide-hold .next-panel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .board-layout.hide-hold .board-container {
+    grid-column: 1;
+    grid-row: 2;
+  }
 }
 </style>

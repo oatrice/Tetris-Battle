@@ -115,6 +115,6 @@ describe('OnlineGame Layout', () => {
         // Persistent Exit button should be VISIBLE
         const persistentExit = wrapper.find('.active-controls .home-btn')
         expect(persistentExit.exists()).toBe(true)
-        expect(persistentExit.text()).toContain('Exit Game')
+        expect(persistentExit.text()).toContain('Exit')
     })
 })

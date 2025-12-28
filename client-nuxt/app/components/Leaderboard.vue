@@ -9,7 +9,7 @@
           :class="['tab', { active: activeTab === 'solo' }]" 
           @click="activeTab = 'solo'"
         >
-          🎯 Solo
+          🎯 Normal
         </button>
         <button 
           :class="['tab', { active: activeTab === 'special' }]" 
@@ -34,7 +34,7 @@
       <!-- Empty State for Solo/Special -->
       <div v-if="entries.length === 0 && (activeTab === 'solo' || activeTab === 'special')" class="empty-state">
         <p>ยังไม่มีสถิติ</p>
-        <p class="hint">เล่น {{ activeTab === 'solo' ? 'Solo' : 'Special' }} mode เพื่อบันทึกคะแนน!</p>
+        <p class="hint">เล่น {{ activeTab === 'solo' ? 'Normal' : 'Special' }} mode เพื่อบันทึกคะแนน!</p>
       </div>
 
       <!-- Duo Sessions -->

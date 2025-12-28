@@ -33,6 +33,7 @@ type Client struct {
 	showGhostPiece    bool   // Ghost piece visibility
 	effectType        string // Visual effect type
 	useCascadeGravity bool   // Puyo-style cascade gravity
+	allowHoldPiece    bool   // Allow hold piece feature
 	increaseGravity   bool   // Speed increases with level
 }
 
@@ -154,8 +155,8 @@ func (c *Client) sendRoomStatus() {
 	if c.hub.waitingClient != nil {
 		// There's a host waiting - send their settings
 		host := c.hub.waitingClient
-		log.Printf("[ROOM_STATUS] Sending host settings to client %s: attack=%s, ghost=%v, effect=%s, cascade=%v, increaseGravity=%v",
-			c.id, host.attackMode, host.showGhostPiece, host.effectType, host.useCascadeGravity, host.increaseGravity)
+		log.Printf("[ROOM_STATUS] Sending host settings to client %s: attack=%s, ghost=%v, effect=%s, cascade=%v, hold=%v, increaseGravity=%v",
+			c.id, host.attackMode, host.showGhostPiece, host.effectType, host.useCascadeGravity, host.allowHoldPiece, host.increaseGravity)
 		c.send <- toJson(Message{
 			Type: "room_status",
 			Payload: map[string]interface{}{
@@ -165,6 +166,7 @@ func (c *Client) sendRoomStatus() {
 					"showGhostPiece":    host.showGhostPiece,
 					"effectType":        host.effectType,
 					"useCascadeGravity": host.useCascadeGravity,
+					"allowHoldPiece":    host.allowHoldPiece,
 					"increaseGravity":   host.increaseGravity,
 				},
 			},
@@ -258,6 +260,11 @@ func (c *Client) handleMessage(msg Message) {
 			} else {
 				c.increaseGravity = true // Default to true if not specified
 			}
+			if holdPiece, ok := payloadMap["allowHoldPiece"].(bool); ok {
+				c.allowHoldPiece = holdPiece
+			} else {
+				c.allowHoldPiece = true // Default to true if not specified
+			}
 		}
 		// Set defaults
 		if c.name == "" {
@@ -272,8 +279,8 @@ func (c *Client) handleMessage(msg Message) {
 		// showGhostPiece and useCascadeGravity default to false (Go zero values)
 		// increaseGravity defaults to true (set above)
 
-		log.Printf("[JOIN] %s (%s) with settings: AttackMode=%s, Ghost=%v, Effect=%s, Cascade=%v, IncreaseGravity=%v",
-			c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType, c.useCascadeGravity, c.increaseGravity)
+		log.Printf("[JOIN] %s (%s) with settings: AttackMode=%s, Ghost=%v, Effect=%s, Cascade=%v, Hold=%v, IncreaseGravity=%v",
+			c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType, c.useCascadeGravity, c.allowHoldPiece, c.increaseGravity)
 
 		c.hub.mu.Lock()
 		if c.hub.waitingClient != nil {
@@ -323,6 +330,7 @@ func (c *Client) handleMessage(msg Message) {
 								"showGhostPiece":    c.showGhostPiece,
 								"effectType":        c.effectType,
 								"useCascadeGravity": c.useCascadeGravity,
+								"allowHoldPiece":    c.allowHoldPiece,
 								"increaseGravity":   c.increaseGravity,
 							},
 						},
@@ -331,8 +339,8 @@ func (c *Client) handleMessage(msg Message) {
 			}
 
 			c.hub.mu.Unlock()
-			log.Printf("[HOST] %s (%s) waiting with: attack=%s, ghost=%v, effect=%s, cascade=%v, increaseGravity=%v",
-				c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType, c.useCascadeGravity, c.increaseGravity)
+			log.Printf("[HOST] %s (%s) waiting with: attack=%s, ghost=%v, effect=%s, cascade=%v, hold=%v, increaseGravity=%v",
+				c.id, c.name, c.attackMode, c.showGhostPiece, c.effectType, c.useCascadeGravity, c.allowHoldPiece, c.increaseGravity)
 			c.send <- toJson(Message{Type: "waiting_for_opponent"})
 		}
 
@@ -362,7 +370,7 @@ func SetLogger(l Logger) {
 
 // GetVersion returns the current version of the Go library
 func GetVersion() string {
-	return "lib-v1.1.7"
+	return "lib-v1.2.0"
 }
 
 // androidWriter adapts Logger to io.Writer for standard log package

@@ -1,5 +1,6 @@
 <template>
   <div class="online-area" 
+       ref="gameContainer"
        @touchstart="handleTouchStart" 
        @touchmove="handleTouchMove" 
        @touchend="handleTouchEnd">
@@ -58,6 +59,15 @@
                     />
                     🔄 Cascade Gravity (Puyo Style)
                 </label>
+                <label class="settings-label ghost-toggle" :class="{ disabled: !onlineGame.isHost }">
+                    <input 
+                      type="checkbox" 
+                      :checked="onlineGame.allowHoldPiece" 
+                      @change="onlineGame.isHost && onlineGame.toggleHoldPiece()"
+                      :disabled="!onlineGame.isHost"
+                    />
+                    ✋ Hold Piece
+                </label>
             </div>
             
             <div class="btn-group">
@@ -73,17 +83,23 @@
         <span class="player-label">{{ playerName || 'YOU' }}</span>
         <span class="controls-hint">{{ controlsHintText }}</span>
       </div>
+
+      <!-- Mobile: Opponent info bar (full width) -->
+      <div class="mobile-opponent-bar mobile-only">
+        <span class="opp-label">Opponent: <strong>{{ onlineGame.opponentName || '???' }}</strong></span>
+        <span class="opp-score">{{ onlineGame.getOpponentScore() }}</span>
+      </div>
       
       <div class="board-wrapper" style="position: relative;">
           <PlayerBoard 
             :game="onlineGame" 
-            :showHold="true" 
+            :showHold="onlineGame.allowHoldPiece" 
             :showNext="true"
             :showGhost="onlineGame.showGhostPiece"
             playerColor="#00d4ff"
           >
             <template #under-next>
-                 <div class="mini-opponent-board">
+                 <div class="mini-opponent-board desktop-only">
                     <div class="mini-header">
                         <span class="mini-label">{{ onlineGame.opponentName || 'OPPONENT' }}</span>
                         <span class="mini-score">{{ onlineGame.getOpponentScore() }}</span>
@@ -142,7 +158,7 @@
         </div>
 
         <div v-else-if="!showNameInput && !onlineGame.isPaused" class="active-controls">
-             <button @click="emit('back')" class="home-btn small">Exit Game</button>
+             <button @click="emit('back')" class="home-btn small">Exit</button>
         </div>
       </div>
     </div>
@@ -166,7 +182,8 @@
         Pause
      </button>
      
-     <button v-if="!onlineGame.isGameOver && !onlineGame.isWinner && !onlineGame.isDraw && !showNameInput" @click="emit('back')" class="back-btn small">Quit</button>
+     
+     <!-- Quit button removed (redundant with Exit Game in player stats) -->
     </div>
 
     <!-- Remote Player (Opponent) - MOVED INTO PLAYER BOARD -->
@@ -364,12 +381,28 @@ const drawBlock = (ctx: CanvasRenderingContext2D, x: number, y: number, color: s
   ctx.fillRect(x * CELL_SIZE + p, y * CELL_SIZE + p, CELL_SIZE - p * 2, 3)
 }
 
+// Ref for auto-scroll
+const gameContainer = ref<HTMLElement | null>(null)
+
+// Check if mobile
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
 onMounted(() => {
     frameId = requestAnimationFrame(render)
     // Check local storage for name
     if (typeof localStorage !== 'undefined') {
         const saved = localStorage.getItem('tetris-username')
         if (saved) playerName.value = saved
+    }
+    
+    // Auto scroll on mobile
+    if (isMobileDevice() && gameContainer.value) {
+      setTimeout(() => {
+        gameContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      }, 300)
     }
 })
 
@@ -390,6 +423,20 @@ onUnmounted(() => {
   gap: 2rem;
   padding: 1rem;
   position: relative;
+}
+
+/* Desktop/Mobile visibility */
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: block;
+}
+
+/* Mobile opponent bar (hidden on desktop) */
+.mobile-opponent-bar {
+  display: none;
 }
 
 .name-overlay {
@@ -901,46 +948,151 @@ onUnmounted(() => {
 }
 
 /* Mobile Responsiveness */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .mobile-only {
+      display: block !important;
+  }
+
+  .desktop-only {
+      display: none !important;
+  }
+
+  /* Mobile opponent bar - full width */
+  .mobile-opponent-bar {
+      display: flex !important;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 100vw;
+      background: rgba(22, 33, 62, 0.95);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+  }
+
+  .opp-label {
+      color: #aaa;
+      font-size: 0.9rem;
+  }
+
+  .opp-label strong {
+      color: #ff6b6b;
+  }
+
+  .opp-score {
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 1.2rem;
+  }
+
   .online-area {
       flex-direction: column;
       align-items: center;
-      gap: 1rem;
-      padding-bottom: 5rem; /* Ensure bottom controls are accessible */
+      gap: 0.5rem;
+      padding: 0.25rem;
+      min-height: 100dvh;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  }
+
+  .name-overlay {
+      padding-top: 2rem;
+  }
+
+  .name-box {
+      padding: 1rem;
+      max-width: 90vw;
+  }
+
+  .name-box h2 {
+      font-size: 1.2rem;
+  }
+
+  .name-box input {
+      font-size: 1rem;
+      padding: 0.6rem;
+  }
+
+  .lan-settings {
+      padding: 0.5rem;
+      gap: 0.5rem;
+  }
+
+  .settings-label {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.8rem;
+  }
+
+  .btn-group {
+      gap: 0.5rem;
+  }
+
+  .join-btn, .cancel-btn {
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+  }
+
+  .player-section {
+      gap: 0.5rem;
+  }
+
+  .player-header {
+      padding: 0.3rem 0.5rem;
+      border-radius: 6px;
+  }
+
+  .player-label {
+      font-size: 1rem;
+  }
+
+  .controls-hint {
+      font-size: 0.7rem;
   }
 
   .board-wrapper {
-      transform: scale(0.9);
-      transform-origin: top center;
-      /* Negative margin to reduce gap caused by scaling */
-      margin-bottom: -30px; 
+      transform: none;
+      margin-bottom: 0; 
+  }
+
+  .player-stats {
+      gap: 0.1rem;
+  }
+
+  .score {
+      font-size: 1.2rem;
   }
 
   .vs-section {
-      padding-top: 1rem; /* Reduce top padding */
-      flex-direction: row; /* Horizontal VS stats */
+      padding-top: 0.5rem;
+      flex-direction: row;
       width: 100%;
       justify-content: space-around;
-      gap: 0.5rem;
+      gap: 0.3rem;
       flex-wrap: wrap;
+      min-width: auto;
   }
   
   .vs-text {
-      font-size: 1.5rem;
-      display: none; /* Hide VS text to save space */
+      font-size: 1.2rem;
   }
 
   .game-timer {
       margin: 0;
+      font-size: 1rem;
+      padding: 0.2rem 0.4rem;
   }
 
   .status-box {
       width: auto;
-      padding: 0.5rem;
+      padding: 0.3rem 0.5rem;
   }
   
   .active-controls {
-      margin-top: 0.5rem;
+      margin-top: 0.3rem;
+  }
+
+  .back-btn {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
   }
 }
 </style>

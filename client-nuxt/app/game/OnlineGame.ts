@@ -33,6 +33,7 @@ export class OnlineGame extends Game {
     showGhostPiece = true // Toggle ghost piece visibility
     effectType: EffectType = EffectType.EXPLOSION // Visual effect type
     useCascadeGravity = false // Puyo-style cascade gravity
+    allowHoldPiece = true // Toggle hold piece feature
     isHost = false // Default to false (Guest) until confirmed by server. Safe default.
 
     // Cascade Gravity State
@@ -162,6 +163,10 @@ export class OnlineGame extends Game {
                     if (payload.hostSettings.useCascadeGravity !== undefined) {
                         this.useCascadeGravity = payload.hostSettings.useCascadeGravity
                     }
+                    if (payload.hostSettings.allowHoldPiece !== undefined) {
+                        this.allowHoldPiece = payload.hostSettings.allowHoldPiece
+                        this.allowHold = payload.hostSettings.allowHoldPiece
+                    }
                     if (payload.hostSettings.increaseGravity !== undefined) {
                         console.log('[ROOM_STATUS] Syncing increaseGravity:', payload.hostSettings.increaseGravity)
                         this.increaseGravity = payload.hostSettings.increaseGravity
@@ -229,6 +234,7 @@ export class OnlineGame extends Game {
             showGhostPiece: this.showGhostPiece,
             effectType: this.effectType,
             useCascadeGravity: this.useCascadeGravity,
+            allowHoldPiece: this.allowHoldPiece,
             isHost: this.isHost
         })
         socketService.send('join_game', {
@@ -237,6 +243,7 @@ export class OnlineGame extends Game {
             showGhostPiece: this.showGhostPiece,
             effectType: this.effectType,
             useCascadeGravity: this.useCascadeGravity,
+            allowHoldPiece: this.allowHoldPiece,
             increaseGravity: this.increaseGravity
         })
     }
@@ -246,6 +253,11 @@ export class OnlineGame extends Game {
         const event = this.isPaused ? 'pause' : 'resume'
         console.log(`Sending ${event} signal`)
         socketService.send(event)
+    }
+
+    toggleHoldPiece() {
+        this.allowHoldPiece = !this.allowHoldPiece
+        this.allowHold = this.allowHoldPiece
     }
 
     toggleGhostPiece() {

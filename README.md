@@ -1,8 +1,8 @@
 # Tetris Battle
 
 <!-- Version Badges -->
-![Frontend](https://img.shields.io/badge/Frontend-v3.13.0-00DC82?logo=nuxt.js&logoColor=white)
-![Android Server](https://img.shields.io/badge/Android_Server-v1.1.7-3DDC84?logo=android&logoColor=white)
+![Frontend](https://img.shields.io/badge/Frontend-v3.14.0-00DC82?logo=nuxt.js&logoColor=white)
+![Android Server](https://img.shields.io/badge/Android_Server-v1.2.0-3DDC84?logo=android&logoColor=white)
 
 <!-- Tech Stack Badges -->
 ![Nuxt](https://img.shields.io/badge/Nuxt-4.x-00DC82?logo=nuxt.js)
@@ -62,6 +62,8 @@ go run cmd/mac-sim/main.go
 | 🎯 **Solo** | Classic Tetris gameplay |
 | ✨ **Special** | Cascade gravity with chain reactions + visual effects |
 | 🎮 **Duo** | Local 2-player mode |
+| 📡 **LAN** | Local Network Multiplayer (Android Server / Mac Sim) |
+| 🌐 **Online** | *Waiting for Server Deployment* 🚧 |
 
 ### Special Mode Features
 - **Cascade Gravity** - Blocks fall individually (Puyo-style)
@@ -79,7 +81,7 @@ go run cmd/mac-sim/main.go
 | C | Hold (Special) |
 | P | Pause |
 | 👻 Button | Toggle Ghost |
-| 🏠 Button | Back to Menu |
+| 🏠 Exit | Back to Menu |
 
 ### Mobile Controls
 - **Swipe Left/Right** - Move
@@ -234,7 +236,7 @@ Android เปิด Server, PC เชื่อมต่อเข้ามา
 
 | Role | คำอธิบาย |
 |------|----------|
-| 👑 **Host** | ผู้เล่นคนแรกที่ Join → ตั้งค่า Game Settings ได้ (Attack Mode, Ghost Piece, Cascade) |
+| 👑 **Host** | ผู้เล่นคนแรกที่ Join → ตั้งค่า Game Settings ได้ (Attack, Ghost, Cascade, **Hold Piece**) |
 | 👤 **Guest** | ผู้เล่นคนที่สอง → Settings จะ Sync มาจาก Host |
 
 ---

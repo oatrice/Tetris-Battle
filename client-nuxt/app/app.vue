@@ -5,10 +5,11 @@
     <!-- Mode Selection -->
     <div v-if="!gameMode" class="mode-select">
       <div class="mode-buttons">
-        <button @click="startSolo" class="mode-btn solo">🎯 Solo</button>
+        <button @click="startSolo" class="mode-btn solo">🎯 Normal</button>
         <button @click="startSpecial" class="mode-btn special">✨ Special</button>
         <button @click="startDuo" class="mode-btn duo">👥 Duo</button>
-        <button @click="startOnline" class="mode-btn online">🌐 Online</button>
+        <!-- <button @click="startOnline" class="mode-btn online">🌐 Online</button> -->
+        <!-- Waiting for socket server deployment -->
         <button @click="startLAN" class="mode-btn lan">📡 LAN</button>
         <button @click="showLeaderboard = true" class="mode-btn leaderboard">🏆 Leaderboard</button>
       </div>
@@ -107,8 +108,34 @@ let animationId: number | null = null
 let lastUpdate = 0
 const increaseSpeed = ref(true)
 
-const startSolo = () => {
+// Check if mobile
+const isMobile = () => {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
+// Request fullscreen for mobile
+const requestMobileFullscreen = async () => {
+  if (!isMobile()) return
+  
+  try {
+    const elem = document.documentElement
+    if (elem.requestFullscreen) {
+      await elem.requestFullscreen()
+    } else if ((elem as any).webkitRequestFullscreen) {
+      await (elem as any).webkitRequestFullscreen()
+    }
+  } catch (e) {
+    console.log('[Fullscreen] Could not enter fullscreen:', e)
+  }
+}
+
+const startSolo = async () => {
   console.log('[App] Starting Solo Mode')
+  
+  // Request fullscreen on mobile
+  await requestMobileFullscreen()
+  
   gameMode.value = 'solo'
   const game = new Game()
   game.increaseGravity = increaseSpeed.value
@@ -116,8 +143,12 @@ const startSolo = () => {
   startGameLoop()
 }
 
-const startSpecial = () => {
+const startSpecial = async () => {
   console.log('[App] Starting Special Mode')
+  
+  // Request fullscreen on mobile
+  await requestMobileFullscreen()
+  
   gameMode.value = 'special'
   const game = new SpecialGame()
   game.increaseGravity = increaseSpeed.value
@@ -134,8 +165,12 @@ const startDuo = () => {
   startGameLoop()
 }
 
-const startOnline = () => {
+const startOnline = async () => {
     console.log('[App] Starting Online Mode')
+    
+    // Request fullscreen on mobile
+    await requestMobileFullscreen()
+    
     gameMode.value = 'online'
     const game = reactive(new OnlineGame()) as any
     game.increaseGravity = increaseSpeed.value
@@ -154,8 +189,12 @@ const startOnline = () => {
     })
 }
 
-const startLAN = () => {
+const startLAN = async () => {
   console.log('[App] Starting LAN Mode')
+  
+  // Request fullscreen on mobile
+  await requestMobileFullscreen()
+  
   gameMode.value = 'lan'
   onlineGame.value = null // Reset until user connects
   lanError.value = ''
@@ -404,7 +443,7 @@ h1 {
 
 .mode-btn.lan {
   background: linear-gradient(135deg, #11998e, #38ef7d);
-  color: #1a1a2e;
+  color: white;
 }
 
 .mode-btn:hover {
@@ -414,7 +453,7 @@ h1 {
 
 .mode-btn.leaderboard {
   background: linear-gradient(135deg, #ffd700, #ffaa00);
-  color: #1a1a2e;
+  color: white;
   grid-column: span 2;
 }
 
