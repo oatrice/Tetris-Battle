@@ -6,6 +6,21 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  app: {
+    head: {
+      title: 'Tetris Battle',
+      meta: [
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'theme-color', content: '#0f0c29' }
+      ],
+      link: [
+        { rel: 'apple-touch-icon', href: '/pwa-192x192.png' }
+      ]
+    }
+  },
+
   runtimeConfig: {
     public: {
       appVersion: pkg.version,
@@ -18,6 +33,43 @@ export default defineNuxtConfig({
     server: {
       allowedHosts: true  // Allow ngrok and other tunnels
     }
+  },
+
+  modules: ['@vite-pwa/nuxt'],
+
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: {
+      name: 'Tetris Battle',
+      short_name: 'Tetris',
+      description: 'Competitive Tetris Battle Game',
+      theme_color: '#0f0c29',
+      background_color: '#0f0c29',
+      display: 'standalone',
+      orientation: 'portrait',
+      icons: [
+        {
+          src: 'pwa-192x192.png',
+          sizes: '192x192',
+          type: 'image/png'
+        },
+        {
+          src: 'pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png'
+        }
+      ]
+    },
+    workbox: {
+      globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+      cleanupOutdatedCaches: true
+    },
+    devOptions: {
+      enabled: true,
+      suppressWarnings: true,
+      navigateFallback: '/',
+      type: 'module',
+    },
   },
 
   css: ['~/assets/css/global.css']
