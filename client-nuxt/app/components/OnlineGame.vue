@@ -782,6 +782,7 @@ onUnmounted(() => {
     animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+
 .paused-text {
     font-size: 3rem;
     color: #00d4ff;
@@ -792,6 +793,21 @@ onUnmounted(() => {
 .sub-text {
     font-size: 1rem;
     color: #aaa;
+}
+
+/* Fallback Fullscreen for iOS Safari */
+.online-area.force-fullscreen {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 9999;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  margin: 0;
+  padding: 0.5rem;
+  overflow-y: auto;
+  align-items: center;
 }
 
 @keyframes pop {

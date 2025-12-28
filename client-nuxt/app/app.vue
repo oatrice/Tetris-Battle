@@ -40,7 +40,7 @@
     </div>
 
     <!-- Duo Mode -->
-    <div v-else-if="gameMode === 'duo'" class="duo-area">
+    <div v-else-if="gameMode === 'duo'" class="duo-area" :class="{ 'force-fullscreen': isFullscreen }">
       <DuoGameComponent 
         :duoGame="duoGame!" 
         @restart="restartDuo" 
@@ -50,7 +50,7 @@
     </div>
 
     <!-- Online Mode -->
-    <div v-else-if="gameMode === 'online'" class="online-area">
+    <div v-else-if="gameMode === 'online'" class="online-area" :class="{ 'force-fullscreen': isFullscreen }">
       <OnlineGameComponent 
         :onlineGame="onlineGame!" 
         mode="online"
@@ -59,7 +59,7 @@
     </div>
 
     <!-- LAN Mode -->
-    <div v-else-if="gameMode === 'lan'" class="lan-area">
+    <div v-else-if="gameMode === 'lan'" class="lan-area" :class="{ 'force-fullscreen': isFullscreen }">
       <LANGameComponent 
         v-if="!onlineGame"
         :connected="!!onlineGame"
@@ -108,6 +108,9 @@ let animationId: number | null = null
 let lastUpdate = 0
 const increaseSpeed = ref(true)
 
+// Fullscreen state
+const isFullscreen = ref(false)
+
 // Check if mobile
 const isMobile = () => {
   if (typeof window === 'undefined') return false
@@ -120,13 +123,31 @@ const requestMobileFullscreen = async () => {
   
   try {
     const elem = document.documentElement
+    let succeeded = false
+
     if (elem.requestFullscreen) {
-      await elem.requestFullscreen()
+      try {
+        await elem.requestFullscreen()
+        succeeded = true
+      } catch (e) {
+        console.log('[Fullscreen] Standard API failed')
+      }
     } else if ((elem as any).webkitRequestFullscreen) {
-      await (elem as any).webkitRequestFullscreen()
+      try {
+        await (elem as any).webkitRequestFullscreen()
+        succeeded = true
+      } catch (e) {
+        console.log('[Fullscreen] Webkit API failed')
+      }
     }
+
+    // Always trigger CSS fallback for consistent experience on mobile
+    isFullscreen.value = true
+    
   } catch (e) {
     console.log('[Fullscreen] Could not enter fullscreen:', e)
+    // Fallback
+    isFullscreen.value = true
   }
 }
 
@@ -566,5 +587,21 @@ h1 {
   .mode-btn.duo {
     display: none;
   }
+}
+
+/* Fallback Fullscreen for iOS Safari (Global) */
+.force-fullscreen {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 9999;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  margin: 0;
+  padding: 0 !important;
+  overflow-y: auto;
+  align-items: center;
+  justify-content: center;
 }
 </style>

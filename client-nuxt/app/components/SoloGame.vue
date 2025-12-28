@@ -1,5 +1,5 @@
 <template>
-  <div class="solo-game" ref="gameContainer">
+  <div class="solo-game" ref="gameContainer" :class="{ 'force-fullscreen': isFullscreen }">
     <div class="game-layout">
       <!-- Mobile 1: Mode Label -->
       <div class="mode-label mobile-only" :class="{ special: isSpecialMode }">
@@ -465,21 +465,33 @@ const toggleFullscreen = async () => {
     } else {
       // Enter fullscreen
       const elem = document.documentElement
+      let succeeded = false
+
       if (elem.requestFullscreen) {
-        await elem.requestFullscreen()
-        isFullscreen.value = true
-        // Scroll to game board after fullscreen
-        setTimeout(() => {
-          gameContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-        }, 300)
+        try {
+            await elem.requestFullscreen()
+            succeeded = true
+        } catch (e) {
+            console.log('[Fullscreen] Standard API failed, trying fallback')
+        }
       } else if ((elem as any).webkitRequestFullscreen) {
-        await (elem as any).webkitRequestFullscreen()
-        isFullscreen.value = true
-        // Scroll to game board after fullscreen
-        setTimeout(() => {
-          gameContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-        }, 300)
+         try {
+            await (elem as any).webkitRequestFullscreen()
+            succeeded = true
+         } catch (e) {
+            console.log('[Fullscreen] Webkit API failed, trying fallback')
+         }
       }
+      
+      // Always set isFullscreen to true to trigger CSS fallback class
+      // This ensures Safari iOS (which often lacks API or requires specific conditions)
+      // still gets the 'fullscreen-like' UI via CSS.
+      isFullscreen.value = true
+      
+      // Scroll to game board after fullscreen
+      setTimeout(() => {
+        gameContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      }, 300)
     }
   } catch (e) {
     console.log('[Fullscreen] Error:', e)
@@ -516,6 +528,7 @@ onMounted(() => {
   position: relative;
 }
 
+
 /* Fullscreen Toast */
 .fullscreen-toast {
   position: fixed;
@@ -532,6 +545,21 @@ onMounted(() => {
   box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
   animation: pulse-toast 1s ease-in-out infinite alternate;
   cursor: pointer;
+}
+
+/* Force Fullscreen Mode (Safari iOS Fallback) */
+.solo-game.force-fullscreen {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh; /* Use dynamic viewport height for mobile */
+  z-index: 9999;
+  background: #0f0c29;
+  margin: 0;
+  padding: 0.5rem;
+  overflow-y: auto; /* Allow scrolling content if needed */
+  align-items: center; /* Center content vertically */
 }
 
 @keyframes pulse-toast {
