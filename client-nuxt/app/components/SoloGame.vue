@@ -499,7 +499,7 @@ onMounted(() => {
 .solo-game {
   display: flex;
   justify-content: center;
-  min-height: 100vh;
+  /* min-height: 100vh; */
   align-items: flex-start;
   padding-top: 0.5rem;
   position: relative;
@@ -1067,6 +1067,7 @@ button {
     align-items: center;
     justify-self: stretch; /* STRETCH TO FILL GRID CELL */
     margin: 0;
+    margin-top: 0.5rem; /* Added margin */
     z-index: 10;
   }
 
@@ -1082,7 +1083,8 @@ button {
     align-items: flex-start;
     justify-content: center;
     padding: 0;
-    margin: 0; /* Reset */
+    margin: 0;
+    margin-top: 0.5rem; /* Added margin */
     overflow: hidden;
   }
 
