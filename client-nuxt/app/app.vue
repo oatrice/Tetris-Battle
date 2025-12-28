@@ -34,6 +34,7 @@
     <!-- Version Info at Bottom -->
     <VersionInfo v-if="!gameMode" :showDetails="true" class="home-version" />
 
+
     <!-- Solo Mode -->
     <div v-else-if="gameMode === 'solo' || gameMode === 'special'" class="game-area">
       <SoloGame :game="soloGame!" @restart="restartGame" @back="backToMenu" :isSpecialMode="gameMode === 'special'" />
@@ -74,6 +75,8 @@
         @back="backToMenu" 
       />
     </div>
+    
+    <InstallPwa />
   </div>
 </template>
 
@@ -90,6 +93,7 @@ const OnlineGameComponent = defineAsyncComponent(() => import('~/components/Onli
 const LANGameComponent = defineAsyncComponent(() => import('~/components/LANGame.vue'))
 const VersionInfo = defineAsyncComponent(() => import('~/components/VersionInfo.vue'))
 const Leaderboard = defineAsyncComponent(() => import('~/components/Leaderboard.vue'))
+const InstallPwa = defineAsyncComponent(() => import('~/components/InstallPwa.vue'))
 
 type GameMode = 'solo' | 'special' | 'duo' | 'online' | 'lan' | null
 
