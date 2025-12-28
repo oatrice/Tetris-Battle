@@ -425,6 +425,21 @@ const connectToLAN = () => {
   min-height: 400px;
 }
 
+/* Fallback Fullscreen for iOS Safari */
+.lan-area.force-fullscreen {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 9999;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  margin: 0;
+  padding: 1rem;
+  overflow-y: auto;
+  justify-content: center;
+}
+
 .lan-menu {
   display: flex;
   flex-direction: column;

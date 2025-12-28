@@ -39,9 +39,10 @@ export class InputHandler {
     private touchStartTime: number = 0
     private touchMoved: boolean = false
 
-    private readonly SWIPE_THRESHOLD = 10  // Lower = faster DAS movement
+    private readonly SWIPE_THRESHOLD = 15  // Lower = faster DAS movement
     private readonly TAP_THRESHOLD = 10
     private readonly LONG_PRESS_THRESHOLD = 200 // ms
+    private readonly VERTICAL_RATIO = 1.5  // Vertical swipe must be 1.5x stronger than horizontal drift
 
     /**
      * Handle keyboard input
@@ -116,15 +117,16 @@ export class InputHandler {
         }
 
         // SWIPE detection
-        if (Math.abs(dx) > Math.abs(dy)) {
-            // Horizontal Swipe
-            if (Math.abs(dx) > this.SWIPE_THRESHOLD) {
-                return dx > 0 ? GameAction.MOVE_RIGHT : GameAction.MOVE_LEFT
-            }
-        } else {
+        // Prioritize Horizontal unless Vertical is significantly dominant (to prevent accidental drops)
+        if (Math.abs(dy) > Math.abs(dx) * this.VERTICAL_RATIO) {
             // Vertical Swipe
             if (Math.abs(dy) > this.SWIPE_THRESHOLD) {
                 return dy > 0 ? GameAction.HARD_DROP : GameAction.HOLD
+            }
+        } else {
+            // Horizontal Swipe (Default if not strongly vertical)
+            if (Math.abs(dx) > this.SWIPE_THRESHOLD) {
+                return dx > 0 ? GameAction.MOVE_RIGHT : GameAction.MOVE_LEFT
             }
         }
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.15.0] - 2025-12-28
+
+### Added
+- **PWA Install Prompt**: Users can now install the application as a Progressive Web App (PWA) directly from their browser. A prompt will appear on supported browsers, allowing for a native-like app experience.
+
+### Changed
+- **Game Logic Enhancements**: Minor adjustments to game logic for better performance and stability.
+
 ## [3.14.0] - 2025-12-28
 
 ### Added

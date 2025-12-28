@@ -782,6 +782,7 @@ onUnmounted(() => {
     animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+
 .paused-text {
     font-size: 3rem;
     color: #00d4ff;
@@ -792,6 +793,21 @@ onUnmounted(() => {
 .sub-text {
     font-size: 1rem;
     color: #aaa;
+}
+
+/* Fallback Fullscreen for iOS Safari */
+.online-area.force-fullscreen {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 9999;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  margin: 0;
+  padding: 0.5rem;
+  overflow-y: auto;
+  align-items: center;
 }
 
 @keyframes pop {
@@ -985,13 +1001,19 @@ onUnmounted(() => {
       font-size: 1.2rem;
   }
 
+
+  /* MAIN MOBILE CONTAINER */
   .online-area {
       flex-direction: column;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.25rem;
-      min-height: 100dvh;
-      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      justify-content: flex-start;
+      gap: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100%; /* Changed from 100dvh */
+      overflow: hidden;
+      background: #0f0c29;
+      position: relative;
   }
 
   .name-overlay {
@@ -1031,68 +1053,117 @@ onUnmounted(() => {
       font-size: 0.9rem;
   }
 
+  /* Player Section - Full Height */
   .player-section {
-      gap: 0.5rem;
+      width: 100%;
+      height: 100%;
+      gap: 0;
+      display: grid;
+      grid-template-rows: auto 1fr; /* Top Bar, Board */
   }
 
   .player-header {
-      padding: 0.3rem 0.5rem;
-      border-radius: 6px;
+      display: none;
   }
 
-  .player-label {
-      font-size: 1rem;
-  }
-
-  .controls-hint {
-      font-size: 0.7rem;
-  }
-
+  /* Board - Maximize */
   .board-wrapper {
       transform: none;
-      margin-bottom: 0; 
-  }
-
-  .player-stats {
-      gap: 0.1rem;
-  }
-
-  .score {
-      font-size: 1.2rem;
-  }
-
-  .vs-section {
-      padding-top: 0.5rem;
-      flex-direction: row;
-      width: 100%;
-      justify-content: space-around;
-      gap: 0.3rem;
-      flex-wrap: wrap;
-      min-width: auto;
-  }
-  
-  .vs-text {
-      font-size: 1.2rem;
-  }
-
-  .game-timer {
       margin: 0;
-      font-size: 1rem;
-      padding: 0.2rem 0.4rem;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
   }
 
-  .status-box {
-      width: auto;
-      padding: 0.3rem 0.5rem;
+  /* Stats Overlay -> Converted to Top Bar 1:1 with Pause */
+  /* Stats Overlay -> Converted to Top Bar 1:1 with Pause */
+  .player-stats {
+      grid-row: 1;
+      width: 100%;
+      height: 28px; /* TINY HEIGHT MATCH SOLO */
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0;
+      background: transparent;
+      gap: 0.3rem; /* Matched Gap */
+      z-index: 50;
+      margin-bottom: 0.3rem; /* Matched Spacing */
   }
   
+  /* Reuse stats container for score */
+  .player-stats span {
+    display: none; /* Hide default span texts */
+  }
+  
+  .player-stats .score {
+    display: flex;
+    flex: 1;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #ffd700;
+    font-size: 0.75rem; /* Match Solo */
+    font-weight: bold;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    border-radius: 4px;
+    height: 100%;
+  }
+  
+  /* Active Controls (Pause Button container) */
   .active-controls {
-      margin-top: 0.3rem;
+    flex: 1;
+    margin: 0;
+    height: 100%;
+    display: flex;
   }
 
-  .back-btn {
-      padding: 0.4rem 0.8rem;
-      font-size: 0.8rem;
+  .active-controls .home-btn {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      border: none;
+      font-size: 0.7rem; /* Smaller font */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      border-radius: 4px;
+      padding: 0;
+  }
+  
+  /* Hide unwanted sections */
+  .vs-section, 
+  .mobile-opponent-bar,
+  .winner-controls {
+     display: none; /* Or minimal overlay if needed */
+  }
+  
+  /* If game over/winner, show winner controls as overlay */
+  .player-stats:has(.winner-controls) {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      height: auto;
+      background: rgba(0,0,0,0.9);
+      flex-direction: column;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid #ffd700;
+  }
+  
+  .player-stats:has(.winner-controls) .winner-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
   }
 }
 </style>
