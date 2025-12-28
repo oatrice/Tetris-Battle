@@ -192,5 +192,24 @@ describe('InputHandler', () => {
                 expect(handler.handleTouchEnd(end as unknown as TouchEvent)).toBe(GameAction.HARD_DROP)
             })
         })
+        describe('Sensitivity Adjustments', () => {
+            it('should prioritize horizontal swipe when vertical drift is present but not dominant', () => {
+                // User moves Right 30px, Down 35px.
+                // dy (35) is NOT > dx (30) * 1.5 (45) => Should fall back to Horizontal logic
+                const { start, end } = createTouchEvents(100, 100, 130, 135)
+
+                handler.handleTouchStart(start)
+                expect(handler.handleTouchEnd(end)).toBe(GameAction.MOVE_RIGHT)
+            })
+
+            it('should still recognize valid vertical swipe when dominant', () => {
+                // User moves Right 10px, Down 50px.
+                // dy (50) > dx (10) * 1.5 (15) => Vertical
+                const { start, end } = createTouchEvents(100, 100, 110, 150)
+
+                handler.handleTouchStart(start)
+                expect(handler.handleTouchEnd(end)).toBe(GameAction.HARD_DROP)
+            })
+        })
     })
 })
