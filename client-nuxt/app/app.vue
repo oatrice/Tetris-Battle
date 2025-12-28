@@ -164,8 +164,12 @@ const startDuo = () => {
   startGameLoop()
 }
 
-const startOnline = () => {
+const startOnline = async () => {
     console.log('[App] Starting Online Mode')
+    
+    // Request fullscreen on mobile
+    await requestMobileFullscreen()
+    
     gameMode.value = 'online'
     const game = reactive(new OnlineGame()) as any
     game.increaseGravity = increaseSpeed.value
@@ -184,8 +188,12 @@ const startOnline = () => {
     })
 }
 
-const startLAN = () => {
+const startLAN = async () => {
   console.log('[App] Starting LAN Mode')
+  
+  // Request fullscreen on mobile
+  await requestMobileFullscreen()
+  
   gameMode.value = 'lan'
   onlineGame.value = null // Reset until user connects
   lanError.value = ''
