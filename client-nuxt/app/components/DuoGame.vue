@@ -9,7 +9,7 @@
         <div class="player-section">
             <div class="player-header p1">
                 <span class="player-label">P1</span>
-                <span class="controls-hint">WASD + Q/E</span>
+                <span class="controls-hint">{{ p1ControlsHint }}</span>
             </div>
             <PlayerBoard 
                 :game="duoGame.player1" 
@@ -82,7 +82,7 @@
         <div class="player-section">
             <div class="player-header p2">
                 <span class="player-label">P2</span>
-                <span class="controls-hint">←→↓↑ + ,/.</span>
+                <span class="controls-hint">{{ p2ControlsHint }}</span>
             </div>
             <PlayerBoard 
                 :game="duoGame.player2" 
@@ -101,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { DuoGame } from '~/game/DuoGame'
 import PlayerBoard from '~/components/PlayerBoard.vue'
 import { DuoStatsService } from '~/services/DuoStatsService'
@@ -114,6 +114,21 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['restart', 'back', 'show-leaderboard'])
+
+// Detect mobile device for controls hint
+const isMobile = computed(() => {
+    if (typeof navigator === 'undefined') return false
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+})
+
+// Controls hint text based on device (P1 and P2 have different zones)
+const p1ControlsHint = computed(() => {
+    return isMobile.value ? 'Swipe ←→↑↓' : 'WASD + Q/E'
+})
+
+const p2ControlsHint = computed(() => {
+    return isMobile.value ? 'Swipe ←→↑↓' : '←→↓↑ + ,/.'
+})
 
 const p1Controls = useTouchControls(
     () => props.duoGame.player1,

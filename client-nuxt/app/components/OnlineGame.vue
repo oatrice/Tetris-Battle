@@ -71,7 +71,7 @@
     <div class="player-section">
       <div class="player-header p1">
         <span class="player-label">{{ playerName || 'YOU' }}</span>
-        <span class="controls-hint">WASD + Q/E or Arrows</span>
+        <span class="controls-hint">{{ controlsHintText }}</span>
       </div>
       
       <div class="board-wrapper" style="position: relative;">
@@ -195,6 +195,17 @@ const playerName = ref('')
 
 const matchSaved = ref(false)
 const savedMatchId = ref<string | null>(null) // To track the ID of saved match
+
+// Detect mobile device for controls hint
+const isMobile = computed(() => {
+    if (typeof navigator === 'undefined') return false
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+})
+
+// Controls hint text based on device
+const controlsHintText = computed(() => {
+    return isMobile.value ? 'Swipe ←→↑↓' : 'WASD + Q/E or Arrows'
+})
 
 // Computed state for waiting for opponent
 const isWaiting = computed(() => !showNameInput.value && !props.onlineGame.isOpponentConnected && !props.onlineGame.isWinner && !props.onlineGame.isGameOver)
