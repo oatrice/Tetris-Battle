@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.14.0] - 2025-12-28
+
+### Added
+- **Allow Hold Piece Setting**: Host can now toggle the "Hold Piece" feature (Settings -> ✋ Hold Piece). This setting is synchronized to all players in the room.
+
+### Changed
+- **Exit UI Streamlined**: Renamed "Exit Game" to "Exit" and removed redundant "Quit" button in Online/LAN mode for a cleaner interface.
+- **Online Mode Disabled**: "Online" button is temporarily disabled in the main menu while waiting for the socket server deployment.
+- **Mobile UI**: Improved hold/next piece panel layout on mobile screens.
+
 ## [3.13.0] - 2025-12-27
 
 ### Added
