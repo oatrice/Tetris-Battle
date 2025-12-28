@@ -32,6 +32,8 @@ export class Game {
     protected pieceQueue: TetrominoType[]
     protected holdUsedThisTurn: boolean
     protected dropTimer: number = 0
+    protected lockTimer: number = 0
+    protected readonly LOCK_DELAY_MS = 500
     public increaseGravity: boolean = true
 
     constructor() {
@@ -76,6 +78,10 @@ export class Game {
             this.isGameOver = true
         }
 
+        // Reset counters
+        this.dropTimer = 0
+        this.lockTimer = 0
+
         return piece
     }
 
@@ -103,6 +109,9 @@ export class Game {
         this.currentPiece.move(dx, dy)
 
         if (this.canPlacePiece(this.currentPiece)) {
+            // If move successful, reset lock timer (Extended Lock Delay behavior)
+            // But only if we are moving? Actually user requested delay *before* locking.
+            // Standard behavior: any successful movement resets lock delay (up to a limit, but we'll keep it simple infinite for now as per request)
             return true
         }
 
@@ -140,10 +149,8 @@ export class Game {
             if (isSoftDrop) {
                 this.score += SCORE_SOFT_DROP
             }
-        } else {
-            // Piece can't move down, lock it
-            this.lockPiece()
         }
+        // [CHANGE] Removed automatic locking here. Locking is now handled in update() with delay.
 
         return moved
     }
@@ -171,6 +178,7 @@ export class Game {
 
         // Reset hold lock
         this.holdUsedThisTurn = false
+        this.lockTimer = 0 // Reset lock timer
 
         // Check if new current piece can be placed (game over)
         if (!this.canPlacePiece(this.currentPiece)) {
@@ -187,6 +195,7 @@ export class Game {
         if (this.holdUsedThisTurn) return // Can only hold once per turn
 
         this.holdUsedThisTurn = true
+        this.lockTimer = 0 // Reset lock timer when holding
 
         if (this.heldPiece === null) {
             // No held piece - store current, get next
@@ -198,6 +207,9 @@ export class Game {
             const tempType = this.currentPiece.type
             this.currentPiece = new Tetromino(this.heldPiece.type)
             this.heldPiece = new Tetromino(tempType)
+            // Reset position of swapped piece
+            this.currentPiece.x = 3
+            this.currentPiece.y = 0
         }
     }
 
@@ -315,7 +327,24 @@ export class Game {
 
         if (this.dropTimer >= interval) {
             this.moveDown()
-            this.dropTimer = 0 // Reset timer to avoid accumulating multiple drops in one frame (prevent unwanted catch-up)
+            this.dropTimer = 0 // Reset timer
+        }
+
+        // Check if piece is on ground (cannot move down)
+        // Check collision without moving
+        const testPiece = this.currentPiece.clone()
+        testPiece.move(0, 1)
+        const canMoveDown = this.canPlacePiece(testPiece)
+
+        if (!canMoveDown) {
+            // Piece is on ground, increment lock timer
+            this.lockTimer += deltaTime
+            if (this.lockTimer >= this.LOCK_DELAY_MS) {
+                this.lockPiece()
+            }
+        } else {
+            // Piece is floating, reset lock timer
+            this.lockTimer = 0
         }
     }
 }
