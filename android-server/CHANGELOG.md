@@ -2,6 +2,24 @@
 
 All notable changes to the Android Server App project will be documented in this file.
 
+## [1.2.0] - 2025-12-28
+
+## [1.2.0] - 2025-12-28
+
+### Added
+- **'Allow Hold Piece' Game Setting:** Introduced a new game setting that allows players to enable or disable the hold piece feature. This setting is now configurable by the host and synchronized to guests.
+- **Enhanced Game Settings Synchronization:** All game settings (attack mode, ghost piece visibility, effect type, cascade gravity, hold piece, and gravity increase) are now consistently synchronized between the host and guests.
+
+### Fixed
+- **Version Mismatch:** Addressed an issue where the server version might not be correctly reported, ensuring accurate versioning for the Go library.
+
+### Changed
+- **Log Verbosity:** Increased the detail in server logs to include all relevant game settings when a client joins or a host sets up a room.
+- **LAN Connection Headers:** Added `Access-Control-Allow-Methods` and `Access-Control-Allow-Private-Network` headers to the version endpoint to improve compatibility with local network connections and development environments.
+
+### Note
+- The `CHANGELOG.md` in `android-server/` has been updated to reflect the new version `1.1.7` for the Android library, which includes the `increaseGravity` setting synchronization and other improvements. This is a precursor to the `1.2.0` release of the Go server.
+
 ## [1.1.7] - 2025-12-27
 
 ### Added
