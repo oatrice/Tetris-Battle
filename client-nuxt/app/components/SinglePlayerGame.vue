@@ -24,7 +24,7 @@
         
         <!-- Desktop: Stats & Effect & Controls -->
         <div class="stats desktop-only">
-          <p class="score">{{ game.score }}</p>
+          <p class="score">{{ game.score.toLocaleString() }}</p>
           <p>Level {{ game.level }}</p>
           <p>Lines {{ game.linesCleared }}</p>
           <p v-if="isSpecialMode && 'chainCount' in game && (game as any).chainCount > 0" class="chain">
@@ -60,7 +60,7 @@
       <!-- Left: Score Box (50%) -->
       <div class="stats-box mobile-only">
           <span class="score-label">SCORE</span>
-          <span class="score-value">{{ game.score }}</span>
+          <span class="score-value">{{ game.score.toLocaleString() }}</span>
       </div>
 
       <!-- Right: Pause Button (50%) -->
