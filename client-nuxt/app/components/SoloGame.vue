@@ -306,6 +306,26 @@ watch(() => props.game.isPaused, (isPaused) => {
     }
 })
 
+// Auto-pause when switching tabs
+const handleVisibilityChange = () => {
+    if (document.hidden && !props.game.isPaused && !props.game.isGameOver) {
+        props.game.togglePause()
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    // Existing logic...
+    if (props.isSpecialMode) {
+       // ...
+    }
+})
+
+onUnmounted(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
+
 // Clear save when game over
 watch(() => props.game.isGameOver, (isOver) => {
     if (isOver) {
