@@ -121,16 +121,23 @@ export class LeaderboardService {
     }
 
     private static async uploadScoreToFirestore(entry: LeaderboardEntry, mode: GameMode) {
-        if (!db) return
+        if (!db) {
+            console.warn('[Leaderboard] Firestore not initialized')
+            return
+        }
         try {
+            console.log(`[Leaderboard] Attempting to upload to leaderboard_${mode}...`, entry)
             const colRef = collection(db, `leaderboard_${mode}`)
-            await addDoc(colRef, {
+            const docRef = await addDoc(colRef, {
                 ...entry,
                 createdAt: serverTimestamp()
             })
-            console.log(`[Leaderboard] Uploaded score to leaderboard_${mode}`)
+            console.log(`[Leaderboard] ✅ Success! Document written with ID: ${docRef.id} to leaderboard_${mode}`)
         } catch (e) {
-            console.error('[Leaderboard] Firestore Error:', e)
+            console.error(`[Leaderboard] ❌ Firestore Error (leaderboard_${mode}):`, e)
+            if (e instanceof Error) {
+                console.error('Error details:', e.message, e.stack)
+            }
         }
     }
 
@@ -232,15 +239,20 @@ export class LeaderboardService {
     }
 
     private static async uploadDuoMatchToFirestore(match: DuoMatchResult) {
-        if (!db) return
+        if (!db) {
+            console.warn('[Leaderboard] Firestore not initialized (Duo)')
+            return
+        }
         try {
+            console.log('[Leaderboard] Uploading Duo Match...', match)
             const colRef = collection(db, 'leaderboard_duo_matches')
-            await addDoc(colRef, {
+            const docRef = await addDoc(colRef, {
                 ...match,
                 createdAt: serverTimestamp()
             })
+            console.log(`[Leaderboard] ✅ Duo Match uploaded! ID: ${docRef.id}`)
         } catch (e) {
-            console.error('[Leaderboard] Duo Upload Error:', e)
+            console.error('[Leaderboard] ❌ Duo Upload Error:', e)
         }
     }
 
@@ -284,15 +296,20 @@ export class LeaderboardService {
     }
 
     private static async uploadOnlineMatchToFirestore(match: OnlineMatchResult) {
-        if (!db) return
+        if (!db) {
+            console.warn('[Leaderboard] Firestore not initialized (Online)')
+            return
+        }
         try {
+            console.log('[Leaderboard] Uploading Online Match...', match)
             const colRef = collection(db, 'leaderboard_online_matches')
-            await addDoc(colRef, {
+            const docRef = await addDoc(colRef, {
                 ...match,
                 createdAt: serverTimestamp()
             })
+            console.log(`[Leaderboard] ✅ Online Match uploaded! ID: ${docRef.id}`)
         } catch (e) {
-            console.error('[Leaderboard] Online Upload Error:', e)
+            console.error('[Leaderboard] ❌ Online Upload Error:', e)
         }
     }
 
