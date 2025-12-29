@@ -7,6 +7,9 @@
  * - Sort by score descending
  */
 
+import { db } from '~/firebase'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+
 export type GameMode = 'solo' | 'special' | 'duo' | 'online'
 
 export interface LeaderboardEntry {
@@ -109,7 +112,25 @@ export class LeaderboardService {
         }
 
         localStorage.setItem(this.getStorageKey(mode), JSON.stringify(leaderboard))
+
+        // Fire & Forget upload to Firestore
+        this.uploadScoreToFirestore(newEntry, mode).catch(err => console.error('[Leaderboard] Upload failed', err))
+
         return { rank, id }
+    }
+
+    private static async uploadScoreToFirestore(entry: LeaderboardEntry, mode: GameMode) {
+        if (!db) return
+        try {
+            const colRef = collection(db, `leaderboard_${mode}`)
+            await addDoc(colRef, {
+                ...entry,
+                createdAt: serverTimestamp()
+            })
+            console.log(`[Leaderboard] Uploaded score to leaderboard_${mode}`)
+        } catch (e) {
+            console.error('[Leaderboard] Firestore Error:', e)
+        }
     }
 
     /**
@@ -202,7 +223,24 @@ export class LeaderboardService {
         }
 
         localStorage.setItem(this.STORAGE_KEY_DUO_SESSIONS, JSON.stringify(history))
+
+        // Upload
+        this.uploadDuoMatchToFirestore(newMatch).catch(console.error)
+
         return newMatch
+    }
+
+    private static async uploadDuoMatchToFirestore(match: DuoMatchResult) {
+        if (!db) return
+        try {
+            const colRef = collection(db, 'leaderboard_duo_matches')
+            await addDoc(colRef, {
+                ...match,
+                createdAt: serverTimestamp()
+            })
+        } catch (e) {
+            console.error('[Leaderboard] Duo Upload Error:', e)
+        }
     }
 
     // ==========================================
@@ -237,7 +275,24 @@ export class LeaderboardService {
         }
 
         localStorage.setItem(this.STORAGE_KEY_ONLINE_MATCHES, JSON.stringify(history))
+
+        // Upload
+        this.uploadOnlineMatchToFirestore(newMatch).catch(console.error)
+
         return newMatch
+    }
+
+    private static async uploadOnlineMatchToFirestore(match: OnlineMatchResult) {
+        if (!db) return
+        try {
+            const colRef = collection(db, 'leaderboard_online_matches')
+            await addDoc(colRef, {
+                ...match,
+                createdAt: serverTimestamp()
+            })
+        } catch (e) {
+            console.error('[Leaderboard] Online Upload Error:', e)
+        }
     }
 
     static updateOnlineMatch(id: string, updates: Partial<Omit<OnlineMatchResult, 'id'>>): boolean {
