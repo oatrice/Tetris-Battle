@@ -1,20 +1,19 @@
-
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import SoloGame from './SoloGame.vue'
+import SinglePlayerGame from './SinglePlayerGame.vue'
 import { Game } from '~/game/Game'
 
 // Mock MiniPiece and Leaderboard to avoid rendering issues
 const MiniPiece = { template: '<div></div>' }
 const Leaderboard = { template: '<div></div>' }
 
-describe('SoloGame Layout', () => {
+describe('SinglePlayerGame Layout', () => {
     it('shows Resume and Back buttons INSIDE the board overlay when PAUSED', async () => {
         const game = new Game()
         game.isPaused = true
         game.isGameOver = false
 
-        const wrapper = mount(SoloGame, {
+        const wrapper = mount(SinglePlayerGame, {
             props: { game },
             global: {
                 stubs: { MiniPiece, Leaderboard }
@@ -37,7 +36,7 @@ describe('SoloGame Layout', () => {
         expect(backBtn.exists()).toBe(true)
     })
 
-    // SoloGame doesn't have "You Win" generally (unless maybe special mode?), 
+    // SinglePlayerGame doesn't have "You Win" generally (unless maybe special mode?), 
     // but it has "Game Over".
     // "Game Over" overlay already exists. We need to check if "Back to Menu" is inside it.
     it('shows Back button INSIDE the board overlay when GAME OVER', async () => {
@@ -45,7 +44,7 @@ describe('SoloGame Layout', () => {
         game.isPaused = false
         game.isGameOver = true
 
-        const wrapper = mount(SoloGame, {
+        const wrapper = mount(SinglePlayerGame, {
             props: { game },
             global: {
                 stubs: { MiniPiece, Leaderboard }

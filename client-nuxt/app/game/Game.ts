@@ -298,6 +298,100 @@ export class Game {
     }
 
     /**
+     * Data structure for saved game state
+     */
+    serialize(): any {
+        return {
+            score: this.score,
+            level: this.level,
+            linesCleared: this.linesCleared,
+            isGameOver: this.isGameOver,
+            isPaused: this.isPaused, // Should save as true usually? Or keep current state.
+            allowHold: this.allowHold,
+            heldPiece: this.heldPiece ? {
+                type: this.heldPiece.type,
+                x: this.heldPiece.x,
+                y: this.heldPiece.y,
+                rotationIndex: this.heldPiece.rotationIndex
+            } : null,
+            currentPiece: {
+                type: this.currentPiece.type,
+                x: this.currentPiece.x,
+                y: this.currentPiece.y,
+                rotationIndex: this.currentPiece.rotationIndex
+            },
+            nextPiece: {
+                type: this.nextPiece.type,
+                x: this.nextPiece.x,
+                y: this.nextPiece.y,
+                rotationIndex: this.nextPiece.rotationIndex
+            },
+            board: this.board.grid, // 2D number array is serializable
+            pieceQueue: this.pieceQueue,
+            holdUsedThisTurn: this.holdUsedThisTurn,
+            dropTimer: this.dropTimer,
+            lockTimer: this.lockTimer,
+            increaseGravity: this.increaseGravity
+        }
+    }
+
+    /**
+     * Restore game from saved state
+     */
+    static deserialize(data: any): Game {
+        const game = new Game()
+
+        // Basic stats
+        game.score = data.score
+        game.level = data.level
+        game.linesCleared = data.linesCleared
+        game.isGameOver = data.isGameOver
+        game.isPaused = data.isPaused
+        game.allowHold = data.allowHold
+        game.holdUsedThisTurn = data.holdUsedThisTurn
+        game.dropTimer = data.dropTimer
+        game.lockTimer = data.lockTimer
+        game.increaseGravity = data.increaseGravity
+
+        // Queues
+        if (data.pieceQueue) {
+            game.pieceQueue = [...data.pieceQueue]
+        }
+
+        // Reconstruct Board
+        // We assume board dimensions are standard 10x20. 
+        // If grid size differs from default, Board class might handle it if we passed params, 
+        // but here we just overwrite the grid.
+        if (data.board) {
+            // Deep copy grid to ensure no reference issues
+            game.board.grid = data.board.map((row: number[]) => [...row])
+        }
+
+        // Reconstruct Pieces
+        const restorePiece = (pieceData: any): Tetromino => {
+            const piece = new Tetromino(pieceData.type, pieceData.x, pieceData.y)
+            piece.rotationIndex = pieceData.rotationIndex
+            return piece
+        }
+
+        if (data.currentPiece) {
+            game.currentPiece = restorePiece(data.currentPiece)
+        }
+
+        if (data.nextPiece) {
+            game.nextPiece = restorePiece(data.nextPiece)
+        }
+
+        if (data.heldPiece) {
+            game.heldPiece = restorePiece(data.heldPiece)
+        } else {
+            game.heldPiece = null
+        }
+
+        return game
+    }
+
+    /**
      * Toggle pause state
      */
     togglePause(): void {

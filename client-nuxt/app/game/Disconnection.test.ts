@@ -18,6 +18,12 @@ describe('OnlineGame Disconnection Logic', () => {
             callbacks[event] = cb
         })
 
+        // Mock connect to resolve immediately without actual connection
+        vi.spyOn(socketService, 'connect').mockResolvedValue()
+        vi.spyOn(socketService, 'disconnect').mockImplementation(() => { })
+        vi.spyOn(socketService, 'send').mockImplementation(() => { })
+        vi.spyOn(socketService, 'removeAllListeners').mockImplementation(() => { })
+
         const game = new OnlineGame()
         game.init('ws://localhost:3000')
 

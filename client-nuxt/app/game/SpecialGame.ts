@@ -8,6 +8,7 @@
  * - Multiple visual effect types for line clears
  */
 import { Game } from './Game'
+import { Tetromino } from './Tetromino'
 import { applyGravity, clearLinesOnly } from './CascadeGravity'
 import { calculateScore } from './LineClearing'
 import { EffectSystem, EffectType, EFFECT_LABELS, type Particle, type GameEffect, type LineClearEffect, type WaveEffect } from './EffectSystem'
@@ -130,5 +131,84 @@ export class SpecialGame extends Game {
             this.chainCount = 0
             this.spawnNextPiece()
         }
+    }
+
+    /**
+     * Serialize special game state
+     */
+    override serialize(): any {
+        const baseState = super.serialize()
+        return {
+            ...baseState,
+            chainCount: this.chainCount,
+            isCascading: this.isCascading,
+            cascadeTimer: this.cascadeTimer,
+            effectType: this.effectType
+        }
+    }
+
+    /**
+     * Deserialize special game state
+     */
+    static override deserialize(data: any): SpecialGame {
+        // Create basic game instance first
+        const game = new SpecialGame()
+
+        // Restore base properties manually using the data
+        // We can't use super.deserialize because it returns a Game instance, not SpecialGame
+
+        // Basic stats
+        game.score = data.score
+        game.level = data.level
+        game.linesCleared = data.linesCleared
+        game.isGameOver = data.isGameOver
+        game.isPaused = data.isPaused
+        game.allowHold = data.allowHold
+        game.holdUsedThisTurn = data.holdUsedThisTurn
+        game.dropTimer = data.dropTimer
+        game.lockTimer = data.lockTimer
+        game.increaseGravity = data.increaseGravity
+
+        // Queues
+        if (data.pieceQueue) {
+            game.pieceQueue = [...data.pieceQueue]
+        }
+
+        // Reconstruct Board
+        if (data.board) {
+            game.board.grid = data.board.map((row: number[]) => [...row])
+        }
+
+        // Reconstruct Pieces
+        const restorePiece = (pieceData: any): Tetromino => {
+            const piece = new Tetromino(pieceData.type, pieceData.x, pieceData.y)
+            piece.rotationIndex = pieceData.rotationIndex
+            return piece
+        }
+
+        if (data.currentPiece) {
+            game.currentPiece = restorePiece(data.currentPiece)
+        }
+
+        if (data.nextPiece) {
+            game.nextPiece = restorePiece(data.nextPiece)
+        }
+
+        if (data.heldPiece) {
+            game.heldPiece = restorePiece(data.heldPiece)
+        } else {
+            game.heldPiece = null
+        }
+
+        // --- Restore Special Game Props ---
+        if (data.chainCount !== undefined) game.chainCount = data.chainCount
+        if (data.isCascading !== undefined) game.isCascading = data.isCascading
+        if (data.cascadeTimer !== undefined) game.cascadeTimer = data.cascadeTimer
+
+        if (data.effectType) {
+            game.setEffectType(data.effectType)
+        }
+
+        return game
     }
 }

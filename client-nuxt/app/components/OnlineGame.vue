@@ -87,7 +87,7 @@
       <!-- Mobile: Opponent info bar (full width) -->
       <div class="mobile-opponent-bar mobile-only">
         <span class="opp-label">Opponent: <strong>{{ onlineGame.opponentName || '???' }}</strong></span>
-        <span class="opp-score">{{ onlineGame.getOpponentScore() }}</span>
+        <span class="opp-score">{{ onlineGame.getOpponentScore().toLocaleString() }}</span>
       </div>
       
       <div class="board-wrapper" style="position: relative;">
@@ -102,7 +102,7 @@
                  <div class="mini-opponent-board desktop-only">
                     <div class="mini-header">
                         <span class="mini-label">{{ onlineGame.opponentName || 'OPPONENT' }}</span>
-                        <span class="mini-score">{{ onlineGame.getOpponentScore() }}</span>
+                        <span class="mini-score">{{ onlineGame.getOpponentScore().toLocaleString() }}</span>
                     </div>
                     <canvas ref="opponentCanvas" :width="canvasWidth" :height="canvasHeight" class="game-canvas opponent"></canvas>
                  </div>
@@ -130,10 +130,10 @@
                   <span v-else class="result-text lose">GAME OVER</span>
 
                   <div v-if="onlineGame.isWinner && onlineGame.winScore !== null" class="win-score">
-                      Win Score: {{ onlineGame.winScore }}
+                      Win Score: {{ onlineGame.winScore?.toLocaleString() }}
                   </div>
                    <div v-if="onlineGame.isWinner && !onlineGame.isPaused" class="max-score">
-                      Max Score: {{ onlineGame.score }}
+                      Max Score: {{ onlineGame.score.toLocaleString() }}
                   </div>
                   
                   <div v-if="matchSaved" class="save-status">✅ Match Saved!</div>
@@ -148,7 +148,7 @@
       </div>
 
       <div class="player-stats">
-        <span class="score">{{ onlineGame.score }}</span>
+        <span class="score">{{ onlineGame.score.toLocaleString() }}</span>
         <span>L{{ onlineGame.level }} • {{ onlineGame.linesCleared }}</span>
         
         <div v-if="onlineGame.isWinner || onlineGame.isGameOver" class="winner-controls">

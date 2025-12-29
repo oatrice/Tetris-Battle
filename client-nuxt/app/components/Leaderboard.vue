@@ -31,9 +31,24 @@
         </button>
       </div>
       
+      <!-- Source Switcher -->
+      <div v-if="activeTab === 'solo' || activeTab === 'special'" class="source-switcher">
+          <div class="switch-container">
+            <button :class="{ active: dataSource === 'global' }" @click="dataSource = 'global'">🌍 Global</button>
+            <button :class="{ active: dataSource === 'local' }" @click="dataSource = 'local'">💻 Local</button>
+          </div>
+      </div>
+      
+      <!-- Filters -->
+      <div v-if="activeTab === 'solo' || activeTab === 'special'" class="filters">
+        <button class="filter-btn" :class="{ active: filterType === 'all' }" @click="filterType = 'all'">All</button>
+        <button class="filter-btn" :class="{ active: filterType === 'normal' }" @click="filterType = 'normal'">🐢 Normal</button>
+        <button class="filter-btn" :class="{ active: filterType === 'speed' }" @click="filterType = 'speed'">⚡ Speed Inc.</button>
+      </div>
+      
       <!-- Empty State for Solo/Special -->
       <div v-if="entries.length === 0 && (activeTab === 'solo' || activeTab === 'special')" class="empty-state">
-        <p>ยังไม่มีสถิติ</p>
+        <p>ยังไม่มีสถิติ {{ filterType !== 'all' ? (filterType === 'speed' ? '(Speed Increase)' : '(Normal)') : '' }}</p>
         <p class="hint">เล่น {{ activeTab === 'solo' ? 'Normal' : 'Special' }} mode เพื่อบันทึกคะแนน!</p>
       </div>
 
@@ -137,7 +152,12 @@
         </div>
       </div>
 
-      <table v-else class="leaderboard-table">
+      <div v-if="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading Global Data...</p>
+      </div>
+
+      <table v-else-if="activeTab === 'solo' || activeTab === 'special'" class="leaderboard-table">
         <thead>
           <tr>
             <th>#</th>
@@ -159,7 +179,10 @@
               <span v-else-if="index === 2">🥉</span>
               <span v-else>{{ index + 1 }}</span>
             </td>
-            <td class="name">{{ entry.playerName }}</td>
+            <td class="name">
+              {{ entry.playerName }}
+              <span v-if="entry.hasIncreaseGravity" title="Played with Speed Increase" class="speed-icon">⚡</span>
+            </td>
             <td class="score">{{ entry.score.toLocaleString() }}</td>
             <td class="level">{{ entry.level }}</td>
             <td class="lines">{{ entry.lines }}</td>
@@ -175,7 +198,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { LeaderboardService, type LeaderboardEntry, type GameMode, type DuoMatchResult, type OnlineMatchResult } from '~/services/LeaderboardService'
 
 const props = defineProps<{
@@ -197,10 +220,38 @@ const formatDuration = (seconds?: number) => {
 
 
 const activeTab = ref<GameMode>(props.initialTab ?? 'solo')
+const filterType = ref<'all' | 'speed' | 'normal'>('all')
+const dataSource = ref<'local' | 'global'>('global') // Default to global
+const globalEntries = ref<LeaderboardEntry[]>([])
+const isLoading = ref(false)
+
+// Watchers to fetch data when tab/filter/source changes
+watch([activeTab, filterType, dataSource], async ([newTab, newFilter, newSource]) => {
+    if (newSource === 'global' && (newTab === 'solo' || newTab === 'special')) {
+        isLoading.value = true
+        globalEntries.value = await LeaderboardService.fetchGlobalLeaderboard(newTab, newFilter)
+        isLoading.value = false
+    }
+}, { immediate: true })
 
 const entries = computed<LeaderboardEntry[]>(() => {
     if (activeTab.value === 'duo' || activeTab.value === 'online') return []
-    return LeaderboardService.getLeaderboard(activeTab.value)
+    
+    // Global Mode
+    if (dataSource.value === 'global') {
+        return globalEntries.value
+    }
+
+    // Local Mode
+    let list = LeaderboardService.getLeaderboard(activeTab.value)
+    
+    if (filterType.value === 'speed') {
+        list = list.filter(e => e.hasIncreaseGravity)
+    } else if (filterType.value === 'normal') {
+        list = list.filter(e => !e.hasIncreaseGravity)
+    }
+    
+    return list
 })
 
 const duoSessions = computed<DuoMatchResult[]>(() => {
@@ -261,7 +312,38 @@ h2 {
 .mode-tabs {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.filters {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+}
+
+.filter-btn {
+    font-size: 0.75rem;
+    color: #aaa;
+    cursor: pointer;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s;
+    min-width: 60px;
+}
+
+.filter-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.filter-btn.active {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: #ffd700;
+    color: #ffd700;
+    font-weight: bold;
 }
 
 .tab {
@@ -586,6 +668,38 @@ h2 {
   font-size: 0.9rem;
 }
 
+.source-switcher {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.8rem;
+}
+
+.switch-container {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+}
+
+.switch-container button {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 16px;
+    transition: all 0.2s;
+}
+
+.switch-container button.active {
+    background: linear-gradient(135deg, #00d4ff, #005aff);
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 10px rgba(0, 212, 255, 0.3);
+}
+
 .actions {
   margin-top: 1rem;
   display: flex;
@@ -606,5 +720,12 @@ h2 {
 .close-btn:hover {
   transform: scale(1.05);
   box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+
+.speed-icon {
+  font-size: 0.8rem;
+  margin-left: 4px;
+  color: #ffd700;
+  vertical-align: middle;
 }
 </style>

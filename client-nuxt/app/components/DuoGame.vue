@@ -18,7 +18,7 @@
                 playerColor="#00d4ff"
             />
             <div class="player-stats">
-                <span class="score">{{ duoGame.player1.score }}</span>
+                <span class="score">{{ duoGame.player1.score.toLocaleString() }}</span>
                 <span>L{{ duoGame.player1.level }} • {{ duoGame.player1.linesCleared }}</span>
                 <div v-if="p1IsHighScore" class="record-badge">🏆 NEW RECORD!</div>
             </div>
@@ -91,7 +91,7 @@
                 playerColor="#ff6b6b"
             />
             <div class="player-stats">
-                <span class="score">{{ duoGame.player2.score }}</span>
+                <span class="score">{{ duoGame.player2.score.toLocaleString() }}</span>
                 <span>L{{ duoGame.player2.level }} • {{ duoGame.player2.linesCleared }}</span>
                 <div v-if="p2IsHighScore" class="record-badge">NEW HIGH SCORE!</div>
             </div>

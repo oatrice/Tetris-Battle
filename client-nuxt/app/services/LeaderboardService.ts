@@ -7,6 +7,9 @@
  * - Sort by score descending
  */
 
+import { db } from '~/firebase'
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
+
 export type GameMode = 'solo' | 'special' | 'duo' | 'online'
 
 export interface LeaderboardEntry {
@@ -16,6 +19,7 @@ export interface LeaderboardEntry {
     level: number
     lines: number
     date: string  // ISO date string
+    hasIncreaseGravity?: boolean // Optional for backward compatibility
 }
 
 export interface DuoMatchResult {
@@ -67,6 +71,43 @@ export class LeaderboardService {
             return []
         }
     }
+    /**
+     * Fetch global leaderboard from Firestore
+     */
+    static async fetchGlobalLeaderboard(mode: GameMode = 'solo', filterType: 'all' | 'speed' | 'normal' = 'all'): Promise<LeaderboardEntry[]> {
+        if (!db) return []
+
+        try {
+            const colRef = collection(db, `leaderboard_${mode}`)
+            let q = query(colRef, orderBy('score', 'desc'), limit(50))
+
+            if (filterType === 'speed') {
+                q = query(colRef, where('hasIncreaseGravity', '==', true), orderBy('score', 'desc'), limit(50))
+            } else if (filterType === 'normal') {
+                q = query(colRef, where('hasIncreaseGravity', '==', false), orderBy('score', 'desc'), limit(50))
+            }
+
+            // Note: For 'all', we might mix speed/normal. If we want perfect strict ordering, verify indexes.
+            // But simple score ordering should work if 'hasIncreaseGravity' is not in where clause.
+
+            const snapshot = await getDocs(q)
+            return snapshot.docs.map(doc => {
+                const data = doc.data()
+                return {
+                    id: doc.id,
+                    playerName: data.playerName,
+                    score: data.score,
+                    level: data.level,
+                    lines: data.lines,
+                    date: data.date, // or convert data.createdAt if needed
+                    hasIncreaseGravity: data.hasIncreaseGravity
+                } as LeaderboardEntry
+            })
+        } catch (e) {
+            console.error('[Leaderboard] Fetch Global Error:', e)
+            return []
+        }
+    }
 
     /**
      * Add a score to the leaderboard.
@@ -109,7 +150,32 @@ export class LeaderboardService {
         }
 
         localStorage.setItem(this.getStorageKey(mode), JSON.stringify(leaderboard))
+
+        // Fire & Forget upload to Firestore
+        this.uploadScoreToFirestore(newEntry, mode).catch(err => console.error('[Leaderboard] Upload failed', err))
+
         return { rank, id }
+    }
+
+    private static async uploadScoreToFirestore(entry: LeaderboardEntry, mode: GameMode) {
+        if (!db) {
+            console.warn('[Leaderboard] Firestore not initialized')
+            return
+        }
+        try {
+            console.log(`[Leaderboard] Attempting to upload to leaderboard_${mode}...`, entry)
+            const colRef = collection(db, `leaderboard_${mode}`)
+            const docRef = await addDoc(colRef, {
+                ...entry,
+                createdAt: serverTimestamp()
+            })
+            console.log(`[Leaderboard] ✅ Success! Document written with ID: ${docRef.id} to leaderboard_${mode}`)
+        } catch (e) {
+            console.error(`[Leaderboard] ❌ Firestore Error (leaderboard_${mode}):`, e)
+            if (e instanceof Error) {
+                console.error('Error details:', e.message, e.stack)
+            }
+        }
     }
 
     /**
@@ -202,7 +268,29 @@ export class LeaderboardService {
         }
 
         localStorage.setItem(this.STORAGE_KEY_DUO_SESSIONS, JSON.stringify(history))
+
+        // Upload
+        this.uploadDuoMatchToFirestore(newMatch).catch(console.error)
+
         return newMatch
+    }
+
+    private static async uploadDuoMatchToFirestore(match: DuoMatchResult) {
+        if (!db) {
+            console.warn('[Leaderboard] Firestore not initialized (Duo)')
+            return
+        }
+        try {
+            console.log('[Leaderboard] Uploading Duo Match...', match)
+            const colRef = collection(db, 'leaderboard_duo_matches')
+            const docRef = await addDoc(colRef, {
+                ...match,
+                createdAt: serverTimestamp()
+            })
+            console.log(`[Leaderboard] ✅ Duo Match uploaded! ID: ${docRef.id}`)
+        } catch (e) {
+            console.error('[Leaderboard] ❌ Duo Upload Error:', e)
+        }
     }
 
     // ==========================================
@@ -237,7 +325,29 @@ export class LeaderboardService {
         }
 
         localStorage.setItem(this.STORAGE_KEY_ONLINE_MATCHES, JSON.stringify(history))
+
+        // Upload
+        this.uploadOnlineMatchToFirestore(newMatch).catch(console.error)
+
         return newMatch
+    }
+
+    private static async uploadOnlineMatchToFirestore(match: OnlineMatchResult) {
+        if (!db) {
+            console.warn('[Leaderboard] Firestore not initialized (Online)')
+            return
+        }
+        try {
+            console.log('[Leaderboard] Uploading Online Match...', match)
+            const colRef = collection(db, 'leaderboard_online_matches')
+            const docRef = await addDoc(colRef, {
+                ...match,
+                createdAt: serverTimestamp()
+            })
+            console.log(`[Leaderboard] ✅ Online Match uploaded! ID: ${docRef.id}`)
+        } catch (e) {
+            console.error('[Leaderboard] ❌ Online Upload Error:', e)
+        }
     }
 
     static updateOnlineMatch(id: string, updates: Partial<Omit<OnlineMatchResult, 'id'>>): boolean {
