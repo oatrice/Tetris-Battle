@@ -31,9 +31,16 @@
         </button>
       </div>
       
+      <!-- Filters -->
+      <div v-if="activeTab === 'solo' || activeTab === 'special'" class="filters">
+        <button class="filter-btn" :class="{ active: filterType === 'all' }" @click="filterType = 'all'">All</button>
+        <button class="filter-btn" :class="{ active: filterType === 'normal' }" @click="filterType = 'normal'">🐢 Normal</button>
+        <button class="filter-btn" :class="{ active: filterType === 'speed' }" @click="filterType = 'speed'">⚡ Speed Inc.</button>
+      </div>
+      
       <!-- Empty State for Solo/Special -->
       <div v-if="entries.length === 0 && (activeTab === 'solo' || activeTab === 'special')" class="empty-state">
-        <p>ยังไม่มีสถิติ</p>
+        <p>ยังไม่มีสถิติ {{ filterType !== 'all' ? (filterType === 'speed' ? '(Speed Increase)' : '(Normal)') : '' }}</p>
         <p class="hint">เล่น {{ activeTab === 'solo' ? 'Normal' : 'Special' }} mode เพื่อบันทึกคะแนน!</p>
       </div>
 
@@ -200,10 +207,20 @@ const formatDuration = (seconds?: number) => {
 
 
 const activeTab = ref<GameMode>(props.initialTab ?? 'solo')
+const filterType = ref<'all' | 'speed' | 'normal'>('all')
 
 const entries = computed<LeaderboardEntry[]>(() => {
     if (activeTab.value === 'duo' || activeTab.value === 'online') return []
-    return LeaderboardService.getLeaderboard(activeTab.value)
+    
+    let list = LeaderboardService.getLeaderboard(activeTab.value)
+    
+    if (filterType.value === 'speed') {
+        list = list.filter(e => e.hasIncreaseGravity)
+    } else if (filterType.value === 'normal') {
+        list = list.filter(e => !e.hasIncreaseGravity)
+    }
+    
+    return list
 })
 
 const duoSessions = computed<DuoMatchResult[]>(() => {
@@ -264,7 +281,38 @@ h2 {
 .mode-tabs {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.filters {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+}
+
+.filter-btn {
+    font-size: 0.75rem;
+    color: #aaa;
+    cursor: pointer;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s;
+    min-width: 60px;
+}
+
+.filter-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.filter-btn.active {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: #ffd700;
+    color: #ffd700;
+    font-weight: bold;
 }
 
 .tab {
