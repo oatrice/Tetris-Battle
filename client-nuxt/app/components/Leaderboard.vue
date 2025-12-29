@@ -159,7 +159,10 @@
               <span v-else-if="index === 2">🥉</span>
               <span v-else>{{ index + 1 }}</span>
             </td>
-            <td class="name">{{ entry.playerName }}</td>
+            <td class="name">
+              {{ entry.playerName }}
+              <span v-if="entry.hasIncreaseGravity" title="Played with Speed Increase" class="speed-icon">⚡</span>
+            </td>
             <td class="score">{{ entry.score.toLocaleString() }}</td>
             <td class="level">{{ entry.level }}</td>
             <td class="lines">{{ entry.lines }}</td>
@@ -606,5 +609,12 @@ h2 {
 .close-btn:hover {
   transform: scale(1.05);
   box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+
+.speed-icon {
+  font-size: 0.8rem;
+  margin-left: 4px;
+  color: #ffd700;
+  vertical-align: middle;
 }
 </style>

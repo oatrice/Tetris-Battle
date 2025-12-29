@@ -19,6 +19,7 @@ export interface LeaderboardEntry {
     level: number
     lines: number
     date: string  // ISO date string
+    hasIncreaseGravity?: boolean // Optional for backward compatibility
 }
 
 export interface DuoMatchResult {

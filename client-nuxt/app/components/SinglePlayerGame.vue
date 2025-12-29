@@ -246,7 +246,8 @@ const saveHighScore = () => {
     score: props.game.score,
     level: props.game.level,
     lines: props.game.linesCleared,
-    date: new Date().toISOString()
+    date: new Date().toISOString(),
+    hasIncreaseGravity: props.game.increaseGravity
   }, gameMode.value)
   
   scoreSaved.value = true
