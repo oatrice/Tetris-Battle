@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.16.0] - 2025-12-29
+
+### Added
+- **Game State Persistence (Solo & Special)**:
+    - **Auto-Save on Pause**: Game state is now automatically saved to local storage when the game is paused.
+    - **Resume from Save**: The game automatically detects and loads the saved state when restarting Solo/Special mode.
+    - **Clear on Game Over**: Saved state is automatically cleared when the game ends.
+- **Restart Button**: Added a "Restart" button to the pause menu in Solo mode for quick game reset.
+
 ## [3.15.0] - 2025-12-28
 
 ### Added

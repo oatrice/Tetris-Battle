@@ -86,6 +86,7 @@
                 <span class="paused-text">⏸️ PAUSED</span>
                 <div class="overlay-buttons">
                     <button class="resume-btn" @click="game.togglePause()" title="Resume">▶️ Resume</button>
+                    <button class="restart-btn" @click="$emit('restart')" title="Restart Game">🔄 Restart</button>
                     <button class="home-btn" @click="$emit('back')" title="Back to Menu">🏠 Menu</button>
                 </div>
             </div>
@@ -282,24 +283,61 @@ watch(isNewHighScore, (newVal) => {
     }
 })
 
-// Reset high score state when game restarts
-watch(() => props.game.isGameOver, (isOver) => {
-  if (!isOver) {
-    scoreSaved.value = false
-    savedRank.value = null
-    playerName.value = ''
-    isEditingName.value = false
-    currentEntryId.value = null
-  }
+// Touch handlers are now provided by useTouchControls composable (see line ~155)
+
+// ============ Persistence ============
+const STORAGE_KEY_SOLO = 'tetris-save-solo'
+const STORAGE_KEY_SPECIAL = 'tetris-save-special'
+
+const getStorageKey = () => {
+    if (gameMode.value === 'solo') return STORAGE_KEY_SOLO
+    if (gameMode.value === 'special') return STORAGE_KEY_SPECIAL
+    return null
+}
+
+// Save state when paused
+watch(() => props.game.isPaused, (isPaused) => {
+    if (isPaused && !props.game.isGameOver) {
+        const key = getStorageKey()
+        if (key) {
+            const state = props.game.serialize()
+            localStorage.setItem(key, JSON.stringify(state))
+        }
+    }
 })
+
+// Clear save when game over
+watch(() => props.game.isGameOver, (isOver) => {
+    if (isOver) {
+        const key = getStorageKey()
+        if (key) {
+             localStorage.removeItem(key)
+        }
+        
+        scoreSaved.value = false
+        savedRank.value = null
+        playerName.value = ''
+        isEditingName.value = false
+        currentEntryId.value = null
+    } else {
+        // Game restarted (isGameOver becomes false when new game created?)
+        // Actually this watcher triggers when props.game.isGameOver changes for the CURRENT prop instance
+        // But if restart happens, the prop instance might be replaced entirely by parent.
+        // However, if we manually restart internally or if this prop is reactive object that resets properties...
+        // Let's keep the cleanup logic safe.
+        const key = getStorageKey()
+        if (key) {
+             localStorage.removeItem(key)
+        }
+    }
+})
+
 
 const onEffectChange = () => {
   if (props.isSpecialMode && 'setEffectType' in props.game) {
     (props.game as SpecialGame).setEffectType(selectedEffect.value)
   }
 }
-
-// Touch handlers are now provided by useTouchControls composable (see line ~155)
 
 const renderGame = () => {
   const ctx = canvas.value?.getContext('2d')

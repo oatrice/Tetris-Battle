@@ -162,7 +162,23 @@ const startSolo = async () => {
   await requestMobileFullscreen()
   
   gameMode.value = 'solo'
-  const game = new Game()
+  
+  // Check for saved game
+  let game: Game
+  const savedState = localStorage.getItem('tetris-save-solo')
+  if (savedState) {
+      try {
+          const data = JSON.parse(savedState)
+          game = Game.deserialize(data)
+          console.log('[App] Loaded saved game')
+      } catch (e) {
+          console.error('[App] Failed to load saved game', e)
+          game = new Game()
+      }
+  } else {
+      game = new Game()
+  }
+
   game.increaseGravity = increaseSpeed.value
   soloGame.value = reactive(game) as any
   startGameLoop()
@@ -175,7 +191,23 @@ const startSpecial = async () => {
   await requestMobileFullscreen()
   
   gameMode.value = 'special'
-  const game = new SpecialGame()
+
+  // Check for saved special game
+  let game: SpecialGame
+  const savedState = localStorage.getItem('tetris-save-special')
+  if (savedState) {
+      try {
+          const data = JSON.parse(savedState)
+          game = SpecialGame.deserialize(data)
+          console.log('[App] Loaded saved special game')
+      } catch (e) {
+          console.error('[App] Failed to load saved special game', e)
+          game = new SpecialGame()
+      }
+  } else {
+      game = new SpecialGame()
+  }
+
   game.increaseGravity = increaseSpeed.value
   soloGame.value = reactive(game) as any
   startGameLoop()
