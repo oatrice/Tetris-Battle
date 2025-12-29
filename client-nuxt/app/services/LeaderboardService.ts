@@ -8,7 +8,7 @@
  */
 
 import { db } from '~/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
 
 export type GameMode = 'solo' | 'special' | 'duo' | 'online'
 
@@ -68,6 +68,43 @@ export class LeaderboardService {
             const entries: LeaderboardEntry[] = JSON.parse(data)
             return entries.sort((a, b) => b.score - a.score)
         } catch {
+            return []
+        }
+    }
+    /**
+     * Fetch global leaderboard from Firestore
+     */
+    static async fetchGlobalLeaderboard(mode: GameMode = 'solo', filterType: 'all' | 'speed' | 'normal' = 'all'): Promise<LeaderboardEntry[]> {
+        if (!db) return []
+
+        try {
+            const colRef = collection(db, `leaderboard_${mode}`)
+            let q = query(colRef, orderBy('score', 'desc'), limit(50))
+
+            if (filterType === 'speed') {
+                q = query(colRef, where('hasIncreaseGravity', '==', true), orderBy('score', 'desc'), limit(50))
+            } else if (filterType === 'normal') {
+                q = query(colRef, where('hasIncreaseGravity', '==', false), orderBy('score', 'desc'), limit(50))
+            }
+
+            // Note: For 'all', we might mix speed/normal. If we want perfect strict ordering, verify indexes.
+            // But simple score ordering should work if 'hasIncreaseGravity' is not in where clause.
+
+            const snapshot = await getDocs(q)
+            return snapshot.docs.map(doc => {
+                const data = doc.data()
+                return {
+                    id: doc.id,
+                    playerName: data.playerName,
+                    score: data.score,
+                    level: data.level,
+                    lines: data.lines,
+                    date: data.date, // or convert data.createdAt if needed
+                    hasIncreaseGravity: data.hasIncreaseGravity
+                } as LeaderboardEntry
+            })
+        } catch (e) {
+            console.error('[Leaderboard] Fetch Global Error:', e)
             return []
         }
     }

@@ -31,6 +31,14 @@
         </button>
       </div>
       
+      <!-- Source Switcher -->
+      <div v-if="activeTab === 'solo' || activeTab === 'special'" class="source-switcher">
+          <div class="switch-container">
+            <button :class="{ active: dataSource === 'global' }" @click="dataSource = 'global'">🌍 Global</button>
+            <button :class="{ active: dataSource === 'local' }" @click="dataSource = 'local'">💻 Local</button>
+          </div>
+      </div>
+      
       <!-- Filters -->
       <div v-if="activeTab === 'solo' || activeTab === 'special'" class="filters">
         <button class="filter-btn" :class="{ active: filterType === 'all' }" @click="filterType = 'all'">All</button>
@@ -144,7 +152,12 @@
         </div>
       </div>
 
-      <table v-else class="leaderboard-table">
+      <div v-if="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading Global Data...</p>
+      </div>
+
+      <table v-else-if="activeTab === 'solo' || activeTab === 'special'" class="leaderboard-table">
         <thead>
           <tr>
             <th>#</th>
@@ -185,7 +198,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { LeaderboardService, type LeaderboardEntry, type GameMode, type DuoMatchResult, type OnlineMatchResult } from '~/services/LeaderboardService'
 
 const props = defineProps<{
@@ -208,10 +221,28 @@ const formatDuration = (seconds?: number) => {
 
 const activeTab = ref<GameMode>(props.initialTab ?? 'solo')
 const filterType = ref<'all' | 'speed' | 'normal'>('all')
+const dataSource = ref<'local' | 'global'>('global') // Default to global
+const globalEntries = ref<LeaderboardEntry[]>([])
+const isLoading = ref(false)
+
+// Watchers to fetch data when tab/filter/source changes
+watch([activeTab, filterType, dataSource], async ([newTab, newFilter, newSource]) => {
+    if (newSource === 'global' && (newTab === 'solo' || newTab === 'special')) {
+        isLoading.value = true
+        globalEntries.value = await LeaderboardService.fetchGlobalLeaderboard(newTab, newFilter)
+        isLoading.value = false
+    }
+}, { immediate: true })
 
 const entries = computed<LeaderboardEntry[]>(() => {
     if (activeTab.value === 'duo' || activeTab.value === 'online') return []
     
+    // Global Mode
+    if (dataSource.value === 'global') {
+        return globalEntries.value
+    }
+
+    // Local Mode
     let list = LeaderboardService.getLeaderboard(activeTab.value)
     
     if (filterType.value === 'speed') {
@@ -635,6 +666,38 @@ h2 {
 .level, .lines {
   color: #aaa;
   font-size: 0.9rem;
+}
+
+.source-switcher {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.8rem;
+}
+
+.switch-container {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+}
+
+.switch-container button {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 16px;
+    transition: all 0.2s;
+}
+
+.switch-container button.active {
+    background: linear-gradient(135deg, #00d4ff, #005aff);
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 10px rgba(0, 212, 255, 0.3);
 }
 
 .actions {
