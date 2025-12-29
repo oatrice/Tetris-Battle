@@ -1,5 +1,5 @@
 /**
- * SoloGame.vue Constants Unit Tests
+ * SinglePlayerGame.vue Constants Unit Tests
  * TDD: RED -> GREEN -> REFACTOR
  * 
  * Tests for:
@@ -10,9 +10,9 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
-describe('SoloGame Constants & Labels', () => {
+describe('SinglePlayerGame Constants & Labels', () => {
     // Read the source file
-    const sourcePath = resolve(__dirname, './SoloGame.vue')
+    const sourcePath = resolve(__dirname, './SinglePlayerGame.vue')
     const sourceCode = readFileSync(sourcePath, 'utf-8')
 
     // Extract CELL_SIZE from source code

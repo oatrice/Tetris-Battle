@@ -37,7 +37,7 @@
 
     <!-- Solo Mode -->
     <div v-else-if="gameMode === 'solo' || gameMode === 'special'" class="game-area">
-      <SoloGame :game="soloGame!" @restart="restartGame" @back="backToMenu" :isSpecialMode="gameMode === 'special'" />
+      <SinglePlayerGame :game="soloGame!" @restart="restartGame" @back="backToMenu" :isSpecialMode="gameMode === 'special'" />
     </div>
 
     <!-- Duo Mode -->
@@ -87,7 +87,7 @@ import { SpecialGame } from '~/game/SpecialGame'
 import { DuoGame } from '~/game/DuoGame'
 import { OnlineGame } from '~/game/OnlineGame'
 
-const SoloGame = defineAsyncComponent(() => import('~/components/SoloGame.vue'))
+const SinglePlayerGame = defineAsyncComponent(() => import('~/components/SinglePlayerGame.vue'))
 const DuoGameComponent = defineAsyncComponent(() => import('~/components/DuoGame.vue'))
 const OnlineGameComponent = defineAsyncComponent(() => import('~/components/OnlineGame.vue'))
 const LANGameComponent = defineAsyncComponent(() => import('~/components/LANGame.vue'))

@@ -155,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, defineAsyncComponent, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, defineAsyncComponent, computed } from 'vue'
 import { Game } from '~/game/Game'
 import { SpecialGame, EffectType, EFFECT_LABELS, type LineClearEffect, type WaveEffect, type Particle } from '~/game/SpecialGame'
 import { COLORS } from '~/game/shapes'
