@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.17.0] - 2025-12-29
+
+### Added
+- **Global Leaderboard Source Switcher**: Users can now select between "Local" and "Global" sources for the leaderboard.
+    - "Local" leaderboard displays scores from the current user's device.
+    - "Global" leaderboard displays scores from all users (requires Firebase authentication).
+- **Firebase Integration for Global Leaderboard**: Implemented Firebase for storing and retrieving global leaderboard scores.
+- **User Authentication Prompt**: Users will be prompted to sign in with Firebase if they wish to submit scores to the global leaderboard.
+
+### Changed
+- **Leaderboard Component Refactor**: The `Leaderboard.vue` component has been refactored to accommodate the new global source switching functionality.
+- **Firebase Service Update**: `LeaderboardService.ts` and `LeaderboardService.firebase.ts` have been updated to handle both local and global leaderboard data.
+- **Game Component Updates**: `DuoGame.vue` and `OnlineGame.vue` now correctly interact with the updated leaderboard service.
+
+### Fixed
+- **Leaderboard Data Fetching**: Ensured accurate fetching and display of scores from both local and global sources.
+
 ## [3.16.0] - 2025-12-29
 
 ### Added
