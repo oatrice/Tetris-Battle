@@ -31,5 +31,13 @@ rm -rf public
 echo "📦 Copying new assets..."
 cp -r client-nuxt/.output/public public
 
+echo "📝 Generating public/version.json..."
+FRONTEND_VERSION=$(grep '"version":' client-nuxt/package.json | head -n 1 | awk -F: '{ print $2 }' | sed 's/[", ]//g')
+GIT_HASH=$(git rev-parse --short HEAD)
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+echo "{\"version\": \"$FRONTEND_VERSION\", \"hash\": \"$GIT_HASH\", \"timestamp\": \"$TIMESTAMP\"}" > public/version.json
+
+
 echo "🍎 Starting Mac Simulation..."
 go run cmd/mac-sim/main.go

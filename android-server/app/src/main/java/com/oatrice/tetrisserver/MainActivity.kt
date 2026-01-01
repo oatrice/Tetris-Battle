@@ -5,21 +5,34 @@ import android.text.method.ScrollingMovementMethod
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.util.Collections
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 
 class MainActivity : AppCompatActivity() {
 
-    // private var server: TetrisServer? = null
     private var isRunning = false
     private lateinit var logTv: TextView
     private lateinit var ipTv: TextView
     private lateinit var toggleBtn: Button
+
+    private val logReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.oatrice.tetrisserver.LOG") {
+                val msg = intent.getStringExtra("msg")
+                msg?.let { appendLog(it) }
+            } else if (intent?.action == "com.oatrice.tetrisserver.STATUS") {
+                val status = intent.getBooleanExtra("isRunning", false)
+                isRunning = status
+                updateButtonState()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,68 +46,59 @@ class MainActivity : AppCompatActivity() {
 
         toggleBtn.setOnClickListener {
             if (isRunning) {
-                stopServer()
+                stopServerService()
             } else {
-                startServer()
+                startServerService()
             }
         }
 
         updateIp()
+        
+        // Register Receiver
+        val filter = IntentFilter().apply {
+            addAction("com.oatrice.tetrisserver.LOG")
+            addAction("com.oatrice.tetrisserver.STATUS")
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            registerReceiver(logReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+             registerReceiver(logReceiver, filter)
+        }
     }
     
     override fun onDestroy() {
         super.onDestroy()
-        stopServer()
+        unregisterReceiver(logReceiver)
     }
 
-    private fun startServer() {
-        try {
-            // Run Go Server in background thread because it blocks
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    // Set Logger
-                    // We must implement the Go interface: tetrisserver.Logger
-                    tetrisserver.Tetrisserver.setLogger(object : tetrisserver.Logger {
-                        override fun log(msg: String?) {
-                            msg?.let { 
-                                runOnUiThread { appendLog(it) }
-                            }
-                        }
-                    })
-                    
-                    withContext(Dispatchers.Main) {
-                        appendLog("Extensions loaded: ${tetrisserver.Tetrisserver.getVersion()}")
-                    }
-
-                    // Tetrisserver is the package name from the .aar
-                    tetrisserver.Tetrisserver.start(":8080")
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        appendLog("Go Server Error: ${e.message}")
-                    }
-                }
-            }
-
-            isRunning = true
-            toggleBtn.text = "Stop Server"
-            // toggleBtn.background.setTint(getColor(R.color.teal_700)) 
-            updateIp()
-            appendLog("Go Server starting on port 8080...")
-            appendLog("Frontend available at http://${getIpAddress()}:8080")
-        } catch (e: Exception) {
-            appendLog("Error starting: ${e.message}")
+    private fun startServerService() {
+        val intent = Intent(this, TetrisServerService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
         }
+        isRunning = true
+        updateButtonState()
+        appendLog("Requesting Server Start...")
+        updateIp()
     }
 
-    private fun stopServer() {
-        try {
-            tetrisserver.Tetrisserver.stop()
-            // server = null
-            isRunning = false
+    private fun stopServerService() {
+        val intent = Intent(this, TetrisServerService::class.java).apply {
+            action = "STOP"
+        }
+        startService(intent)
+        isRunning = false
+        updateButtonState()
+        appendLog("Requesting Server Stop...")
+    }
+
+    private fun updateButtonState() {
+        if (isRunning) {
+            toggleBtn.text = "Stop Server"
+        } else {
             toggleBtn.text = "Start Server"
-            appendLog("Server stopped.")
-        } catch (e: Exception) {
-            appendLog("Error stopping: ${e.message}")
         }
     }
 
@@ -106,14 +110,23 @@ class MainActivity : AppCompatActivity() {
     private fun appendLog(msg: String) {
         val current = logTv.text.toString()
         val newText = "$current\n$msg"
-        // Keep last 50 lines
+        // Keep last 100 lines
         val lines = newText.split("\n")
-        val truncated = if (lines.size > 50) lines.takeLast(50).joinToString("\n") else newText
+        val truncated = if (lines.size > 100) lines.takeLast(100).joinToString("\n") else newText
         
         logTv.text = truncated
         
-        // Auto scroll?
-        // Simple implementation
+        // Auto scroll
+        logTv.post {
+            if (logTv.lineCount > 0) {
+                val scrollAmount = logTv.layout.getLineTop(logTv.lineCount) - logTv.height
+                if (scrollAmount > 0) {
+                    logTv.scrollTo(0, scrollAmount)
+                } else {
+                    logTv.scrollTo(0, 0)
+                }
+            }
+        }
     }
 
     private fun getIpAddress(): String {
