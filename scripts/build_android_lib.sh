@@ -11,7 +11,7 @@
 #   3. Compiles the Go code into an Android Library (.aar) using Gomobile
 #
 # Output:
-#   android-server/app/libs/tetrisserver-lib-v1.2.0.aar
+#   android-server/app/libs/tetrisserver-lib-v1.3.0.aar
 # ==============================================================================
 
 set -e
@@ -24,7 +24,14 @@ echo "📂 Project Root: $PROJECT_ROOT"
 cd "$PROJECT_ROOT"
 
 # Version Configuration
-VERSION="v1.2.0"
+# Version Configuration
+echo "🔍 extracting version from client-nuxt/package.json..."
+FRONTEND_VERSION=$(grep '"version":' client-nuxt/package.json | head -n 1 | awk -F: '{ print $2 }' | sed 's/[", ]//g')
+LIB_VERSION="v1.3.0"
+GIT_HASH=$(git rev-parse --short HEAD)
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+VERSION="${LIB_VERSION}-client-v${FRONTEND_VERSION}"
 OUTPUT_AAR="android-server/app/libs/tetrisserver-lib-${VERSION}.aar"
 
 echo "🍏 Building Nuxt Client..."
@@ -34,9 +41,14 @@ cd ..
 
 echo "🧹 Cleaning old assets..."
 rm -rf public
+# Clean old libs to avoid confusion
+rm -f android-server/app/libs/tetrisserver-lib-*.aar
 
 echo "📦 Copying new assets..."
 cp -r client-nuxt/.output/public public
+
+echo "📝 Generating public/version.json..."
+echo "{\"version\": \"Frontend: v$FRONTEND_VERSION, Lib: $LIB_VERSION\", \"hash\": \"$GIT_HASH\", \"timestamp\": \"$TIMESTAMP\"}" > public/version.json
 
 echo "🤖 Building Android Library (${VERSION})..."
 

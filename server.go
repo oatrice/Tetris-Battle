@@ -368,9 +368,41 @@ func SetLogger(l Logger) {
 	log.SetOutput(&androidWriter{l: l})
 }
 
-// GetVersion returns the current version of the Go library
+// VersionInfo matches the structure of public/version.json
+type VersionInfo struct {
+	Version   string `json:"version"`
+	Hash      string `json:"hash"`
+	Timestamp string `json:"timestamp"`
+}
+
+var currentVersion string = "lib-v1.3.0" // Default fallback
+
+func loadVersion() {
+	file, err := content.Open("public/version.json")
+	if err != nil {
+		log.Printf("Could not open version.json: %v", err)
+		return
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Printf("Could not read version.json: %v", err)
+		return
+	}
+
+	var v VersionInfo
+	if err := json.Unmarshal(data, &v); err != nil {
+		log.Printf("Could not unmarshal version.json: %v", err)
+		return
+	}
+
+	currentVersion = fmt.Sprintf("%s-%s-%s", v.Version, v.Hash, v.Timestamp)
+}
+
+// GetVersion returns the current version of the Go library (synced with Frontend)
 func GetVersion() string {
-	return "lib-v1.2.0"
+	return currentVersion
 }
 
 // androidWriter adapts Logger to io.Writer for standard log package
@@ -499,6 +531,8 @@ func NewServerHandler() http.Handler {
 // Start launches the HTTP and WebSocket server on the specified port (e.g., ":8080")
 // usage: tetrisserver.Start(":8080")
 func Start(port string) {
+	loadVersion() // Load version on start
+
 	handler := NewServerHandler()
 
 	log.Println("Server starting on " + port)
