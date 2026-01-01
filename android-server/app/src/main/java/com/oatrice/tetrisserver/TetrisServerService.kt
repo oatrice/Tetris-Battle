@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import android.content.pm.ServiceInfo
+import android.util.Log
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.LinkedList
@@ -58,7 +59,14 @@ class TetrisServerService : Service() {
             }
         }
 
-        return START_STICKY
+        return START_STICKY // บอกระบบให้สร้าง Service ใหม่ถ้าถูกฆ่า
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        // ฟังก์ชันนี้จะทำงานเมื่อแอปถูกปัดทิ้ง (Swipe to kill)
+        // เราจะไม่ทำอะไรที่นี่เพื่อปล่อยให้ Foreground Service ทำงานต่อไป
+        Log.d("TetrisService", "Task removed, service stays alive in foreground.")
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -112,10 +120,8 @@ class TetrisServerService : Service() {
         val timestamp = timeFormat.format(Date())
         val formattedMsg = "[$timestamp] $msg"
 
-        // Broadcast to Activity
         broadcastLog(msg)
 
-        // Update local log list for notification
         synchronized(lastLogs) {
             if (lastLogs.size >= maxLogLines) {
                 lastLogs.removeFirst()
@@ -123,7 +129,6 @@ class TetrisServerService : Service() {
             lastLogs.addLast(formattedMsg)
         }
 
-        // Update Notification
         val notificationManager = getSystemService(NotificationManager::class.java)
         val summary = if (isRunning) "Server running on port 8080" else "Server stopped"
         notificationManager.notify(1, createNotification(summary))
@@ -144,11 +149,11 @@ class TetrisServerService : Service() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
                 channelId,
                 "Tetris Server Channel",
-                NotificationManager.IMPORTANCE_LOW // Use LOW to avoid sound on every log update
+                NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
@@ -188,7 +193,7 @@ class TetrisServerService : Service() {
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Server", stopPendingIntent)
             .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW) // Priority LOW to match IMPORTANCE_LOW
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
