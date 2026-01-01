@@ -48,7 +48,7 @@ echo "📦 Copying new assets..."
 cp -r client-nuxt/.output/public public
 
 echo "📝 Generating public/version.json..."
-echo "{\"version\": \"$FRONTEND_VERSION\", \"hash\": \"$GIT_HASH\", \"timestamp\": \"$TIMESTAMP\"}" > public/version.json
+echo "{\"version\": \"Frontend: v$FRONTEND_VERSION, Lib: $LIB_VERSION\", \"hash\": \"$GIT_HASH\", \"timestamp\": \"$TIMESTAMP\"}" > public/version.json
 
 echo "🤖 Building Android Library (${VERSION})..."
 
