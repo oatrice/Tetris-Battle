@@ -40,10 +40,11 @@ class MainActivity : AppCompatActivity() {
 
     private val logReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d(TAG, "OnReceive: ${intent?.action}")
             when (intent?.action) {
                 "com.oatrice.tetrisserver.LOG" -> {
-                    intent.getStringExtra("msg")?.let { queueLog(it) }
+                    val msg = intent.getStringExtra("msg")
+                    Log.d(TAG, "Log Received: $msg")
+                    msg?.let { queueLog(it) }
                 }
                 "com.oatrice.tetrisserver.STATUS" -> {
                     isRunning = intent.getBooleanExtra("isRunning", false)
@@ -56,7 +57,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "onCreate")
         setContentView(R.layout.activity_main)
 
         logTv = findViewById(R.id.logText)
@@ -65,19 +65,16 @@ class MainActivity : AppCompatActivity() {
         logScrollView = findViewById(R.id.logScrollView)
 
         toggleBtn.setOnClickListener {
-            Log.d(TAG, "Button Clicked! isRunning=$isRunning")
             if (isRunning) stopServerService() else checkNotificationPermissionAndStart()
         }
 
         updateIp()
-        registerReceivers()
-    }
-
-    private fun registerReceivers() {
+        
         val filter = IntentFilter().apply {
             addAction("com.oatrice.tetrisserver.LOG")
             addAction("com.oatrice.tetrisserver.STATUS")
         }
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(logReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
@@ -98,31 +95,18 @@ class MainActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 101) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "Permission Granted by User")
-                startServerService()
-            } else {
-                Log.d(TAG, "Permission Denied by User")
-                queueLog("System: Notification permission denied. Server will start but notification might not show.")
-                startServerService()
-            }
+            startServerService()
         }
     }
 
     private fun startServerService() {
-        Log.d(TAG, "Starting service...")
         val intent = Intent(this, TetrisServerService::class.java)
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
-            queueLog("Requesting Server Start...")
-        } catch (e: Exception) {
-            Log.e(TAG, "Start Service Error", e)
-            queueLog("Error: ${e.message}")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
         }
+        updateIp()
     }
 
     private fun stopServerService() {
@@ -144,10 +128,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun queueLog(msg: String) {
         val timestamp = timeFormat.format(Date())
-        synchronized(logBuffer) { logBuffer.append("[$timestamp] $msg\n") }
+        synchronized(logBuffer) {
+            logBuffer.append("[$timestamp] $msg\n")
+        }
         if (!isUpdatePending) {
             isUpdatePending = true
-            handler.postDelayed({ updateLogUi() }, 300)
+            handler.postDelayed({ updateLogUi() }, 100) // เร็วขึ้นเป็น 100ms
         }
     }
 
@@ -159,17 +145,25 @@ class MainActivity : AppCompatActivity() {
             isUpdatePending = false
         }
         if (newLogs.isNotEmpty()) {
-            logTv.append(newLogs)
-            logScrollView.post { logScrollView.fullScroll(ScrollView.FOCUS_DOWN) }
+            runOnUiThread {
+                logTv.append(newLogs)
+                logScrollView.post {
+                    logScrollView.fullScroll(ScrollView.FOCUS_DOWN)
+                }
+            }
         }
     }
 
     private fun getIpAddress(): String {
-        return try {
+        try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
-            Collections.list(interfaces).flatMap { Collections.list(it.inetAddresses) }
-                .firstOrNull { !it.isLoopbackAddress && it is Inet4Address }?.hostAddress ?: "Unknown"
-        } catch (e: Exception) { "Error" }
+            for (intf in Collections.list(interfaces)) {
+                for (addr in Collections.list(intf.inetAddresses)) {
+                    if (!addr.isLoopbackAddress && addr is Inet4Address) return addr.hostAddress ?: ""
+                }
+            }
+        } catch (e: Exception) { }
+        return "Unknown"
     }
 
     override fun onDestroy() {
