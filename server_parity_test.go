@@ -124,7 +124,7 @@ func TestVersionEndpoint(t *testing.T) {
 
 	body, _ := io.ReadAll(resp.Body)
 	version := string(body)
-	expected := "lib-v1.2.0"
+	expected := "lib-v1.3.0"
 
 	if version != expected {
 		t.Errorf("Expected version '%s', got '%s'", expected, version)

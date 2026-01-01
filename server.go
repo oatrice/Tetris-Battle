@@ -375,7 +375,7 @@ type VersionInfo struct {
 	Timestamp string `json:"timestamp"`
 }
 
-var currentVersion string = "lib-v1.2.0" // Default fallback
+var currentVersion string = "lib-v1.3.0" // Default fallback
 
 func loadVersion() {
 	file, err := content.Open("public/version.json")

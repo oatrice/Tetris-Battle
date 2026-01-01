@@ -11,7 +11,7 @@
 #   3. Compiles the Go code into an Android Library (.aar) using Gomobile
 #
 # Output:
-#   android-server/app/libs/tetrisserver-lib-v1.2.0.aar
+#   android-server/app/libs/tetrisserver-lib-v1.3.0.aar
 # ==============================================================================
 
 set -e
@@ -27,7 +27,7 @@ cd "$PROJECT_ROOT"
 # Version Configuration
 echo "🔍 extracting version from client-nuxt/package.json..."
 FRONTEND_VERSION=$(grep '"version":' client-nuxt/package.json | head -n 1 | awk -F: '{ print $2 }' | sed 's/[", ]//g')
-LIB_VERSION="v1.2.0"
+LIB_VERSION="v1.3.0"
 GIT_HASH=$(git rev-parse --short HEAD)
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
