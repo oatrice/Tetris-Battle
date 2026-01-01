@@ -2,7 +2,17 @@
 
 All notable changes to the Android Server App project will be documented in this file.
 
-## [1.2.0] - 2025-12-28
+## [1.3.0] - 2026-01-01
+
+### Added
+- **Background Service:** Server now runs as a foreground service, allowing it to continue operating even when the app is in the background or the screen is off.
+- **Notification Control:** Added a persistent notification with a "Stop Server" action for quick control.
+- **Log Improvement:** Added auto-scroll functionality to the log view.
+- **Detailed Versioning:** Server now displays the Frontend version, Git Hash, and Timestamp alongside the Library version (e.g., `lib-v1.2.0-3.16.0-hash-timestamp`).
+
+### Changed
+- **Build Process:** Updated build scripts to automatically generate `version.json` and embed it into the Android Library.
+- **File Naming:** Generated AAR files now include both library and client versions in their filenames.
 
 ## [1.2.0] - 2025-12-28
 
