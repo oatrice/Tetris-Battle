@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.17.0] - 2026-01-01
+
+### Added
+- **Foreground Service for Android Server**: The Android server now runs as a foreground service, ensuring uninterrupted operation in the background.
+- **Foreground Service Notification**: A persistent notification is displayed when the foreground service is active, providing visual feedback to the user.
+- **Background Operation for Android Server**: The Android server can now operate reliably in the background without being terminated by the system.
+
 ## [3.16.0] - 2025-12-29
 
 ### Added
