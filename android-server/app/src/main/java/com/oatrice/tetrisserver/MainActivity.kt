@@ -14,9 +14,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
+import android.provider.Settings
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -31,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var logTv: TextView
     private lateinit var ipTv: TextView
     private lateinit var toggleBtn: Button
+    private lateinit var batterySetupBtn: Button
     private lateinit var logScrollView: ScrollView
     
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
@@ -43,12 +47,10 @@ class MainActivity : AppCompatActivity() {
             when (intent?.action) {
                 "com.oatrice.tetrisserver.LOG" -> {
                     val msg = intent.getStringExtra("msg")
-                    Log.d(TAG, "Log Received: $msg")
                     msg?.let { queueLog(it) }
                 }
                 "com.oatrice.tetrisserver.STATUS" -> {
                     isRunning = intent.getBooleanExtra("isRunning", false)
-                    Log.d(TAG, "Status Update: isRunning = $isRunning")
                     updateButtonState()
                 }
             }
@@ -62,19 +64,43 @@ class MainActivity : AppCompatActivity() {
         logTv = findViewById(R.id.logText)
         ipTv = findViewById(R.id.ipAddressText)
         toggleBtn = findViewById(R.id.toggleServerBtn)
+        batterySetupBtn = findViewById(R.id.batteryOptimizeBtn)
         logScrollView = findViewById(R.id.logScrollView)
 
         toggleBtn.setOnClickListener {
             if (isRunning) stopServerService() else checkNotificationPermissionAndStart()
         }
 
+        batterySetupBtn.setOnClickListener {
+            requestIgnoreBatteryOptimizations()
+        }
+
         updateIp()
-        
+        registerReceivers()
+    }
+
+    private fun requestIgnoreBatteryOptimizations() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = Intent()
+            val packageName = packageName
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                intent.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                intent.data = Uri.parse("package:$packageName")
+                startActivity(intent)
+            } else {
+                // Already ignored, show system battery settings as alternative
+                intent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+                startActivity(intent)
+            }
+        }
+    }
+
+    private fun registerReceivers() {
         val filter = IntentFilter().apply {
             addAction("com.oatrice.tetrisserver.LOG")
             addAction("com.oatrice.tetrisserver.STATUS")
         }
-        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(logReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
@@ -133,7 +159,7 @@ class MainActivity : AppCompatActivity() {
         }
         if (!isUpdatePending) {
             isUpdatePending = true
-            handler.postDelayed({ updateLogUi() }, 100) // เร็วขึ้นเป็น 100ms
+            handler.postDelayed({ updateLogUi() }, 100)
         }
     }
 
