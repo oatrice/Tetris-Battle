@@ -13,6 +13,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+import android.content.pm.ServiceInfo
+
 class TetrisServerService : Service() {
 
     private var isRunning = false
@@ -33,8 +35,25 @@ class TetrisServerService : Service() {
         }
 
         if (!isRunning) {
-            startForeground(1, createNotification("Starting server..."))
-            startServer()
+             try {
+                // For Android 14 (API 34) and above, we must specify the type
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(
+                        1, 
+                        createNotification("Starting server..."),
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                    )
+                } else {
+                    startForeground(1, createNotification("Starting server..."))
+                }
+                
+                broadcastLog("Service Starting...")
+                startServer()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                broadcastLog("Error starting foreground: ${e.message}")
+                stopSelf()
+            }
         }
 
         return START_STICKY
@@ -45,19 +64,20 @@ class TetrisServerService : Service() {
     }
 
     override fun onDestroy() {
+        broadcastLog("Service Destroyed")
         stopServer()
         super.onDestroy()
     }
 
     private fun startServer() {
         isRunning = true
+        broadcastStatus(true)
+        
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 tetrisserver.Tetrisserver.setLogger(object : tetrisserver.Logger {
                     override fun log(msg: String?) {
-                        val intent = Intent("com.oatrice.tetrisserver.LOG")
-                        intent.putExtra("msg", msg)
-                        sendBroadcast(intent)
+                        msg?.let { broadcastLog(it) }
                     }
                 })
                 
@@ -65,10 +85,13 @@ class TetrisServerService : Service() {
                 val notificationManager = getSystemService(NotificationManager::class.java)
                 notificationManager.notify(1, createNotification("Server running on port 8080"))
 
+                broadcastLog("Go Server Launching...")
                 tetrisserver.Tetrisserver.start(":8080")
             } catch (e: Exception) {
                 e.printStackTrace()
+                broadcastLog("Go Server Crashed: ${e.message}")
                 isRunning = false
+                broadcastStatus(false)
                 stopSelf()
             }
         }
@@ -82,11 +105,23 @@ class TetrisServerService : Service() {
                 e.printStackTrace()
             }
             isRunning = false
-            
-            val intent = Intent("com.oatrice.tetrisserver.STATUS")
-            intent.putExtra("isRunning", false)
-            sendBroadcast(intent)
+            broadcastStatus(false)
+            broadcastLog("Server Stopped")
         }
+    }
+
+    private fun broadcastLog(msg: String) {
+        val intent = Intent("com.oatrice.tetrisserver.LOG")
+        intent.putExtra("msg", msg)
+        intent.setPackage(packageName) // Explicit broadcast to self
+        sendBroadcast(intent)
+    }
+
+    private fun broadcastStatus(running: Boolean) {
+        val intent = Intent("com.oatrice.tetrisserver.STATUS")
+        intent.putExtra("isRunning", running)
+        intent.setPackage(packageName) // Explicit broadcast to self
+        sendBroadcast(intent)
     }
 
     private fun createNotificationChannel() {
@@ -127,6 +162,7 @@ class TetrisServerService : Service() {
             .setContentIntent(pendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Server", stopPendingIntent)
             .setOngoing(true)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
 }
