@@ -12,13 +12,15 @@ import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
 import android.content.pm.ServiceInfo
+import java.util.LinkedList
 
 class TetrisServerService : Service() {
 
     private var isRunning = false
     private val channelId = "TetrisServer"
+    private val lastLogs = LinkedList<String>()
+    private val maxLogLines = 3
 
     override fun onCreate() {
         super.onCreate()
@@ -36,18 +38,14 @@ class TetrisServerService : Service() {
 
         if (!isRunning) {
              try {
-                // For Android 14 (API 34) and above, we must specify the type
+                val notification = createNotification("Starting server...")
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(
-                        1, 
-                        createNotification("Starting server..."),
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-                    )
+                    startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
                 } else {
-                    startForeground(1, createNotification("Starting server..."))
+                    startForeground(1, notification)
                 }
                 
-                broadcastLog("Service Starting...")
+                updateLogsAndNotify("Service Starting...")
                 startServer()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -64,7 +62,7 @@ class TetrisServerService : Service() {
     }
 
     override fun onDestroy() {
-        broadcastLog("Service Destroyed")
+        updateLogsAndNotify("Service Destroyed")
         stopServer()
         super.onDestroy()
     }
@@ -77,19 +75,15 @@ class TetrisServerService : Service() {
             try {
                 tetrisserver.Tetrisserver.setLogger(object : tetrisserver.Logger {
                     override fun log(msg: String?) {
-                        msg?.let { broadcastLog(it) }
+                        msg?.let { updateLogsAndNotify(it) }
                     }
                 })
                 
-                // Update notification text
-                val notificationManager = getSystemService(NotificationManager::class.java)
-                notificationManager.notify(1, createNotification("Server running on port 8080"))
-
-                broadcastLog("Go Server Launching...")
+                updateLogsAndNotify("Go Server Launching...")
                 tetrisserver.Tetrisserver.start(":8080")
             } catch (e: Exception) {
                 e.printStackTrace()
-                broadcastLog("Go Server Crashed: ${e.message}")
+                updateLogsAndNotify("Go Server Crashed: ${e.message}")
                 isRunning = false
                 broadcastStatus(false)
                 stopSelf()
@@ -106,21 +100,39 @@ class TetrisServerService : Service() {
             }
             isRunning = false
             broadcastStatus(false)
-            broadcastLog("Server Stopped")
+            updateLogsAndNotify("Server Stopped")
         }
+    }
+
+    private fun updateLogsAndNotify(msg: String) {
+        // Broadcast to Activity
+        broadcastLog(msg)
+
+        // Update local log list for notification
+        synchronized(lastLogs) {
+            if (lastLogs.size >= maxLogLines) {
+                lastLogs.removeFirst()
+            }
+            lastLogs.addLast(msg)
+        }
+
+        // Update Notification
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        val summary = if (isRunning) "Server running on port 8080" else "Server stopped"
+        notificationManager.notify(1, createNotification(summary))
     }
 
     private fun broadcastLog(msg: String) {
         val intent = Intent("com.oatrice.tetrisserver.LOG")
         intent.putExtra("msg", msg)
-        intent.setPackage(packageName) // Explicit broadcast to self
+        intent.setPackage(packageName)
         sendBroadcast(intent)
     }
 
     private fun broadcastStatus(running: Boolean) {
         val intent = Intent("com.oatrice.tetrisserver.STATUS")
         intent.putExtra("isRunning", running)
-        intent.setPackage(packageName) // Explicit broadcast to self
+        intent.setPackage(packageName)
         sendBroadcast(intent)
     }
 
@@ -155,12 +167,18 @@ class TetrisServerService : Service() {
             PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Prepare multi-line text for expanded view
+        val bigText = synchronized(lastLogs) {
+            lastLogs.joinToString("\n")
+        }
+
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("Tetris Battle Server")
             .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Server", stopPendingIntent)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText)) // This enables the expanded view
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
