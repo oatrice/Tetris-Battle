@@ -77,6 +77,27 @@ class MainActivity : AppCompatActivity() {
 
         updateIp()
         registerReceivers()
+        checkPermissionsState() // เช็คสถานะสิทธิ์เมื่อเปิดแอป
+    }
+
+    private fun checkPermissionsState() {
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val isIgnoringBattery = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pm.isIgnoringBatteryOptimizations(packageName)
+        } else true
+
+        val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else true
+
+        queueLog("--- System Check ---")
+        queueLog("Battery Optimization Ignored: $isIgnoringBattery")
+        queueLog("Notification Permission: $hasNotificationPermission")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val intent = Intent(this, TetrisServerService::class.java)
+            queueLog("Device Brand: ${Build.BRAND}, Model: ${Build.MODEL}")
+        }
+        queueLog("--------------------")
     }
 
     private fun requestIgnoreBatteryOptimizations() {
@@ -89,7 +110,6 @@ class MainActivity : AppCompatActivity() {
                 intent.data = Uri.parse("package:$packageName")
                 startActivity(intent)
             } else {
-                // Already ignored, show system battery settings as alternative
                 intent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
                 startActivity(intent)
             }
