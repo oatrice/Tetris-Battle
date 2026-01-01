@@ -2,7 +2,7 @@
 
 <!-- Version Badges -->
 ![Frontend](https://img.shields.io/badge/Frontend-v3.16.0-00DC82?logo=nuxt.js&logoColor=white)
-![Android Server](https://img.shields.io/badge/Android_Server-v1.2.0-3DDC84?logo=android&logoColor=white)
+![Android Server](https://img.shields.io/badge/Android_Server-v1.3.0-3DDC84?logo=android&logoColor=white)
 
 <!-- Tech Stack Badges -->
 ![Nuxt](https://img.shields.io/badge/Nuxt-4.x-00DC82?logo=nuxt.js)
