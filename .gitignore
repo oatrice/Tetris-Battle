@@ -50,3 +50,4 @@ public/
 tetris-server-android
 android-server/app/libs/*.aar
 android-server/app/libs/*.jar
+android-server/app/libs
