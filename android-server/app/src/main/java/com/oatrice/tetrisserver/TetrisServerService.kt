@@ -13,7 +13,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import android.content.pm.ServiceInfo
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.LinkedList
+import java.util.Locale
 
 class TetrisServerService : Service() {
 
@@ -21,6 +24,7 @@ class TetrisServerService : Service() {
     private val channelId = "TetrisServer"
     private val lastLogs = LinkedList<String>()
     private val maxLogLines = 3
+    private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
     override fun onCreate() {
         super.onCreate()
@@ -105,6 +109,9 @@ class TetrisServerService : Service() {
     }
 
     private fun updateLogsAndNotify(msg: String) {
+        val timestamp = timeFormat.format(Date())
+        val formattedMsg = "[$timestamp] $msg"
+
         // Broadcast to Activity
         broadcastLog(msg)
 
@@ -113,7 +120,7 @@ class TetrisServerService : Service() {
             if (lastLogs.size >= maxLogLines) {
                 lastLogs.removeFirst()
             }
-            lastLogs.addLast(msg)
+            lastLogs.addLast(formattedMsg)
         }
 
         // Update Notification
@@ -137,11 +144,11 @@ class TetrisServerService : Service() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
             val serviceChannel = NotificationChannel(
                 channelId,
                 "Tetris Server Channel",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_LOW // Use LOW to avoid sound on every log update
             )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
@@ -149,12 +156,14 @@ class TetrisServerService : Service() {
     }
 
     private fun createNotification(content: String): Notification {
-        val notificationIntent = Intent(this, MainActivity::class.java)
+        val notificationIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
         val pendingIntent = PendingIntent.getActivity(
             this,
             0,
             notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
         val stopIntent = Intent(this, TetrisServerService::class.java).apply {
@@ -167,7 +176,6 @@ class TetrisServerService : Service() {
             PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Prepare multi-line text for expanded view
         val bigText = synchronized(lastLogs) {
             lastLogs.joinToString("\n")
         }
@@ -178,9 +186,9 @@ class TetrisServerService : Service() {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Server", stopPendingIntent)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText)) // This enables the expanded view
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_LOW) // Priority LOW to match IMPORTANCE_LOW
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
